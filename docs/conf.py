@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 import mock
  
-MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'tensorflow', 'h5py', 'scipy.spatial.distance', 'scipy.spatial', 'scipy.optimize', 'scipy.sparse', 'sklearn.utils.murmurhash', 'numpy.core', 'numpy.core.numeric']
+MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'tensorflow', 'h5py', 'scipy.spatial.distance', 'scipy.spatial', 'scipy.optimize', 'scipy.sparse', 'sklearn.utils.murmurhash', 'numpy.core', 'numpy.core.numeric', 'scipy.sparse.linalg']
 for mod_name in MOCK_MODULES:
 	sys.modules[mod_name] = mock.Mock()
 
