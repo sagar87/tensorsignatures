@@ -11,7 +11,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['scipy>=1.1.0', 'pandas>=0.23.4', 'h5py>=2.8.0', 'numpy>=1.14.5', 'sklearn>=0.20.0']
+requirements = ['scipy>=1.1.0', 'pandas>=0.23.4', 'h5py>=2.8.0', 'numpy>=1.14.5', 'scikit-learn>=0.20.0']
 
 setup_requirements = [ ]
 
