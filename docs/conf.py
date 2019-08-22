@@ -1,10 +1,3 @@
-import mock
- 
-MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'tensorflow']
-for mod_name in MOCK_MODULES:
-	sys.modules[mod_name] = mock.Mock()
-
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
@@ -28,6 +21,12 @@ for mod_name in MOCK_MODULES:
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
+
+import mock
+ 
+MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'tensorflow']
+for mod_name in MOCK_MODULES:
+	sys.modules[mod_name] = mock.Mock()
 
 import tensorsignatures
 
