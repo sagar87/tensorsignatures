@@ -9,5 +9,4 @@ __version__ = '0.1.0'
 
 from tensorsignatures.tensorsignatures import *
 from tensorsignatures.config import *
-from tensorsignatures.model import *
 from tensorsignatures.util import *
