@@ -35,13 +35,13 @@ OTHER_MUTATIONS = resource_filename('tensorsignatures', 'data/othermut.csv')
 MORITZ_OTHER = resource_filename('tensorsignatures', 'data/allTable.txt')
 MORITZ_TNC = resource_filename('tensorsignatures', 'data/tncTransRep.txt')
 	
-PCAWG_SIGNATURES = resource_filename('tfNMF', 'data/pcawg_signatures.txt')
-PCAWG_EXPOSURES = resource_filename('tfNMF', 'data/pcawg_exposures.txt')
-PCAWG_SAMPLES = resource_filename('tfNMF', 'data/pcawg_samples.txt')
-PCAWG_TRINUC = resource_filename('tfNMF', 'data/pcawg_trinucleotides.txt')
-PCAWG_LABELS = resource_filename('tfNMF', 'data/pcawg_labels.txt')
-PCAWG_TUMOUR = resource_filename('tfNMF', 'data/pcawg_tumour.txt')
-PCAWG_COLORS = resource_filename('tfNMF', 'data/pcawg_colors.txt')
+PCAWG_SIGNATURES = resource_filename('tensorsignatures', 'data/pcawg_signatures.txt')
+PCAWG_EXPOSURES = resource_filename('tensorsignatures', 'data/pcawg_exposures.txt')
+PCAWG_SAMPLES = resource_filename('tensorsignatures', 'data/pcawg_samples.txt')
+PCAWG_TRINUC = resource_filename('tensorsignatures', 'data/pcawg_trinucleotides.txt')
+PCAWG_LABELS = resource_filename('tensorsignatures', 'data/pcawg_labels.txt')
+PCAWG_TUMOUR = resource_filename('tensorsignatures', 'data/pcawg_tumour.txt')
+PCAWG_COLORS = resource_filename('tensorsignatures', 'data/pcawg_colors.txt')
 
 # PCAWG_DATA = {'PCAWG_COUNTS': PCAWG_COUNTS,
 #               'PCAWG_SIGNATURES': PCAWG_SIGNATURES,
