@@ -29,7 +29,7 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
         return MagicMock()
  
-MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'tensorflow', 'h5py', 'scipy.spatial.distance', 'scipy.spatial', 'scipy.optimize', 'scipy.misc', 'scipy.special', 'scipy.sparse', 'scipy.linalg', 'sklearn.utils.murmurhash', 'numpy.core', 'numpy.core.numeric', 'scipy.sparse.linalg']
+MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'tensorflow', 'h5py', 'scipy.spatial.distance', 'scipy.spatial', 'scipy.optimize', 'scipy.misc', 'scipy.special', 'scipy.sparse', 'scipy.linalg', 'scipy.stats', 'sklearn.utils.murmurhash', 'numpy.core', 'numpy.core.numeric', 'scipy.sparse.linalg']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 import tensorsignatures
