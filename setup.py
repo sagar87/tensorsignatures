@@ -28,21 +28,21 @@ setup(
         'Programming Language :: Python :: 3.6'
     ],
     description="Tensorframework for mutational signature analysis.",
-    # entry_points={
-    #     'console_scripts': [
-    #         'tensorsignatures=tensorsignatures.writer:main',
-    #         'tensorsignatures=tensorsignatures.benchmark:main',
-    #         'tensorsignatures=tensorsignatures.train:main',
-    #         'tensorsignatures=tensorsignatures.bootstrap:main',
-    #     ],
-    # },
+    entry_points={
+        'console_scripts': [
+            'tswriter=tensorsignatures.writer:main',
+            'tsbench=tensorsignatures.benchmark:main',
+            'tstrain=tensorsignatures.train:main',
+            'tsboot=tensorsignatures.bootstrap:main',
+        ],
+    },
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
     include_package_data=True,
     keywords='tensorsignatures',
     name='tensorsignatures',
-    packages=find_packages(), #include=['tensorsignatures']
+    packages=find_packages(include=['tensorsignatures']), #
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
