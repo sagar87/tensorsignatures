@@ -4,9 +4,9 @@ from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
 
 
-from sklearn.metrics import silhouette_score
-from sklearn.metrics import silhouette_samples
-from sklearn.decomposition import NMF
+#from sklearn.metrics import silhouette_score
+#from sklearn.metrics import silhouette_samples
+#from sklearn.decomposition import NMF
 from scipy.stats import nbinom
 from scipy.stats import poisson
 from scipy.stats import kstest
