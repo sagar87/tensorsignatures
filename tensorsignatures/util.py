@@ -296,19 +296,19 @@ class Cluster(object):
         if init is None:
             init = self.init
 
-	    normed_mutations = []
-	    if collapse:
-	    	N = TensorSignature.collapse_data(N).reshape(3,3,-1,96,1)
-	    for s in range(self.rank):
-	        snv_counts = (self.S[..., s, init].reshape(-1, 1) @ self.E[s, ..., init].reshape(1,-1)).reshape([*self.S.shape[:-2], self.E.shape[-2]]) * N
-	        snv_counts = snv_counts.sum(axis=(0,1,2,3))
-	        other_counts = self.T[..., s, init].reshape(-1,1) @ self.E[s, ..., init].reshape(1,-1)
-	        other_counts = other_counts.sum(axis=0)
-	        normed_mutations.append(snv_counts+other_counts)
+        normed_mutations = []
+        if collapse:
+            N = TensorSignature.collapse_data(N).reshape(3,3,-1,96,1)
+        for s in range(self.rank):
+            snv_counts = (self.S[..., s, init].reshape(-1, 1) @ self.E[s, ..., init].reshape(1,-1)).reshape([*self.S.shape[:-2], self.E.shape[-2]]) * N
+            snv_counts = snv_counts.sum(axis=(0,1,2,3))
+            other_counts = self.T[..., s, init].reshape(-1,1) @ self.E[s, ..., init].reshape(1,-1)
+            other_counts = other_counts.sum(axis=0)
+            normed_mutations.append(snv_counts+other_counts)
 
-	    Enormed = np.stack(normed_mutations)
-	    
-	    return Enormed
+        Enormed = np.stack(normed_mutations)
+        
+        return Enormed
 
 class PreCluster(Cluster):
     def __init__(self, dset, S, T, E, icol, **kwargs):
