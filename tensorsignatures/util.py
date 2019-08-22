@@ -8,7 +8,6 @@ from sklearn.metrics import silhouette_score
 from sklearn.metrics import silhouette_samples
 from sklearn.decomposition import NMF
 from scipy.stats import nbinom
-from scipy.stats import wasserstein_distance
 from scipy.stats import poisson
 from scipy.stats import kstest
 from scipy.stats import uniform
@@ -1091,14 +1090,6 @@ def create_df(arr):
     
     return df
 
-def wdist(LT1, LT2):
-    """
-    computes the waterstein distance
-    """
-
-    left_tail = np.concatenate([LT1.reshape(-1), LT2.reshape(-1)])
-    left_tail = left_tail[~np.isnan(left_tail)]
-    return wasserstein_distance(np.sort(left_tail), uniform.cdf(np.linspace(0, 1, len(left_tail), endpoint=False)))
 
 def ksstat(LT1, LT2):
     """

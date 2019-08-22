@@ -6,12 +6,6 @@ import scipy.stats as stats
 import h5py as h5
 from tensorsignatures.config import *
 from tensorsignatures.util import *
-
-from collections import defaultdict
-from scipy.spatial.distance import pdist
-from scipy.spatial.distance import cdist
-from scipy.spatial.distance import squareform
-
 import subprocess
 import os
 
@@ -20,89 +14,6 @@ AMIN, AMAX = -.5, .5
 KMIN, KMAX = -2, 2
 KSIZ = 2
 
-EBI = '/homes/harald/hps/experiments/'
-
-#
-#
-# CLUSTER SCRIPTS
-#
-#
-
-
-def slurm_batch(job_name, command, priority=3, time=4, mem=4, tasks=1, dep='', **kwargs): 
-    if dep != '': dep = '--dependency=afterok:{} --kill-on-invalid-dep=yes '.format(dep) 
-
-    sbatch_command = "sbatch -J {j} -A GERSTUNG-SL{p}-GPU -p pascal --mail-user=$USER@cam.ac.uk --mail-type=FAIL -t {t}:00:00 --mem={m}gb --nodes=1 --ntasks=1 --ntasks-per-node={n} --gres=gpu:1 --cpus-per-task=3 --wrap='{c}' {d}".format(
-        j=job_name,
-        p=priority,
-        t=time, 
-        m=mem, 
-        n=tasks, 
-        c=command, 
-        d=dep
-        ) 
-
-    
-    print(sbatch_command)
-
-    sbatch_response = subprocess.getoutput(sbatch_command) 
-    job_id = sbatch_response.split(' ')[-1].strip() 
-
-    return job_id
-
-
-def slurm_train(fname, rank, init, disp, job_name, **kwargs):
-
-    command = '/home/hsv23/opt/tensig/tensig/train.py {fname} ./ nbconst {rank} -k {disp} -i 0 {init} -fn J_R_I -j {job_name} -ep {epochs} -v -ld constant'.format(
-        fname = fname,
-        rank = rank,
-        disp = disp,
-        init = init,
-        job_name = job_name,
-        epochs = kwargs.get('epochs', 50000)
-        )
-
-    job_id = slurm_batch(job_name, command, time=kwargs.get('time', 6), priority=kwargs.get('priority', 4))
-
-    return job_id
-
-
-def slurm_summarize(dependency, glob, output, job_name="summary", **kwargs):
-
-    command = '~/opt/tensig/tensig/writer.py "{glob}" {output} -b 10 -c 2 -r'.format(
-        glob=glob,
-        output=output
-        )
-    
-    job_id = slurm_batch(job_name, command, dep=dependency, time=kwargs.get('time', 4), priority=kwargs.get('priority', 4))
-
-    return job_id
-
-def slurm_merge(dependency, glob, output, job_name="merge", **kwargs):
-
-    command = '~/opt/tensig/tensig/writer.py {glob} {output} -l'.format(
-        glob=glob,
-        output=output
-        )
-    
-    job_id = slurm_batch(job_name, command, dep=dependency, priority=kwargs.get('priority', 4))
-# 
-    return job_id
-
-
-def slurm_copy(dependency, glob, job_name="copy", **kwargs):
-    path = os.getcwd()
-    project = path.split("/")[-1]
-    target = os.path.join(EBI, project)
-    command = '/home/hsv23/opt/tensig/tensig/writer.py "{}" linker.h5 -l;  ssh ebi mkdir -p {}; rsync -avz --remove-source-files --progress {} ebi:{}'.format(
-        glob,
-        target, 
-        os.path.join(path, "*.h5"), 
-        target)
-
-    job_id = slurm_batch(job_name, command, dep=dependency, priority=kwargs.get('priority', 4))
-    
-    return job_id
 
 class TensorSignatureData(object):
     

@@ -11,7 +11,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['scipy>=1.1.0', 'pandas>=0.23.4', 'h5py>=2.8.0', 'numpy>=1.14.5', 'scikit-learn>=0.20.0', 'matplotlib==3.0.2']
+requirements = ['scipy>=1.1.0', 'pandas>=0.23.4', 'h5py>=2.8.0', 'numpy>=1.14.5', 'scikit-learn>=0.20.0', 'matplotlib>=3.0.2']
 
 setup_requirements = [ ]
 
@@ -33,7 +33,6 @@ setup(
             'tswriter=tensorsignatures.writer:main',
             'tsbench=tensorsignatures.benchmark:main',
             'tstrain=tensorsignatures.train:main',
-            'tsboot=tensorsignatures.bootstrap:main',
         ],
     },
     install_requires=requirements,
