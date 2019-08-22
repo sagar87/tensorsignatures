@@ -28,11 +28,11 @@ setup(
         'Programming Language :: Python :: 3.6'
     ],
     description="Tensorframework for mutational signature analysis.",
-    entry_points={
-        'console_scripts': [
-            'tensorsignatures=tensorsignatures.cli:main',
-        ],
-    },
+    #entry_points={
+    #    'console_scripts': [
+    #        'tensorsignatures=tensorsignatures.cli:main',
+    #    ],
+    #},
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
