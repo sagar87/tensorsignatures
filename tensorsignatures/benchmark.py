@@ -4,9 +4,8 @@ import numpy as np
 import pandas as pd
 import scipy.stats as stats
 import h5py as h5
-from tensorsignatures.config import *
-from tensorsignatures.util import *
-from tensorsignatures.config import *
+from .config import *
+from .util import *
 
 from collections import defaultdict
 from scipy.spatial.distance import pdist
