@@ -4,6 +4,15 @@
 import sys
 import click
 
+@click.group()
+def main(args=None):
+    """Console script for test."""
+    click.echo("Replace this message by putting your code into "
+               "test.cli.main")
+    click.echo("See click documentation at http://click.pocoo.org/")
+    return 0
+
+
 @main.command()
 def data():
 	print('Create some sample data to run with tensor signatures.')
@@ -22,13 +31,7 @@ def write():
 	print('Summarizes pkl files.')
 
 
-@click.group()
-def main(args=None):
-    """Console script for test."""
-    click.echo("Replace this message by putting your code into "
-               "test.cli.main")
-    click.echo("See click documentation at http://click.pocoo.org/")
-    return 0
+
 
 
 if __name__ == "__main__":
