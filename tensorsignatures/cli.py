@@ -14,21 +14,30 @@ def main(args=None):
 
 
 @main.command()
+@click.option('--seed', default = 0,
+    help='Sets the seed for reproduceability.'
+    )
 def data():
-	print('Create some sample data to run with tensor signatures.')
+    print('Create some sample data to run with tensor signatures.')
 
 @main.command()
-def train():
-	print('Sub function to train a model')
+@click.argument('input', required=True,
+    help='Input hdf file which contains the count tensor and other mutation types.'
+    )
+@click.option('--mode', default = 'nbconst',
+    help='What likelihood model shall be used to model count data'
+    )
+def train(input):
+    print('Sub function to train a model')
 
 @main.command()
 def boot():
-	print('Run bootstrapping with an single itertion of tensor signature output.')
+    print('Run bootstrapping with an single itertion of tensor signature output.')
 
 
 @main.command()
 def write():
-	print('Summarizes pkl files.')
+    print('Summarizes pkl files.')
 
 
 
