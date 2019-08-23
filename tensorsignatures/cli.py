@@ -126,7 +126,7 @@ def write(config, input, output, cores, block_size, remove, link):
             else:
                 block_data = list(map(load_dict, block))
 
-            console.echo("Writing Block {}.".format(current_block))
+            click.echo("Writing Block {}.".format(current_block))
             mode = 'a' if os.path.exists(output) else 'w'
             save_h5f(output, mode, block_data, config.verbose)
             current_block += 1    
