@@ -62,17 +62,17 @@ def boot():
 @click.argument('input', metavar='GLOB', type=str)
 @click.argument('output', metavar='FILE', type=str)
 
-@click.options('--cores', '-c', type=int, default=1, 
+@click.option('--cores', '-c', type=int, default=1, 
     help='Number of cores (default=1).')
-@click.options('--block_size', '-b', type=int, default=-1, 
+@click.option('--block_size', '-b', type=int, default=-1, 
     help='To prevent loading too many files to memory, this parameter \
     can be adjusted such that block_size files are written to the hdf \
     file before further pkl are loaded to memory (default = -1 meaning \
     that all files are loaded to memory before writing them to disk).')
-@click.options('--remove', is_flag=True, 
+@click.option('--remove', is_flag=True, 
     help='Removes all Tensorsignatures pkl files after they have been \
     written to the hdf file.')
-@click.options('--link', is_flag=True, 
+@click.option('--link', is_flag=True, 
     help='Links several hdf files, which is sometimes useful for larege\
     experiments.')
 @pass_config
