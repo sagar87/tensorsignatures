@@ -21,7 +21,8 @@ def data():
     print('Create some sample data to run with tensor signatures.')
 
 @main.command()
-@click.argument('input', required=True,
+@click.argument(
+    'input',
     help='Input hdf file which contains the count tensor and other mutation types.'
     )
 @click.option('--mode', default = 'nbconst',
