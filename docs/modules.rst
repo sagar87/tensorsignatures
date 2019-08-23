@@ -20,3 +20,6 @@ tensorsignatures.train
 ----------------------
 
 The train module contains the train function used to train a model.
+
+.. automodule:: tensorsignatures.tensorsignatures
+   :members:

@@ -44,17 +44,21 @@ def data():
 @click.argument(RANK, type=int)
 
 
-@click.option('--' + OBJECTIVE, 
+@click.option('--' + OBJECTIVE, '-o',
     metavar = '<str>',
     type = OBJECTIVE_CHOICE,
     default = 'nbconst',
     help='What likelihood model shall be used to model count data')
+@click.option('--' + DISPERSION, '-k', 
+    metavar='<float>', 
+    type=int,
+    default=50,
+    help='dispersion factor (default = 50)')
 @click.option('--' + ITERATION, '-i',  
     metavar='<int>', 
     type=int,
     default=0, 
     help='Iteration to (default = 0)')
-
 @click.option('--' + NORMALIZE, '-n', 
     is_flag=True,
     help='multiply Chat1 with supplied normalisation constant N')
@@ -67,37 +71,30 @@ def data():
     type=int,
     default=10000, 
     help='number of epochs / training steps')
-@click.option('--' + OPTIMIZER, '-opt', 
+@click.option('--' + OPTIMIZER, '-op', 
     type=OPTIMIZER_CHOICE,
     default='ADAM',
     help='choose optimizer (default ADAM)')
+@click.option('--' + DECAY_LEARNING_RATE, '-ld', 
+    type=DECAY_LEARNING_RATE_CHOICE,
+    default='exponential',
+    help='learning rate decay (default exponential)')
 @click.option('--' + STARTER_LEARNING_RATE, '-lr', 
     metavar='<float>', 
     type=float, 
     default=0.1, 
     help='starter learning rate (default = 0.1)')
-@click.option('--' + DECAY_LEARNING_RATE, '-ld', 
-    type=DECAY_LEARNING_RATE_CHOICE,
-    default='exponential',
-    help='learning rate decay (default exponential)')
-@click.option('--' + DISPERSION, '-k', 
-    metavar='<float>', 
-    type=int,
-    default=50,
-    help='dispersion factor (default = 50)')
-
-@click.option('--' + DISPLAY_STEP,  
+@click.option('--' + DISPLAY_STEP, '-ds', 
     metavar='<int>', 
     type=int,
     default=100,
     help='progress updates / log step (default = 100)')
-
-@click.option('--' + SUFFIX, 
+@click.option('--' + SUFFIX, '-su',
     metavar='<str>', 
     type=str,
     help='File suffix (default J_R_I)', 
     default='J_R_I')
-@click.option('--' + SEED,
+@click.option('--' + SEED, 'se',
     metavar='<int>', 
     type=int, 
     default=None,

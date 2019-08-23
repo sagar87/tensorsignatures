@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""
+.. module:: tensorsignatures
+   :synopsis: TensorSignatures main module 
+.. moduleauthor:: Harald Vohringer <github.com/sagar87>
+"""
+
 
 import sys
 import os
@@ -45,13 +51,32 @@ def define_scope(function, scope=None, *args, **kwargs):
     return decorator
 
 class TensorSignature(object):
+	"""Heart of TensorSignatures.
+
+	Args:
+		snv: (3 x 3 x d_1, ..., d_m x p x n) input SNV tensor with shape. 
+			TensorSignature expects the first two dimension to represent
+			transcription (3) and replication (3), while the last two 
+			dimensions should contain the mutation types (p) and
+			samples (n). Dimensions d_1 ... d_m may represent arbtrary
+			genomic states.
+		other: (q x n) mutation count matrix with q mutation types and
+			n samples
+		N: (3 x 3 x d_1, ..., d_m x p x 1) optional normalization tensor
+			containing trinucleotide frequencies for each genomic state
+		objective: likelihood function with which mutation counts are
+			modeled. Currently, negative binomial or poisson.
+
+
+	"""
     
-    def __init__(self, snv, other, N=None, **kwargs):
+    def __init__(self, snv, other, N=None, objective='nbconst', 
+    	dtype=tf.float32, verbose=True, seed=None, **kwargs):
         assert(len(snv.shape) >= 5)
-        self.verbose = kwargs.get(VERBOSE, True)
-        self.seed = kwargs.get(SEED, None)
-        self.dtype = kwargs.get('dtype', tf.float32)
-        self.objective = kwargs.get(OBJECTIVE, 'nbconst')
+        self.verbose = verbose
+        self.seed = seed
+        self.dtype = dtype
+        self.objective = objective
         self.collapse = kwargs.get('collapse', True)
         #TODO: include this field (?)
         #self.data_pts = np.array(np.sum(~np.isnan(snv)) + np.sum(~np.isnan(other)))
