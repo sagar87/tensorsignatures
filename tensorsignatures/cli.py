@@ -30,9 +30,9 @@ def data():
 def train(input):
     """Deciphers tensorsignatures on a dataset.
 
-    Args:
-        input: hdf file containing the SNV count tensor and other mutation matrix.
-    Returns:
+    Args:\n
+        input: hdf file containing the SNV count tensor and other mutation matrix.\n
+    Returns:\n
         Saves a pkl file containing deciphered signatures and tensor factors.
     """
     print('Sub function to train a model')
