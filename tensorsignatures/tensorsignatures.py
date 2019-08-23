@@ -70,8 +70,7 @@ class TensorSignature(object):
 
 	"""
     
-    def __init__(self, snv, other, N=None, objective='nbconst', 
-    	dtype=tf.float32, verbose=True, seed=None, **kwargs):
+    def __init__(self, snv, other, N=None, objective='nbconst', dtype=tf.float32, verbose=True, seed=None, **kwargs):
         assert(len(snv.shape) >= 5)
         self.verbose = verbose
         self.seed = seed
