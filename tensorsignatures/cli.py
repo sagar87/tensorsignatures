@@ -45,12 +45,12 @@ def data():
 
 
 @click.option('--' + OBJECTIVE, 
-    metavar = 'STR',
+    metavar = '<str>',
     type = OBJECTIVE_CHOICE,
     default = 'nbconst',
     help='What likelihood model shall be used to model count data')
 @click.option('--' + ITERATION, '-i',  
-    metavar='INT', 
+    metavar='<int>', 
     type=int,
     default=0, 
     help='Iteration to (default = 0)')
@@ -63,7 +63,7 @@ def data():
     help='collapse pyrimindine/purine dimension (SNV.shape[-2])')
 
 @click.option('--' + EPOCHS, '-ep', 
-    metavar='INT', 
+    metavar='<int>', 
     type=int,
     default=10000, 
     help='number of epochs / training steps')
@@ -72,7 +72,7 @@ def data():
     default='ADAM',
     help='choose optimizer (default ADAM)')
 @click.option('--' + STARTER_LEARNING_RATE, '-lr', 
-    metavar='FLOAT', 
+    metavar='<float>', 
     type=float, 
     default=0.1, 
     help='starter learning rate (default = 0.1)')
@@ -81,7 +81,7 @@ def data():
     default='exponential',
     help='learning rate decay (default exponential)')
 @click.option('--' + DISPERSION, '-k', 
-    metavar='FLOAT', 
+    metavar='<float>', 
     type=int,
     default=50,
     help='dispersion factor (default = 50)')
@@ -93,7 +93,7 @@ def data():
     help='progress updates / log step (default = 100)')
 
 @click.option('--' + SUFFIX, 
-    metavar='STRING', 
+    metavar='<str>', 
     type=str,
     help='File suffix (default J_R_I)', 
     default='J_R_I')
