@@ -72,7 +72,7 @@ def boot():
 @click.options('--remove', is_flag=True, 
     help='Removes all Tensorsignatures pkl files after they have been \
     written to the hdf file.')
-@click.options('--link', '-l' is_flag=True, 
+@click.options('--link', is_flag=True, 
     help='Links several hdf files, which is sometimes useful for larege\
     experiments.')
 @pass_config
