@@ -3,13 +3,27 @@
 """Console script for test."""
 import sys
 import click
+import glob 
+
+
+
+from tensorsignatures.util import load_dict
+from tensorsignatures.util import progress
+
+
+class Config(object):
+    def __init__(self):
+        self.verbose = False
+
+pass_config = click.make_pass_decorator(Config, ensure=True)
+
 
 @click.group()
-def main(args=None):
-    """Console script for test."""
-    click.echo("Replace this message by putting your code into "
-               "test.cli.main")
-    click.echo("See click documentation at http://click.pocoo.org/")
+@click.option('--verbose', is_flag=True)
+@pass_config
+def main(config, args=None):
+    """This is TensorSignatures."""
+    config.verbose = verbose
     return 0
 
 
@@ -43,7 +57,21 @@ def boot():
 
 
 @main.command()
-def write():
+@click.argument('input', metavar='GLOB', type=str)
+@click.argument('output', metavar='GLOB', type=str)
+@pass_config
+def write(input, output, config):
+    """Creates a hdf file out of tensor signatures pkls. 
+    Accepts a glob argument (eg. "*.pkl"). Example: 
+    $tensorsignature write "*.pkl" results.h5 
+    """ 
+
+    files = glob.glob(input)
+    len_files = len(files)
+
+    if config.verbose:
+        click.echo('Found {} files.'.format(len_files))
+
     print('Summarizes pkl files.')
 
 
