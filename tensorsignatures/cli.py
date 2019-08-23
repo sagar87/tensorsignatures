@@ -39,9 +39,9 @@ def data():
     print('Create some sample data to run with tensor signatures.')
 
 @main.command()
-@click.argument(INPUT, metavar='GLOB', type=str)
-@click.argument(PREFIX, metavar='STR', type=str)
-@click.argument(RANK, metavar='INT', type=int)
+@click.argument(INPUT, type=str)
+@click.argument(PREFIX, type=str)
+@click.argument(RANK, type=int)
 
 
 @click.option('--' + OBJECTIVE, 
@@ -68,7 +68,6 @@ def data():
     default=10000, 
     help='number of epochs / training steps')
 @click.option('--' + OPTIMIZER, '-opt', 
-    metavar='STRING', 
     type=OPTIMIZER_CHOICE,
     default='ADAM',
     help='choose optimizer (default ADAM)')
@@ -78,7 +77,6 @@ def data():
     default=0.1, 
     help='starter learning rate (default = 0.1)')
 @click.option('--' + DECAY_LEARNING_RATE, '-ld', 
-    metavar='STRING', 
     type=DECAY_LEARNING_RATE_CHOICE,
     default='exponential',
     help='learning rate decay (default exponential)')
@@ -89,7 +87,7 @@ def data():
     help='dispersion factor (default = 50)')
 
 @click.option('--' + DISPLAY_STEP,  
-    metavar='INT', 
+    metavar='<int>', 
     type=int,
     default=100,
     help='progress updates / log step (default = 100)')
@@ -100,7 +98,7 @@ def data():
     help='File suffix (default J_R_I)', 
     default='J_R_I')
 @click.option('--' + SEED,
-    metavar='INT', 
+    metavar='<int>', 
     type=int, 
     default=None,
     help='initialize TensorSignatures variables with a seed')
