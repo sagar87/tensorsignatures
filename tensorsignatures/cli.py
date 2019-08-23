@@ -66,16 +66,16 @@ def boot():
 @click.option('--cores', '-c', type=int, default=1, 
     help='Number of cores (default=1).')
 @click.option('--block_size', '-b', type=int, default=-1, 
-    help="""To prevent loading too many files to memory, this parameter 
-    can be adjusted such that block_size files are written to the hdf 
-    file before further pkl are loaded to memory (default = -1 meaning 
-    that all files are loaded to memory before writing them to disk).""")
+    help='To prevent loading too many files to memory, this parameter \
+    can be adjusted such that block_size files are written to the hdf \
+    file before further pkl are loaded to memory (default = -1 meaning \
+    that all files are loaded to memory before writing them to disk).')
 @click.option('--remove', is_flag=True, 
-    help="""Removes all Tensorsignatures pkl files after they have been 
-    written to the hdf file.""")
+    help='Removes all Tensorsignatures pkl files after they have been \
+    written to the hdf file.')
 @click.option('--link', is_flag=True, 
-    help="""Links several hdf files, which is sometimes useful for large
-    experiments.""")
+    help='Links several hdf files, which is sometimes useful for large \
+    experiments.')
 @pass_config
 def write(config, input, output, cores, block_size, remove, link):
     """Creates a hdf file out of tensor signatures pkls. Accepts a 
@@ -110,26 +110,27 @@ def write(config, input, output, cores, block_size, remove, link):
         block_size = block_size
         current_block = 1
 
-        for block_start in range(0, len(files), block_size):
-            block_end = min(len(files), block_start + block_size)
+        with click.progressbar(range(0, total_files, block_size)) as bar:
+            for block_start in bar:
+                block_end = min(len(files), block_start + block_size)
 
-            click.echo('Processing Block {cb} ({bs}-{be})/{all}.'.format(
-                cb=current_block,
-                bs=block_start,
-                be=block_end,
-                all=total_files))
+                click.echo('Processing Block {cb} ({bs}-{be})/{all}.'.format(
+                    cb=current_block,
+                    bs=block_start,
+                    be=block_end,
+                    all=total_files))
 
-            block = files[block_start:block_end]
+                block = files[block_start:block_end]
 
-            if cores > 1:
-                block_data = pool.map(load_dict, block)
-            else:
-                block_data = list(map(load_dict, block))
+                if cores > 1:
+                    block_data = pool.map(load_dict, block)
+                else:
+                    block_data = list(map(load_dict, block))
 
-            click.echo("Writing Block {}.".format(current_block))
-            mode = 'a' if os.path.exists(output) else 'w'
-            save_h5f(output, mode, block_data, config.verbose)
-            current_block += 1    
+                click.echo("Writing Block {}.".format(current_block))
+                mode = 'a' if os.path.exists(output) else 'w'
+                save_h5f(output, mode, block_data, config.verbose)
+                current_block += 1    
 
 
     if remove:
