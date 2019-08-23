@@ -101,7 +101,7 @@ def write(config, input, output, cores, block_size, remove, link):
         if cores > 1:
             data = pool.map(load_dict, files)
         else:
-            data = list(map(load_dict, files))
+            data = [ load_dict(f) for f in files ] 
 
         mode = 'a' if os.path.exists(output) else 'w'
         save_h5f(output, mode, data, config.verbose)
@@ -125,10 +125,8 @@ def write(config, input, output, cores, block_size, remove, link):
             if cores > 1:
                 block_data = pool.map(load_dict, block)
             else:
-                with click.progressbar(block) as bar:
-                    block_data = [load_dict(b) for b in bar]
-                #block_data = list(map(load_dict, block))
-
+                block_data = [ load_dict(b) for b in block ]
+                
             click.echo("Writing Block {}.".format(current_block))
             mode = 'a' if os.path.exists(output) else 'w'
             save_h5f(output, mode, block_data, config.verbose)

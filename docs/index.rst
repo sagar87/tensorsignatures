@@ -9,6 +9,7 @@ Welcome to tensorsignatures's documentation!
    installation
    usage
    modules
+   cli
    contributing
    authors
    history
