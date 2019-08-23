@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from pkg_resources import resource_filename
 import os
+import click
 PATH = os.path.dirname(os.path.abspath(__file__))
 
 # Path to PCAWG data
@@ -97,15 +98,15 @@ INPUT = 'input'
 OUTPUT = 'output'
 LOGS = 'logs'
 OBJECTIVE = 'objective'
-OBJECTIVE_CHOICE = ['nbconst', 'poisson']
+OBJECTIVE_CHOICE = click.Choice(['nbconst', 'poisson'])
 OPTIMIZER = 'optimizer'
-OPTIMIZER_CHOICE = ['ADAM', 'gradient_descent']
+OPTIMIZER_CHOICE = click.Choice(['ADAM', 'gradient_descent'])
 FILENAME = 'file_name'
 
 EPOCHS = 'epochs'
 STARTER_LEARNING_RATE = 'starter_learning_rate'
 DECAY_LEARNING_RATE = 'decay_learning_rate'
-DECAY_LEARNING_RATE_CHOICE = ['exponential', 'constant']
+DECAY_LEARNING_RATE_CHOICE = click.Choice(['exponential', 'constant'])
 
 PARARMS = 'params'
 JOB_NAME = 'job_name'

@@ -46,9 +46,8 @@ def data():
 
 @click.option('--' + OBJECTIVE, 
     metavar = 'STR',
-    type = str,
+    type = OBJECTIVE_CHOICE,
     default = 'nbconst',
-    choices = OBJECTIVE_CHOICE,
     help='What likelihood model shall be used to model count data')
 @click.option('--' + ITERATION, '-i',  
     metavar='INT', 
@@ -71,9 +70,8 @@ def data():
     help='number of epochs / training steps')
 @click.option('--' + OPTIMIZER, '-opt', 
     metavar='STRING', 
-    type=str, 
-    default='ADAM', 
-    choices=OPTIMIZER_CHOICE,
+    type=OPTIMIZER_CHOICE,
+    default='ADAM',
     help='choose optimizer (default ADAM)')
 @click.option('--' + STARTER_LEARNING_RATE, '-lr', 
     metavar='FLOAT', 
@@ -82,9 +80,8 @@ def data():
     help='starter learning rate (default = 0.1)')
 @click.option('--' + DECAY_LEARNING_RATE, '-ld', 
     metavar='STRING', 
-    type=str, 
+    type=DECAY_LEARNING_RATE_CHOICE,
     default='exponential',
-    choices=DECAY_LEARNING_RATE_CHOICE,
     help='learning rate decay (default exponential)')
 @click.option('--' + DISPERSION, '-k', 
     metavar='FLOAT', 
