@@ -52,9 +52,8 @@ def data():
 @click.option('--' + ITERATION, '-i',  
     metavar='INT', 
     type=int,
-    nargs='+', 
-    default=[0], 
-    help='Iterations to (default = [0])')
+    default=0, 
+    help='Iteration to (default = 0)')
 
 @click.option('--' + NORMALIZE, '-n', 
     is_flag=True,
