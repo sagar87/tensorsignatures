@@ -21,7 +21,7 @@ pass_config = click.make_pass_decorator(Config, ensure=True)
 @click.group()
 @click.option('--verbose', is_flag=True)
 @pass_config
-def main(config, verbose, args=None):
+def main(verbose, config):
     """This is TensorSignatures."""
     config.verbose = verbose
     return 0
@@ -58,7 +58,7 @@ def boot():
 
 @main.command()
 @click.argument('input', metavar='GLOB', type=str)
-@click.argument('output', metavar='GLOB', type=str)
+@click.argument('output', metavar='FILE', type=str)
 @pass_config
 def write(input, output, config):
     """Creates a hdf file out of tensor signatures pkls. 
