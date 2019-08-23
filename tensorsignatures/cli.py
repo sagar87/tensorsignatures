@@ -21,7 +21,7 @@ pass_config = click.make_pass_decorator(Config, ensure=True)
 @click.group()
 @click.option('--verbose', is_flag=True)
 @pass_config
-def main(verbose, config):
+def main(config, verbose):
     """This is TensorSignatures."""
     config.verbose = verbose
     return 0
