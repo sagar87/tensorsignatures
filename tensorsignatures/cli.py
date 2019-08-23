@@ -13,6 +13,7 @@ from tensorsignatures.util import load_dict
 from tensorsignatures.util import progress
 from tensorsignatures.writer import link_datasets
 from tensorsignatures.writer import save_h5f
+from tensorsignatures.config import *
 
 class Config(object):
     def __init__(self):
@@ -38,21 +39,85 @@ def data():
     print('Create some sample data to run with tensor signatures.')
 
 @main.command()
-@click.argument(
-    'input',
-    )
-@click.option('--mode', default = 'nbconst',
-    help='What likelihood model shall be used to model count data'
-    )
-def train(input):
-    """Deciphers tensorsignatures on a dataset.
+@click.argument(INPUT, metavar='GLOB', type=str)
+@click.argument(PREFIX, metavar='STR', type=str)
+@click.argument(RANK, metavar='INT', type=int)
 
-    Args:\n
-        input: hdf file containing the SNV count tensor and other mutation matrix.\n
-    Returns:\n
-        Saves a pkl file containing deciphered signatures and tensor factors.
+
+@click.option('--' + OBJECTIVE, 
+    metavar = 'STR',
+    type = str,
+    default = 'nbconst',
+    choices = OBJECTIVE_CHOICE,
+    help='What likelihood model shall be used to model count data')
+@click.option('--' + ITERATION, '-i',  
+    metavar='INT', 
+    type=int,
+    nargs='+', 
+    default=[0], 
+    help='Iterations to (default = [0])')
+
+@click.option('--' + NORMALIZE, '-n', 
+    is_flag=True,
+    help='multiply Chat1 with supplied normalisation constant N')
+@click.option('--' + COLLAPSE, '-c',
+    is_flag=True,
+    help='collapse pyrimindine/purine dimension (SNV.shape[-2])')
+
+@click.option('--' + EPOCHS, '-ep', 
+    metavar='INT', 
+    type=int,
+    default=10000, 
+    help='number of epochs / training steps')
+@click.option('--' + OPTIMIZER, '-opt', 
+    metavar='STRING', 
+    type=str, 
+    default='ADAM', 
+    choices=OPTIMIZER_CHOICE,
+    help='choose optimizer (default ADAM)')
+@click.option('--' + STARTER_LEARNING_RATE, '-lr', 
+    metavar='FLOAT', 
+    type=float, 
+    default=0.1, 
+    help='starter learning rate (default = 0.1)')
+@click.option('--' + DECAY_LEARNING_RATE, '-ld', 
+    metavar='STRING', 
+    type=str, 
+    default='exponential',
+    choices=DECAY_LEARNING_RATE_CHOICE,
+    help='learning rate decay (default exponential)')
+@click.option('--' + DISPERSION, '-k', 
+    metavar='FLOAT', 
+    type=int,
+    default=50,
+    help='dispersion factor (default = 50)')
+
+@click.option('--' + DISPLAY_STEP,  
+    metavar='INT', 
+    type=int,
+    default=100,
+    help='progress updates / log step (default = 100)')
+
+@click.option('--' + SUFFIX, 
+    metavar='STRING', 
+    type=str,
+    help='File suffix (default J_R_I)', 
+    default='J_R_I')
+@click.option('--' + SEED,
+    metavar='INT', 
+    type=int, 
+    default=None,
+    help='initialize TensorSignatures variables with a seed')
+
+
+@pass_config
+def train(input, prefix, rank, dispersion, objective, iteration, 
+    norm, collapse, epochs, optimizer, starter_learning_rate,
+    decay_learning_rate, display_step, suffix, seed):
+    """Deciphers tensorsignatures on a dataset.
     """
-    print('Sub function to train a model')
+    click.echo('Ready to learn')
+    
 
 @main.command()
 def boot():
@@ -60,22 +125,33 @@ def boot():
 
 
 @main.command()
-@click.argument('input', metavar='GLOB', type=str)
-@click.argument('output', metavar='FILE', type=str)
+@click.argument('input', 
+    metavar='GLOB', 
+    type=str)
+@click.argument('output', 
+    metavar='FILE', 
+    type=str)
 
-@click.option('--cores', '-c', type=int, default=1, 
+@click.option('--cores', '-c', 
+    type=int, 
+    default=1, 
     help='Number of cores (default=1).')
-@click.option('--block_size', '-b', type=int, default=-1, 
+@click.option('--block_size', '-b', 
+    type=int, 
+    default=-1, 
     help='To prevent loading too many files to memory, this parameter \
     can be adjusted such that block_size files are written to the hdf \
     file before further pkl are loaded to memory (default = -1 meaning \
     that all files are loaded to memory before writing them to disk).')
-@click.option('--remove', is_flag=True, 
+@click.option('--remove', 
+    is_flag=True, 
     help='Removes all Tensorsignatures pkl files after they have been \
     written to the hdf file.')
-@click.option('--link', is_flag=True, 
+@click.option('--link', 
+    is_flag=True, 
     help='Links several hdf files, which is sometimes useful for large \
     experiments.')
+
 @pass_config
 def write(config, input, output, cores, block_size, remove, link):
     """Creates a hdf file out of tensor signatures pkls. Accepts a 

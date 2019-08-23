@@ -68,6 +68,10 @@ LEARNING_RATE = 'learning_rate'
 DISPERSION = 'dispersion'
 LAMBDA = 'lambda'
 
+PREFIX = 'prefix'
+SUFFIX = 'suffix'
+
+
 STARTER_KEEP_PROB = 'starter_keep_prob'
 DROPOUT = 'dropout'
 KEEP_PROB = 'keep_probability'

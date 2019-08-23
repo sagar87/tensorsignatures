@@ -1,8 +1,8 @@
 .. highlight:: shell
 
-============================
-CLI - Command line interface
-============================
+======================
+Command line interface
+======================
 
 
 Introduction
