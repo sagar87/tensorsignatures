@@ -97,13 +97,13 @@ def write(config, input, output, cores, block_size, remove, link):
     if block_size == -1:
 
         click.echo('Processing {} files.'.format(total_files))
-        if args.c > 1:
+        if cores > 1:
             data = pool.map(load_dict, files)
         else:
             data = list(map(load_dict, files))
 
-        mode = 'a' if os.path.exists(args.output) else 'w'
-        save_h5f(args.output, mode, data, args.verbose)
+        mode = 'a' if os.path.exists(output) else 'w'
+        save_h5f(output, mode, data, config.verbose)
 
     else:
         block_size = block_size
@@ -120,14 +120,14 @@ def write(config, input, output, cores, block_size, remove, link):
 
             block = files[block_start:block_end]
 
-            if args.c > 1:
+            if cores > 1:
                 block_data = pool.map(load_dict, block)
             else:
                 block_data = list(map(load_dict, block))
 
             console.echo("Writing Block {}.".format(current_block))
-            mode = 'a' if os.path.exists(args.output) else 'w'
-            save_h5f(args.output, mode, block_data, args.verbose)
+            mode = 'a' if os.path.exists(output) else 'w'
+            save_h5f(output, mode, block_data, config.verbose)
             current_block += 1    
 
 
