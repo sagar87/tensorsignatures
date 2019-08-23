@@ -65,7 +65,6 @@ def data():
 @click.option('--' + COLLAPSE, '-c',
     is_flag=True,
     help='collapse pyrimindine/purine dimension (SNV.shape[-2])')
-
 @click.option('--' + EPOCHS, '-ep', 
     metavar='<int>', 
     type=int,
