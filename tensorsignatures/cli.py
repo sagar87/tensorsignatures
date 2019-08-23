@@ -60,7 +60,7 @@ def boot():
 @click.argument('input', metavar='GLOB', type=str)
 @click.argument('output', metavar='FILE', type=str)
 @pass_config
-def write(input, output, config):
+def write(config, input, output):
     """Creates a hdf file out of tensor signatures pkls. 
     Accepts a glob argument (eg. "*.pkl"). Example: 
     $tensorsignature write "*.pkl" results.h5 
