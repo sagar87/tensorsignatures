@@ -23,12 +23,18 @@ def data():
 @main.command()
 @click.argument(
     'input',
-    help='Input hdf file which contains the count tensor and other mutation types.'
     )
 @click.option('--mode', default = 'nbconst',
     help='What likelihood model shall be used to model count data'
     )
 def train(input):
+    """Deciphers tensorsignatures on a dataset.
+
+    Args:
+        input: hdf file containing the SNV count tensor and other mutation matrix.
+    Returns:
+        Saves a pkl file containing deciphered signatures and tensor factors.
+    """
     print('Sub function to train a model')
 
 @main.command()
