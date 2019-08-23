@@ -110,27 +110,29 @@ def write(config, input, output, cores, block_size, remove, link):
         block_size = block_size
         current_block = 1
 
-        with click.progressbar(range(0, total_files, block_size)) as bar:
-            for block_start in bar:
-                block_end = min(len(files), block_start + block_size)
+        
+        for block_start in range(0, len(files), block_size):
+            block_end = min(len(files), block_start + block_size)
 
-                click.echo('Processing Block {cb} ({bs}-{be})/{all}.'.format(
-                    cb=current_block,
-                    bs=block_start,
-                    be=block_end,
-                    all=total_files))
+            click.echo('Processing Block {cb} ({bs}-{be})/{all}.'.format(
+                cb=current_block,
+                bs=block_start,
+                be=block_end,
+                all=total_files))
 
-                block = files[block_start:block_end]
+            block = files[block_start:block_end]
 
-                if cores > 1:
-                    block_data = pool.map(load_dict, block)
-                else:
-                    block_data = list(map(load_dict, block))
+            if cores > 1:
+                block_data = pool.map(load_dict, block)
+            else:
+                with click.progressbar(block) as bar:
+                    block_data = [load_dict(b) for b in bar]
+                #block_data = list(map(load_dict, block))
 
-                click.echo("Writing Block {}.".format(current_block))
-                mode = 'a' if os.path.exists(output) else 'w'
-                save_h5f(output, mode, block_data, config.verbose)
-                current_block += 1    
+            click.echo("Writing Block {}.".format(current_block))
+            mode = 'a' if os.path.exists(output) else 'w'
+            save_h5f(output, mode, block_data, config.verbose)
+            current_block += 1    
 
 
     if remove:
