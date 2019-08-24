@@ -14,6 +14,8 @@ Welcome to tensorsignatures's documentation!
    authors
    history
 
+
+
 Indices and tables
 ==================
 * :ref:`genindex`

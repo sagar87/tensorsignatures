@@ -28,7 +28,7 @@ class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         return MagicMock()
- 
+
 #MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'tensorflow', 'h5py', 'scipy.spatial.distance', 'scipy.spatial', 'scipy.optimize', 'scipy.misc', 'scipy.special', 'scipy.sparse', 'scipy.linalg', 'scipy.stats', 'scipy.sparse.base', 'sklearn.utils.murmurhash', 'numpy.core', 'numpy.core.numeric', 'scipy.sparse.linalg']
 MOCK_MODULES = [ 'tensorflow', 'click']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
@@ -43,7 +43,16 @@ import tensorsignatures
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.viewcode', 'sphinx.ext.coverage', 'sphinx.ext.napoleon']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.coverage',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.todo',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.ifconfig',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.doctest']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

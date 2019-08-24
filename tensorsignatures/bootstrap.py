@@ -116,8 +116,9 @@ class TensorSignatureBootstrap(TensorSignature):
 
     @define_scope
     def S1(self):
-        self.S0 = tf.Variable(self.clu['S0'][..., self.init], name='S0') # basic parameters [+/+, +/-] x [Pyr, Pur] x 96-1 x s
-        S1 = tf.nn.softmax(tf.concat([self.S0, tf.zeros([2, 2, 1, self.rank])], axis=2), dim=2, name='S1') # pad 0
+        # basic parameters [+/+, +/-] x [Pyr, Pur] x 96-1 x s
+        self.S0 = tf.Variable(self.clu['S0'][..., self.init], name='S0')
+        S1 = tf.nn.softmax(tf.concat([self.S0, tf.zeros([2, 2, 1, self.rank])], axis=2), dim=2, name='S1')
         self._S1 = tf.reshape(
             tf.stack([
                 S1[0, 0, :, :], S1[1, 0, :, :], 0.5 * tf.reduce_sum(S1[:, 0, :, :], axis=0),
