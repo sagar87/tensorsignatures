@@ -54,13 +54,12 @@ class TensorSignature(object):
     r"""Heart of TensorSignatures.
 
     Args:
-        snv: Input SNV tensor with shape $(3 x 3 x d_1, ..., d_m x p x n)$.
-            TensorSignature expects the first two dimension to represent
-            transcription (3) and replication (3), while the last two
-            dimensions should contain the mutation types (p) and
-            samples (n). Dimensions d_1 ... d_m may represent arbtrary
-            genomic states $$\mathbb{R}$$.
-            .. math:: (a + b)^2 = a^2 + 2ab + b^2
+        snv: Input SNV tensor with shape :math:`\\mathbb{R}^{3\times 3\times
+            t_1\times\dots\times p\times n}`.TensorSignature expects the first
+            two dimension to represent transcription (3) and replication (3),
+            while the last two dimensions should contain the mutation types (p)
+            and samples (n). Dimensions d_1 ... d_m may represent arbtrary
+            genomic states.
         other: (q x n) mutation count matrix with q mutation types and
             n samples
         N: (3 x 3 x d_1, ..., d_m x p x 1) optional normalization tensor
