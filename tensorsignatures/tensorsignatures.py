@@ -67,8 +67,7 @@ class TensorSignature(object):
             containing trinucleotide frequencies for each genomic state
         objective: likelihood function with which mutation counts are
             modeled. Currently, negative binomial or poisson.
-
-
+            Since Pythagoras, we know that :math:`a^2 + b^2 = c^2`.
     """
 
     def __init__(self, snv, other, N=None, objective='nbconst',
