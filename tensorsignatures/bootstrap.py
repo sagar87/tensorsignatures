@@ -21,12 +21,11 @@ class TensorSignatureBootstrap(TensorSignature):
         self.init = kwargs.get('init', self.clu.init)
         self.rank = clu.rank
         self.samples = clu.samples #int(np.floor(clu.samples * kwargs.get('sub_sampling', False))) if kwargs.get('sub_sampling', False) else clu.samples
-        self.collapse = kwargs.get('collapse', True)        
-        #self.sub = np.random.choice(np.arange(clu.samples), self.samples, replace=False) if kwargs.get('sub_sampling', False) else slice(None) 
+        self.collapse = kwargs.get('collapse', True)
+        #self.sub = np.random.choice(np.arange(clu.samples), self.samples, replace=False) if kwargs.get('sub_sampling', False) else slice(None)
 
         self.verbose = kwargs.get('verbose', True)
         self.size = self.clu['tau'][..., self.init]
-        
         # keep data
         if self.collapse:
             self.snv = TensorSignature.collapse_data(snv)
@@ -38,20 +37,20 @@ class TensorSignatureBootstrap(TensorSignature):
             if self.collapse:
                 self.N = TensorSignature.collapse_data(N).reshape(3, 3,-1, 96, 1)
             else:
-                self.N = N.reshape(3, 3,-1, 96, 1)
+                self.N = N.reshape(3, 3, -1, 96, 1)
         else:
             self.N = None
-        
+
         self.clu_dim = sorted([ var for var in list(self.clu.dset) if var.startswith('k') ])
         self.card = [ self.clu[var].shape[0]+1 for var in self.clu_dim ]
         self.card_prod = np.prod(self.card)
         self.idex = self.indices_to_assignment(np.arange(self.card_prod), self.card)
-        
+
         self.dtype = tf.float32
         self.p = kwargs.get('p', 96)
         self.tau = tf.constant(self.size, dtype=tf.float32)
         self.epochs = kwargs.get(EPOCHS, 5000)
-        
+
         # initialize variables
         self.M
         self.S
@@ -64,32 +63,32 @@ class TensorSignatureBootstrap(TensorSignature):
         self.L1
         self.L2
         self.L
-        
+
         #learning rate
         self.global_step = tf.Variable(0, trainable=False)
-        self.starter_learning_rate = self.clu[STARTER_LEARNING_RATE] 
+        self.starter_learning_rate = self.clu[STARTER_LEARNING_RATE]
         self.decay_learning_rate = self.clu[DECAY_LEARNING_RATE] # kwargs.get(DECAY_LEARNING_RATE, 'exponential')
         self.learning_rate
-        
+
         self.optimizer = self.clu[OPTIMIZER]
         self.minimize
-    
+
     def fit_bootstrap_sample(self):
         #tf.reset_default_graph()
-                
+
         self.sess = tf.Session()
         self.init = tf.global_variables_initializer()
         self.sess.run(self.init)
-        
-        
+
+
         for i in range(self.epochs):
             if i%1000==0:
                 print('step', i, self.sess.run(self.L))
             _ = self.sess.run(self.minimize)
-        
+
         self.bootstrap = self.get_tensors(self.sess)
         self.sess.close()
-        
+
     @define_scope
     def A(self):
         self.a0 = tf.Variable(self.clu['a0'][..., self.init], name='a0')
@@ -97,24 +96,24 @@ class TensorSignatureBootstrap(TensorSignature):
         a2 = a1[:, 0, :][:, None, :] * a1[:, 1, :][None, :, :] # outer product
         self._A = tf.reshape(a2, [3, 3, 1, 1, self.rank])
         if self.verbose:
-            print('A:', self._A.shape) 
-        
+            print('A:', self._A.shape)
+
         return self._A
-    
+
     @define_scope
     def B(self):
         self.b0 = tf.Variable(self.clu['b0'][..., self.init], name='b0') # Pyrimidine - Purine bias x 2 (TS, RS) X s
         self._B = tf.exp(tf.reshape(
             tf.stack([
-                self.b0[0,:]+self.b0[1,:], self.b0[0,:]-self.b0[1,:], self.b0[0,:], 
+                self.b0[0,:]+self.b0[1,:], self.b0[0,:]-self.b0[1,:], self.b0[0,:],
                 self.b0[1,:] - self.b0[0,:], -self.b0[1,:] - self.b0[0,:], -self.b0[0,:],
-                self.b0[1,:], -self.b0[1,:], tf.zeros(self.b0[0,:].shape)]), 
+                self.b0[1,:], -self.b0[1,:], tf.zeros(self.b0[0,:].shape)]),
             [3, 3, 1, 1, self.rank]))
         if self.verbose:
             print('B:', self._B.shape)
-            
+
         return self._B
-    
+
     @define_scope
     def S1(self):
         self.S0 = tf.Variable(self.clu['S0'][..., self.init], name='S0') # basic parameters [+/+, +/-] x [Pyr, Pur] x 96-1 x s
@@ -123,20 +122,20 @@ class TensorSignatureBootstrap(TensorSignature):
             tf.stack([
                 S1[0, 0, :, :], S1[1, 0, :, :], 0.5 * tf.reduce_sum(S1[:, 0, :, :], axis=0),
                 S1[1, 1, :, :], S1[0, 1, :, :], 0.5 * tf.reduce_sum(S1[:, 1, :, :], axis=0),
-                0.5 * (S1[0, 0, :, :] + S1[1, 1, :, :]), 0.5 * (S1[1, 0, :, :] + S1[0, 1, :, :]), 0.25 * (tf.reduce_sum(S1, axis=(0, 1)))]), 
+                0.5 * (S1[0, 0, :, :] + S1[1, 1, :, :]), 0.5 * (S1[1, 0, :, :] + S1[0, 1, :, :]), 0.25 * (tf.reduce_sum(S1, axis=(0, 1)))]),
             [3, 3, 1, self.p, self.rank])
-        
+
         return self._S1
-    
+
     @define_scope
     def E(self):
         self.E0 = tf.Variable(self.clu['E0'][..., self.init], name='E0')
         self._E = tf.exp(self.E0, name='E')
         if self.verbose:
             print('E:', self._E.shape)
-        
+
         return self._E
-    
+
     @define_scope
     def K(self):
         self._clu_var = {}
@@ -146,10 +145,10 @@ class TensorSignatureBootstrap(TensorSignature):
             #print(clu)
             k = int(clu[1:])
             v = tf.Variable(self.clu[clu][..., self.init], name='k{}'.format(k))
-            
+
             self._clu_var[k] = v
             self._cbiases[k] = tf.concat([tf.zeros([1, self.rank], dtype=self.dtype), v], axis=0)
-            
+
             if self.verbose:
                 print('k{}:'.format(k), self._cbiases[k].shape)
 
@@ -163,35 +162,35 @@ class TensorSignatureBootstrap(TensorSignature):
 
         self._K = tf.exp(tf.reshape(tf.stack(final_tensor), (1, 1, -1, 1, self.rank)))
         if self.verbose:
-            print('K:', self._K.shape)    
+            print('K:', self._K.shape)
         return self._K
-    
+
     @define_scope
     def M(self):
         self.m0 = tf.Variable(self.clu['m0'][..., self.clu.init], name='m0')
         self.m1 = tf.sigmoid(self.m0, name='m1')
         self._M = tf.reshape(self.m1, (1, 1, 1, 1, self.rank))
         if self.verbose:
-            print('m:', self._M.shape)        
+            print('m:', self._M.shape)
         return self._M
-    
+
     @define_scope
     def S(self):
         self._S = self.S1 * self.A * self.B * self.K * self.M
         if self.verbose:
             print('S:', self._S.shape)
         return self._S
-        
+
     @define_scope
     def T(self):
         self.T0 = tf.Variable(self.clu['T0'][..., self.clu.init], name='T0')
-        T1 = tf.nn.softmax(tf.concat([self.T0, tf.zeros([1, self.rank], dtype=self.dtype)], axis=0), dim=0, name='T') 
+        T1 = tf.nn.softmax(tf.concat([self.T0, tf.zeros([1, self.rank], dtype=self.dtype)], axis=0), dim=0, name='T')
         self._T = T1 * (1-tf.reshape(self.M, (1, self.rank)))
         if self.verbose:
             print('T:', self._T.shape)
-        
+
         return self._T
-    
+
     @define_scope
     def Chat1(self):
         self._Chat1 = tf.reshape(tf.matmul(tf.reshape(self.S, (-1, self.rank)), self.E), [3, 3, -1, self.p, self.samples])
@@ -199,33 +198,33 @@ class TensorSignatureBootstrap(TensorSignature):
 
         if self.verbose:
             print('Chat1:', self._Chat1.shape)
-            
+
         return self._Chat1
-    
+
     @define_scope
     def Chat2(self):
         self._Chat2 = tf.matmul(self.T, self.E)
         if self.verbose:
             print('Chat2:', self._Chat2.shape)
-            
+
         return self._Chat2
-    
+
     @define_scope
     def C1(self):
         snv = nbinom.rvs(self.size, self.size/(self.size+self.snv.reshape(3, 3, -1, self.p, self.samples)))
         self._C1 = tf.constant(snv, dtype=self.dtype)
         if self.verbose:
             print('C1:', self._C1.shape)
-            
+
         return self._C1
-    
+
     @define_scope
     def C2(self):
         sub_set = np.ones_like(self.other)
         sub_set[np.where(np.isnan(self.other))] = 0
         self.other[np.where(np.isnan(self.other))] = 0
         self.C2_nans = tf.constant(sub_set, dtype=self.dtype)
-        
+
         other = nbinom.rvs(self.size, self.size/(self.size+self.other))
         self._C2 = tf.constant(other, dtype=self.dtype)
         if self.verbose:
@@ -238,7 +237,7 @@ class TensorSignatureBootstrapDenovo(TensorSignature):
     """
     def __init__(self, snv, other, N=None, **kwargs):
         super().__init__(snv, other, N, **kwargs)
-    
+
     @define_scope
     def C1(self):
         print('Subsampling C1.')
@@ -246,12 +245,12 @@ class TensorSignatureBootstrapDenovo(TensorSignature):
         self._C1 = tf.constant(snv, dtype=self.dtype)
         if self.verbose:
             print('C1:', self._C1.shape)
-            
+
         return self._C1
-        
+
     @define_scope
     def C2(self):
-        
+
         sub_set = np.ones_like(self.other)
         sub_set[np.where(np.isnan(self.other))] = 0
         self.other[np.where(np.isnan(self.other))] = 0
@@ -262,37 +261,37 @@ class TensorSignatureBootstrapDenovo(TensorSignature):
         if self.verbose:
             print('C2:', self._C2.shape)
         return self._C2
- 
+
 class TensorSignatureBootstrapSubsample(TensorSignatureBootstrap):
     """
     Tensor Signature that performs a denovo fitting on a resampled dataset.
-    """ 
+    """
     def __init__(self, clu, snv, other, sub, N=None, **kwargs):
         assert(sub > 0 and sub < 1)
-        
+
         self.clu = clu
         self.init = kwargs.get('init', self.clu.init)
         self.rank = clu.rank
-        
-        self.samples = int(np.floor(clu.samples * sub)) 
+
+        self.samples = int(np.floor(clu.samples * sub))
         self.sub = np.random.choice(np.arange(clu.samples), self.samples, replace=False)
-        
+
         self.verbose = kwargs.get('verbose', True)
         self.size = self.clu.dset['tau'][()][..., self.init]
-        
+
         self.snv = self.collapse_data(snv[..., self.sub])
         self.other = other[..., self.sub]
         self.N = self.collapse_data(np.concatenate([N]*2, axis=-4).reshape(3, 3, -1, 2, 96, 1))
-        
+
         self.clu_dim = sorted([ var for var in list(self.clu.dset) if var.startswith('k') ])
         self.card = [ self.clu.dset[var][()].shape[0]+1 for var in self.clu_dim ]
         self.card_prod = np.prod(self.card)
         self.idex = self.indices_to_assignment(np.arange(self.card_prod), self.card)
-        
+
         self.dtype = tf.float32
         self.p = kwargs.get('p', 96)
         self.tau = tf.constant(self.size, dtype=tf.float32)
-        
+
         # initialize variables
         self.M
         self.S
@@ -305,46 +304,46 @@ class TensorSignatureBootstrapSubsample(TensorSignatureBootstrap):
         self.L1
         self.L2
         self.L
-        
+
         #learning rate
         self.global_step = tf.Variable(0, trainable=False)
-        self.starter_learning_rate = self.clu[STARTER_LEARNING_RATE] 
+        self.starter_learning_rate = self.clu[STARTER_LEARNING_RATE]
         self.decay_learning_rate = self.clu[DECAY_LEARNING_RATE] # kwargs.get(DECAY_LEARNING_RATE, 'exponential')
         self.learning_rate
-        
+
         self.optimizer = self.clu[OPTIMIZER]
-        self.minimize        
-    
+        self.minimize
+
     @define_scope
     def E(self):
         self.E0 = tf.Variable(self.clu.dset['E0'][()][..., self.sub, self.init], name='E0')
         self._E = tf.exp(self.E0, name='E')
         if self.verbose:
             print('E:', self._E.shape)
-        
+
         return self._E
 
 
 class TensorSignatureBootT(TensorSignatureBootstrap):
     """
     Tensor Signature that performs a denovo fitting on a resampled dataset.
-    """ 
+    """
     def __init__(self, clu, snv, other, N=None, **kwargs):
         assert(kwargs.get('sub', 1) > 0 and kwargs.get('sub', 1) <= 1)
-        
+
         self.clu = clu
         self.init = self.clu.init
         self.rank = clu.rank
         self.objective = self.clu[OBJECTIVE]
         self.collapse = kwargs.get('collapse', True)
-        
+
         self.verbose = kwargs.get('verbose', True)
         self.size = self.clu['tau'][..., self.init]
-        
-        self.samples = int(np.floor(clu.samples * kwargs.get('sub', 1))) 
+
+        self.samples = int(np.floor(clu.samples * kwargs.get('sub', 1)))
         self.sub = np.random.choice(np.arange(clu.samples), self.samples, replace=False) if kwargs.get('sub', 1) < 1 else np.arange(self.samples)
-        
-        
+
+
         if self.verbose:
         	print('Samples {} ({})'.format(self.samples, kwargs.get('sub', 1)))
 
@@ -362,18 +361,18 @@ class TensorSignatureBootT(TensorSignatureBootstrap):
                 self.N = N.reshape(3, 3,-1, 96, 1)
         else:
             self.N = None
-        
+
         self.clu_dim = sorted([ var for var in list(self.clu.dset) if var.startswith('k') ])
         self.card = [ self.clu.dset[var][()].shape[0]+1 for var in self.clu_dim ]
         self.card_prod = np.prod(self.card)
         self.idex = self.indices_to_assignment(np.arange(self.card_prod), self.card)
-        
+
         self.dtype = tf.float32
         self.p = kwargs.get('p', 96)
         self.q = other.shape[0]
         self.tau = tf.constant(self.size, dtype=tf.float32)
         self.epochs = kwargs.get(EPOCHS, 5000)
-        
+
         # initialize variables
         self.M
         self.S
@@ -386,50 +385,50 @@ class TensorSignatureBootT(TensorSignatureBootstrap):
         self.L1
         self.L2
         self.L
-        
+
         #learning rate
         self.global_step = tf.Variable(0, trainable=False)
-        self.starter_learning_rate = self.clu[STARTER_LEARNING_RATE] 
+        self.starter_learning_rate = self.clu[STARTER_LEARNING_RATE]
         self.decay_learning_rate = self.clu[DECAY_LEARNING_RATE] # kwargs.get(DECAY_LEARNING_RATE, 'exponential')
         self.learning_rate
-        
-        self.optimizer = self.clu[OPTIMIZER]
-        self.minimize        
 
-    # Override this from TensorSignatureBootstrap and 
-    # initialize with fresh random values because 
+        self.optimizer = self.clu[OPTIMIZER]
+        self.minimize
+
+    # Override this from TensorSignatureBootstrap and
+    # initialize with fresh random values because
     # of faulty confidence intervals in T
 
     @define_scope
     def T(self):
-        
+
         self.T0 = tf.Variable(tf.truncated_normal([self.q-1, self.rank], dtype=self.dtype), name='T0')
-        T1 = tf.nn.softmax(tf.concat([self.T0, tf.zeros([1, self.rank], dtype=self.dtype)], axis=0), dim=0, name='T') 
+        T1 = tf.nn.softmax(tf.concat([self.T0, tf.zeros([1, self.rank], dtype=self.dtype)], axis=0), dim=0, name='T')
         self._T = T1 * (1-tf.reshape(self.M, (1, self.rank)))
         if self.verbose:
             print('T (reinitialized):', self._T.shape)
-        
+
         return self._T
-    
+
     @define_scope
     def E(self):
         self.E0 = tf.Variable(self.clu['E0'][..., self.sub, self.init], name='E0')
         self._E = tf.exp(self.E0, name='E')
         if self.verbose:
             print('E:', self._E.shape)
-        
+
         return self._E
-    
+
     @define_scope
     def C1(self):
         print('-> no subsampling')
         self._C1 = tf.constant(self.snv.reshape(3, 3, -1, self.p, self.samples), dtype=self.dtype)
-        
+
         if self.verbose:
             print('C1:', self._C1.shape)
-        
+
         return self._C1
-    
+
     @define_scope
     def C2(self):
         print('-> no subsampling')
@@ -445,20 +444,20 @@ class TensorSignatureBootT(TensorSignatureBootstrap):
 class TensorSignatureRandomize(TensorSignatureBootstrap):
     """
     Randomizes a fraction of values in S0 and T0.
-    """ 
+    """
     def __init__(self, snv, other, N, clu, **kwargs):
         assert(kwargs.get('sub', 1) > 0 and kwargs.get('sub', 1) <= 1)
-        
+
         self.clu = clu
         self.init = self.clu.init
         self.rank = clu.rank
         self.objective = self.clu[OBJECTIVE]
         self.collapse = kwargs.get('collapse', True)
-            
+
         self.verbose = kwargs.get('verbose', True)
         self.size = self.clu['tau'][..., self.init]
 
-        self.samples = int(np.floor(clu.samples * kwargs.get('sub', 1))) 
+        self.samples = int(np.floor(clu.samples * kwargs.get('sub', 1)))
         self.sub = np.random.choice(np.arange(clu.samples), self.samples, replace=False) if kwargs.get('sub', 1) < 1 else np.arange(self.samples)
 
         if self.verbose:
@@ -478,12 +477,12 @@ class TensorSignatureRandomize(TensorSignatureBootstrap):
                 self.N = N.reshape(3, 3,-1, 96, 1)
         else:
             self.N = None
-        
+
         self.clu_dim = sorted([ var for var in list(self.clu.dset) if var.startswith('k') ])
         self.card = [ self.clu.dset[var][()].shape[0]+1 for var in self.clu_dim ]
         self.card_prod = np.prod(self.card)
         self.idex = self.indices_to_assignment(np.arange(self.card_prod), self.card)
-        
+
         self.dtype = tf.float32
         self.p = kwargs.get('p', 96)
         self.q = other.shape[0]
@@ -493,7 +492,7 @@ class TensorSignatureRandomize(TensorSignatureBootstrap):
 
         if self.verbose:
         	print('Distortion {}'.format(self.frac))
-        
+
         # initialize variables
         self.M
         self.S
@@ -506,18 +505,18 @@ class TensorSignatureRandomize(TensorSignatureBootstrap):
         self.L1
         self.L2
         self.L
-        
+
         #learning rate
         self.global_step = tf.Variable(0, trainable=False)
-        self.starter_learning_rate = self.clu[STARTER_LEARNING_RATE] 
+        self.starter_learning_rate = self.clu[STARTER_LEARNING_RATE]
         self.decay_learning_rate = self.clu[DECAY_LEARNING_RATE] # kwargs.get(DECAY_LEARNING_RATE, 'exponential')
         self.learning_rate
-        
-        self.optimizer = self.clu[OPTIMIZER]
-        self.minimize        
 
-    # Override this from TensorSignatureBootstrap and 
-    # initialize with fresh random values because 
+        self.optimizer = self.clu[OPTIMIZER]
+        self.minimize
+
+    # Override this from TensorSignatureBootstrap and
+    # initialize with fresh random values because
     # of faulty confidence intervals in T
     @define_scope
     def S1(self):
@@ -526,19 +525,19 @@ class TensorSignatureRandomize(TensorSignatureBootstrap):
         indices = np.random.choice(np.arange(np.prod(S0.shape)), replace=False, size=int(np.floor(np.prod(S0.shape)*self.frac)))
         array_min, array_max = np.min(S0), np.max(S0)
         S0_mut = np.random.uniform(low=array_min, high=array_max, size=int(np.floor(np.prod(S0.shape)*self.frac))) # sample random values
-        S0[np.unravel_index(indices, S0.shape)] = S0_mut        
+        S0[np.unravel_index(indices, S0.shape)] = S0_mut
         #print('after')
         #print(S0)
-        
+
         self.S0 = tf.Variable(S0, name='S0') # basic parameters [+/+, +/-] x [Pyr, Pur] x 96-1 x s
         S1 = tf.nn.softmax(tf.concat([self.S0, tf.zeros([2, 2, 1, self.rank])], axis=2), dim=2, name='S1') # pad 0
         self._S1 = tf.reshape(
             tf.stack([
                 S1[0, 0, :, :], S1[1, 0, :, :], 0.5 * tf.reduce_sum(S1[:, 0, :, :], axis=0),
                 S1[1, 1, :, :], S1[0, 1, :, :], 0.5 * tf.reduce_sum(S1[:, 1, :, :], axis=0),
-                0.5 * (S1[0, 0, :, :] + S1[1, 1, :, :]), 0.5 * (S1[1, 0, :, :] + S1[0, 1, :, :]), 0.25 * (tf.reduce_sum(S1, axis=(0, 1)))]), 
+                0.5 * (S1[0, 0, :, :] + S1[1, 1, :, :]), 0.5 * (S1[1, 0, :, :] + S1[0, 1, :, :]), 0.25 * (tf.reduce_sum(S1, axis=(0, 1)))]),
             [3, 3, 1, self.p, self.rank])
-        
+
         return self._S1
 
     @define_scope
@@ -551,37 +550,39 @@ class TensorSignatureRandomize(TensorSignatureBootstrap):
         T0[np.unravel_index(indices, T0.shape)] = T0_mut
         #print('after')
         #print(T0)
-        
+
         self.T0 = tf.Variable(T0, name='T0')
-        T1 = tf.nn.softmax(tf.concat([self.T0, tf.zeros([1, self.rank], dtype=self.dtype)], axis=0), dim=0, name='T') 
-        self._T = T1 * (1-tf.reshape(self.M, (1, self.rank)))
+        T1 = tf.nn.softmax(tf.concat([self.T0, tf.zeros([1, self.rank], dtype=self.dtype)], axis=0), dim=0, name='T')
+        self._T = T1 * (1 - tf.reshape(self.M, (1, self.rank)))
         if self.verbose:
             print('T:', self._T.shape)
-        
-        return self._T    
+
+        return self._T
 
     @define_scope
     def E(self):
-        self.E0 = tf.Variable(self.clu['E0'][..., self.sub, self.init], name='E0')
+        self.E0 = tf.Variable(self.clu['E0'][..., self.sub, self.init],
+                              name='E0')
         self._E = tf.exp(self.E0, name='E')
         if self.verbose:
             print('E:', self._E.shape)
-        
+
         return self._E
 
     @define_scope
     def C1(self):
-        #print('-> no subsampling')
-        self._C1 = tf.constant(self.snv.reshape(3, 3, -1, self.p, self.samples), dtype=self.dtype)
-        
+        # print('-> no subsampling')
+        self._C1 = tf.constant(self.snv.reshape(3, 3, -1, self.p, self.samples),
+                               dtype=self.dtype)
+
         if self.verbose:
             print('C1:', self._C1.shape)
-        
+
         return self._C1
-    
+
     @define_scope
     def C2(self):
-        #print('-> no subsampling')
+        # print('-> no subsampling')
         sub_set = np.ones_like(self.other)
         sub_set[np.where(np.isnan(self.other))] = 0
         self.other[np.where(np.isnan(self.other))] = 0
@@ -594,7 +595,7 @@ class TensorSignatureRandomize(TensorSignatureBootstrap):
 def arg():
     # Initiate a ArgumentParser Class
     parser = argparse.ArgumentParser(
-        prog="train.py", 
+        prog="train.py",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=textwrap.dedent(DESCRIPTION))
     job_name = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')
@@ -628,7 +629,7 @@ def arg():
     parser.add_argument('-v', '--' + VERBOSE,
         action='store_true',
         help='verbose mode')
-    parser.add_argument('-norm', 
+    parser.add_argument('-norm',
         action='store_true',
         help='use normalisation constant M')
     parser.add_argument('-j',  '--' + JOB_NAME,
@@ -637,35 +638,35 @@ def arg():
         help='job name',
         default=job_name)
     parser.add_argument('-i', '--' + ITERATION,
-        metavar='INT', 
+        metavar='INT',
         type=int,
         nargs='+',
-        help='iteration (default = -1 MLE)', 
+        help='iteration (default = -1 MLE)',
         default=-1)
     parser.add_argument('-s', '--' + SEED,
-        metavar='INT', 
+        metavar='INT',
         type=int,
-        help='seed', 
+        help='seed',
         default=None)
     parser.add_argument('-sub',
-        metavar='FLOAT', 
+        metavar='FLOAT',
         type=float,
-        help='select a float > 0 && float < 1', 
+        help='select a float > 0 && float < 1',
         default=False)
     parser.add_argument('-fn', '--' + FILENAME,
-        metavar='STRING', 
+        metavar='STRING',
         type=str,
-        help='enter string to save the job (default J_R_K_I)', 
+        help='enter string to save the job (default J_R_K_I)',
         default='J_R_K_I')
     parser.add_argument('-ds', '--' + DISPLAY_STEP,
-        metavar='INT', 
+        metavar='INT',
         type=int,
-        help='progress updates (default = 1000)', 
+        help='progress updates (default = 1000)',
         default=100)
 
     params = parser.add_argument_group('model parameters')
     params.add_argument('-k', '--' + DISPERSION,
-        metavar='FLOAT', 
+        metavar='FLOAT',
         type=float,
         help='dispersion factor (default = 50)',
         default=50)
@@ -692,23 +693,23 @@ def arg():
 
     init = parser.add_argument_group('initialization parameters')
     init.add_argument('-op', '--' + OPTIMIZER,
-        metavar='STRING', 
-        type=str,
-        default='ADAM',
-        help='optimizer (default ADAM)',
-        choices=OPTIMIZER_CHOICE)
+                      metavar='STRING',
+                      type=str,
+                      default='ADAM',
+                      help='optimizer (default ADAM)',
+                      choices=OPTIMIZER_CHOICE)
     init.add_argument('-ep', '--' + EPOCHS,
-        metavar='INT', 
+        metavar='INT',
         type=int,
-        default=5000, 
+        default=5000,
         help='number of epochs')
     init.add_argument('-lr', '--' + STARTER_LEARNING_RATE,
-        metavar='FLOAT', 
+        metavar='FLOAT',
         type=float,
-        default=0.1, 
+        default=0.1,
         help='starter learning rate')
     init.add_argument('-ld', '--' + DECAY_LEARNING_RATE,
-        metavar='STRING', 
+        metavar='STRING',
         type=str,
         default='exponential',
         help='learning rate (default exponential)',
@@ -722,7 +723,7 @@ def main():
     parser = arg()
     args = parser.parse_args(sys.argv[1:])
     params = vars(args)
-    
+
     # load dataset
     if params[INPUT] == 'PCAWG_TCGA':
         snv, other, M, N = load_pcawg_tcga()
@@ -770,19 +771,19 @@ def main():
         tf.reset_default_graph()
 
         if params['sub']:
-                model = TensorSignatureSubsampleRandom(clu, snv, other, N, **params)        	
+                model = TensorSignatureSubsampleRandom(clu, snv, other, N, **params)
         else:
         	model = TensorSignatureBootstrap(
-        		snv=snv, 
-        		other=other, 
-        		N=N, 
+        		snv=snv,
+        		other=other,
+        		N=N,
         		clu=clu)
 
         model.fit_bootstrap_sample()
         data = {**params_copy, **model.bootstrap}
         #if (params[OBJECTIVE] == 'nbconst') | (params[OBJECTIVE] == 'nbvar') | (params[OBJECTIVE] == 'nbgamma'):
         #    post_processing(results, snv, other)
-        
+
         fname = params['project'].lstrip("/").split('/')[0] + "_" + params['project'].lstrip("/").split('/')[1] + "_I={}".format(i)
         save_dict(data, os.path.join(params_copy[OUTPUT], fname+'.pkl'))
 
