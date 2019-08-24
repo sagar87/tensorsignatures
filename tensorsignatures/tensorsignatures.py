@@ -51,7 +51,7 @@ def define_scope(function, scope=None, *args, **kwargs):
     return decorator
 
 class TensorSignature(object):
-    """Heart of TensorSignatures.
+    r"""Heart of TensorSignatures.
 
     Args:
         snv: Input SNV tensor with shape $(3 x 3 x d_1, ..., d_m x p x n)$.
@@ -59,7 +59,7 @@ class TensorSignature(object):
             transcription (3) and replication (3), while the last two
             dimensions should contain the mutation types (p) and
             samples (n). Dimensions d_1 ... d_m may represent arbtrary
-            genomic states.
+            genomic states $$\mathbb{R}$$.
             .. math:: (a + b)^2 = a^2 + 2ab + b^2
         other: (q x n) mutation count matrix with q mutation types and
             n samples
