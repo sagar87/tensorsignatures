@@ -11,7 +11,7 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = ['Click>=6.0', 'scipy>=1.1.0', 'pandas>=0.23.4', 'h5py>=2.8.0', 'numpy>=1.14.5', 'scikit-learn>=0.20.0', 'matplotlib>=3.0.2']
+requirements = ['Click>=6.0', 'scipy>=1.1.0', 'pandas>=0.23.4', 'h5py>=2.8.0', 'numpy>=1.14.5', 'scikit-learn>=0.20.0', 'matplotlib>=3.0.2', 'tensorflow>=1.10.1']
 
 setup_requirements = [ ]
 
