@@ -54,19 +54,21 @@ class TensorSignature(object):
     r"""Heart of TensorSignatures.
 
     Args:
-        snv: Input SNV tensor with shape :math:`\\mathbb{R}^{3\times 3\times
-            t_1\times\dots\times p\times n}`.TensorSignature expects the first
-            two dimension to represent transcription (3) and replication (3),
-            while the last two dimensions should contain the mutation types (p)
-            and samples (n). Dimensions d_1 ... d_m may represent arbtrary
-            genomic states.
-        other: (q x n) mutation count matrix with q mutation types and
-            n samples
-        N: (3 x 3 x d_1, ..., d_m x p x 1) optional normalization tensor
-            containing trinucleotide frequencies for each genomic state
+        snv: Input SNV tensor with shape :math:`\mathbbf{C}^{\text{SNV}}\in
+            \mathbb{R}^{3\times 3\times t_1\times\dots\times t_m\times p
+            \times n}`. TensorSignature expects the first two dimension to
+            represent transcription and replication, while the last two
+            dimensions contain the mutation types :math:`p` and samples
+            :math:`n`. Dimensions :math:`t_1,\dots, t_m` may represent arbtrary
+            genomic dimensions.
+        other: Mutation count matrix with :math:`q` mutation types and
+            :math:`n` samples.
+        N:  Optional normalization tensor :math:`\mathbf{N}\in
+            \mathbb{R}^{3\times 3\times t_1\times\dots\times t_m\times p
+            \times 1}` containing trinucleotide frequencies for each genomic
+            state.
         objective: likelihood function with which mutation counts are
-            modeled. Currently, negative binomial or poisson.
-            Since Pythagoras, we know that :math:`a^2 + b^2 = c^2`.
+            modeled. Currently, the negative binomial or poisson are supported.
     """
 
     def __init__(self, snv, other, N=None, objective='nbconst',
