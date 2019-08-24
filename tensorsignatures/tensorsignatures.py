@@ -54,7 +54,7 @@ class TensorSignature(object):
     r"""Heart of TensorSignatures.
 
     Args:
-        snv: Input SNV tensor with shape :math:`\mathbbf{C}^{\text{SNV}}\in
+        snv: Input SNV tensor with shape :math:`\mathbf{C}^{\text{SNV}}\in
             \mathbb{R}^{3\times 3\times t_1\times\dots\times t_m\times p
             \times n}`. TensorSignature expects the first two dimension to
             represent transcription and replication, while the last two
