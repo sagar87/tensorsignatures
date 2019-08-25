@@ -30,9 +30,6 @@ setup(
     description="Tensorframework for mutational signature analysis.",
     entry_points={
         'console_scripts': [
-            'tswriter=tensorsignatures.writer:main',
-            'tsbench=tensorsignatures.benchmark:main',
-            'tstrain=tensorsignatures.train:main',
             'tensorsignatures=tensorsignatures.cli:main'
         ],
     },
