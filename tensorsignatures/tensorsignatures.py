@@ -12,13 +12,13 @@ import tensorflow as tf
 import numpy as np
 import h5py as h5
 from tensorsignatures.config import *
+from tqdm import trange
 import functools
 
 def doublewrap(function):
-    """
-    A decorator decorator, allowing to use the decorator to be used without
-    parentheses if no arguments are provided. All arguments must be optional.
-    """
+    # A decorator decorator, allowing to use the decorator to be used without
+    # parentheses if no arguments are provided. All arguments must be optional.
+    # https://gist.github.com/danijar/8663d3bbfd586bffecf6a0094cd116f2
     @functools.wraps(function)
     def decorator(*args, **kwargs):
         if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
@@ -30,15 +30,15 @@ def doublewrap(function):
 
 @doublewrap
 def define_scope(function, scope=None, *args, **kwargs):
-    """
-    A decorator for functions that define TensorFlow operations. The wrapped
-    function will only be executed once. Subsequent calls to it will directly
-    return the result so that operations are added to the graph only once.
-    The operations added by the function live within a tf.variable_scope(). If
-    this decorator is used with arguments, they will be forwarded to the
-    variable scope. The scope name defaults to the name of the wrapped
-    function.
-    """
+    # A decorator for functions that define TensorFlow operations. The wrapped
+    # function will only be executed once. Subsequent calls to it will directly
+    # return the result so that operations are added to the graph only once.
+    # The operations added by the function live within a tf.variable_scope().
+    # If this decorator is used with arguments, they will be forwarded to the
+    # variable scope. The scope name defaults to the name of the wrapped
+    # function.
+    # https://gist.github.com/danijar/8663d3bbfd586bffecf6a0094cd116f2
+
     attribute = '_cache_' + function.__name__
     name = scope or function.__name__
     @property
@@ -49,6 +49,7 @@ def define_scope(function, scope=None, *args, **kwargs):
                 setattr(self, attribute, function(self))
         return getattr(self, attribute)
     return decorator
+
 
 class TensorSignature(object):
     r"""Extracts tensor signatures from a SNV count tensor and a matrix
@@ -78,6 +79,8 @@ class TensorSignature(object):
             rate decay.
         optimizer (:obj:`str, {'ADAM', 'gradient_descent'}`): Allows to set the
             optimizer.
+        log_step (:obj:`int`): Log freuqency.
+        display_step (:obj:`int`): Update intervals of progress bar during.
         epochs (:obj:`int`): Number of epochs for trainting.
         dtype (:obj:`dtype`): Allows to set tensorflow number type.
 
@@ -95,15 +98,21 @@ class TensorSignature(object):
     def __init__(self, snv, other, rank, N=None, dispersion=50,
                  objective='nbconst', collapse=False,
                  starter_learning_rate=0.1, decay_learning_rate='exponential',
-                 optimizer='ADAM', epochs=10000, dtype=tf.float32,
-                 verbose=True, seed=None):
-        assert(len(snv.shape) >= 5)
+                 optimizer='ADAM', epochs=10000, log_step=100,
+                 display_step=100, dtype=tf.float32, verbose=True, seed=None):
+        # store hyperparameters
         self.verbose = verbose
         self.seed = seed
         self.dtype = dtype
         self.objective = objective
         self.collapse = collapse
         self.epochs = epochs
+        self.log_step = log_step
+        self.display_step = display_step
+        self.starter_learning_rate = starter_learning_rate
+        self.decay_learning_rate = decay_learning_rate
+        self.optimizer = optimizer
+
         # TODO: include this field (?)
         # self.data_pts = np.array(np.sum(~np.isnan(snv)) + np.sum(~np.isnan(other)))
 
@@ -157,12 +166,17 @@ class TensorSignature(object):
 
         # learning rate
         self.global_step = tf.Variable(0, trainable=False)
-        self.starter_learning_rate = starter_learning_rate
-        self.decay_learning_rate = decay_learning_rate
         self.learning_rate
-
-        self.optimizer = kwargs.get(OPTIMIZER, 'ADAM')
         self.minimize
+
+        # intialize logs
+        self.logs = {
+            LOG_EPOCH: np.zeros(self.epochs // self.log_step),
+            LOG_LEARNING_RATE: np.zeros(self.epochs // self.log_step),
+            LOG_L: np.zeros(self.epochs // self.log_step),
+            LOG_L1: np.zeros(self.epochs // self.log_step),
+            LOG_L2: np.zeros(self.epochs // self.log_step),
+        }
 
     @staticmethod
     def collapse_data(snv):
@@ -203,8 +217,7 @@ class TensorSignature(object):
             sesss (:obj:`tf.Session`): Tensorflow session in which the model
             was trained
         Returns:
-            results (:obj:`dict`): dictionary containing signatures, exposures
-            and tensorfactors.
+            A :obj:`dict` containing signatures, exposures and tensorfactors.
         """
         tensors = [ var for var in dir(self) if (var.strip('_') in PARAMETERS+VARIABLES) ]
 
@@ -483,20 +496,40 @@ class TensorSignature(object):
         if self.objective == 'nbconst':
             if self.verbose:
                 print('Using negative binomial likelihood')
-            self._L1ij = self.tau * tf.log(self.tau) - tf.lgamma(self.tau) + tf.lgamma(self.C1+self.tau) + self.C1 * tf.log(self.Chat1) - tf.log(self.Chat1+self.tau) * (self.tau + self.C1) - tf.lgamma(self.C1+1)
+            self._L1ij = (self.tau
+                          * tf.log(self.tau)
+                          - tf.lgamma(self.tau)
+                          + tf.lgamma(self.C1 + self.tau)
+                          + self.C1 * tf.log(self.Chat1)
+                          - tf.log(self.Chat1 + self.tau)
+                          * (self.tau + self.C1)
+                          - tf.lgamma(self.C1 + 1))
         if self.objective == 'poisson':
             if self.verbose:
                 print('Using poisson likelihood')
-            self._L1ij = self.C1 * tf.log(self.Chat1) - self.Chat1 - tf.lgamma(self.C1+1)
+            self._L1ij = (self.C1
+                          * tf.log(self.Chat1)
+                          - self.Chat1
+                          - tf.lgamma(self.C1 + 1))
 
         return self._L1ij
 
     @define_scope
     def L2ij(self):
         if self.objective == 'nbconst':
-            self._L2ij = self.tau * tf.log(self.tau) - tf.lgamma(self.tau) + tf.lgamma(self.C2+self.tau) + self.C2 * tf.log(self.Chat2) - tf.log(self.Chat2+self.tau) * (self.tau + self.C2) - tf.lgamma(self.C2+1)
+            self._L2ij = (self.tau
+                          * tf.log(self.tau)
+                          - tf.lgamma(self.tau)
+                          + tf.lgamma(self.C2 + self.tau)
+                          + self.C2 * tf.log(self.Chat2)
+                          - tf.log(self.Chat2 + self.tau)
+                          * (self.tau + self.C2)
+                          - tf.lgamma(self.C2 + 1))
         if self.objective == 'poisson':
-            self._L2ij = self.C2 * tf.log(self.Chat2) - self.Chat2 - tf.lgamma(self.C2+1)
+            self._L2ij = (self.C2
+                          * tf.log(self.Chat2)
+                          - self.Chat2
+                          - tf.lgamma(self.C2+1))
         return self._L2ij
 
     @define_scope
@@ -513,6 +546,51 @@ class TensorSignature(object):
     def L(self):
         self._L = self.L1 + self.L2
         return self._L
+
+    def fit(self, sess=None):
+        """Fits the model.
+
+        Args:
+            sess (:obs:`tf.Session`): Optional session, if noe is provided
+            TensorSignatures will open new tensorflow session.
+        Returns:
+            The tensoflow session.
+        """
+        # fits the model
+        if sess is None:
+            init = tf.global_variables_initializer()
+            sess = tf.Session()
+            sess.run(init)
+
+        t = trange(self.epochs, desc='Progress:', leave=True)
+        previous_likelihood = 0
+        for i in t:
+            _ = sess.run(self.minimize)
+            log_step = i // self.log_step
+
+            if (i % self.log_step == 0):
+                self.logs[LOG_LEARNING_RATE][log_step] = i
+                self.logs[LOG_LEARNING_RATE][log_step] = sess.run(
+                    self.learning_rate)
+                self.logs[LOG_L][log_step] = sess.run(self.L)
+                self.logs[LOG_L1][log_step] = sess.run(self.L1)
+                self.logs[LOG_L2][log_step] = sess.run(self.L2)
+
+            if (i % self.display_step == 0) and self.verbose:
+                current_likelihood = sess.run(self.L)
+                log_string = LOG_STRING.format(
+                    lh=current_likelihood,
+                    snv=sess.run(self.L1),
+                    other=sess.run(self.L2),
+                    lr=sess.run(self.learning_rate),
+                    delta=current_likelihood - previous_likelihood)
+                t.set_description(log_string)
+                t.refresh()
+                previous_likelihood = current_likelihood
+
+        return sess
+
+
 
 class TensorSignatureRefit(TensorSignature):
     def __init__(self, snv, other, N, clu, **kwargs):

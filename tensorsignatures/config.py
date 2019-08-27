@@ -35,7 +35,7 @@ ORGANS = resource_filename('tensorsignatures', 'data/samples_sorted.csv')
 OTHER_MUTATIONS = resource_filename('tensorsignatures', 'data/othermut.csv')
 MORITZ_OTHER = resource_filename('tensorsignatures', 'data/allTable.txt')
 MORITZ_TNC = resource_filename('tensorsignatures', 'data/tncTransRep.txt')
-	
+
 PCAWG_SIGNATURES = resource_filename('tensorsignatures', 'data/pcawg_signatures.txt')
 PCAWG_EXPOSURES = resource_filename('tensorsignatures', 'data/pcawg_exposures.txt')
 PCAWG_SAMPLES = resource_filename('tensorsignatures', 'data/pcawg_samples.txt')
@@ -87,11 +87,12 @@ LOG_SIZE = 'log_size'
 LOG_L1 = 'log_L1'
 LOG_L2 = 'log_L2'
 LOG_L = 'log_L'
+LOG_EPOCH = 'log_epoch'
 LOG_LAMBDA_T = 'log_lambda_t' # lambda for transcription bias
 LOG_LAMBDA_R = 'log_lambda_r' # lambda for replication bias
-LOG_LAMBDA_C = 'log_lambda_c' # lambda for 
-LOG_LAMBDA_A = 'log_lambda_a' 
-
+LOG_LAMBDA_C = 'log_lambda_c' # lambda for
+LOG_LAMBDA_A = 'log_lambda_a'
+LOG_STRING = 'Likelihood {lh:.2f} delta {delta:.2f} snv {snv:.2f} other {other:.2f} lr {lr:.4f}'
 
 VERBOSE = 'verbose'
 INPUT = 'input'
@@ -132,8 +133,8 @@ COL = 'col'
 
 LAMBDA_T = 'lambda_t' # lambda for transcription bias
 LAMBDA_R = 'lambda_r' # lambda for replication bias
-LAMBDA_C = 'lambda_c' # lambda for 
-LAMBDA_A = 'lambda_a' 
+LAMBDA_C = 'lambda_c' # lambda for
+LAMBDA_A = 'lambda_a'
 
 NORMALIZE = 'norm'
 COLLAPSE = 'collapse'
