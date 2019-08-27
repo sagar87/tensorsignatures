@@ -16,20 +16,19 @@ KSIZ = 2
 
 
 class TensorSignatureData(object):
+    r"""Makes sample data for TensorSignatures
 
+    Args:
+        seed (:obj:`int`): Seed for signature instantiation
+        rank (:obj:`int`, :math:`2\leq s\leq 40`): The number of signatures
+            that shall be used to create the mutation counts.
+        samples (:obj:`int`, :math:`n\geq 1`): The number of samples in the
+            artificial dataset
+    Returns:
+        A TensorSignaturesData object.
+    """
     def __init__(self, seed, rank, samples=100, tau=50, mutations=1000,
                  verbose=True, dim=[2], **kwargs):
-        r"""Makes sample data for TensorSignatures
-
-        Args:
-            seed (:obj:`int`): Seed for signature instantiation
-            rank (:obj:`int`, :math:`2\leq s\leq 40`): The number of signatures
-                that shall be used to create the mutation counts.
-            samples (:obj:`int`, :math:`n\geq 1`): The number of samples in the
-                artificial dataset
-        Returns:
-            A TensorSignaturesData object.
-        """
         self.seed = seed
         np.random.seed(self.seed)
         self.verbose = verbose
