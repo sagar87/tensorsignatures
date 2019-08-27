@@ -215,7 +215,7 @@ class TensorSignature(object):
 
         Args:
             sesss (:obj:`tf.Session`): Tensorflow session in which the model
-            was trained
+            was trained.
         Returns:
             A :obj:`dict` containing signatures, exposures and tensorfactors.
         """
@@ -551,7 +551,7 @@ class TensorSignature(object):
         """Fits the model.
 
         Args:
-            sess (:obs:`tf.Session`): Optional session, if noe is provided
+            sess (:obj:`tf.Session`): Optional session, if no is provided
             TensorSignatures will open new tensorflow session.
         Returns:
             The tensoflow session.
