@@ -55,7 +55,7 @@ class TensorSignature(object):
     containing other mutation types.
 
     Args:
-        snv (array-like, shape :math:`(3, 3, (t_1+1), ..., (t_l+1), p, n)`):
+        snv (array-like, shape :math:`(3, 3, (t_1+1), \dots, (t_l+1), p, n)`):
             Input SNV tensor; first and second dimension represent
             transcription and replication, while the last two dimensions
             contain p mutation types and n samples. Other dimensions may
@@ -64,7 +64,7 @@ class TensorSignature(object):
             mutation types and n samples.
         rank (:obj:`int`, :math:`2 \leq \text{rank} < n`): rank of the
             decomposition.
-        N (array_like, shape :math:`(3, 3, (t_1+1), ..., (t_l+1), p, 1)`):
+        N (array_like, shape :math:`(3, 3, (t_1+1), \dots, (t_l+1), p, 1)`):
             Optional normalization tensor containing trinucleotide frequencies
             for each genomic state.
         dispersion (:obj:`int`, :math:`1 \leq \tau \leq + \inf`):
