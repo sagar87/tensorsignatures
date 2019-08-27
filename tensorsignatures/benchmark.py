@@ -24,21 +24,28 @@ class TensorSignatureData(object):
             that shall be used to create the mutation counts.
         samples (:obj:`int`, :math:`n\geq 1`): The number of samples in the
             artificial dataset
+        dispersion (:obj:`int`, :math:`\tau\geq 1`)): Dispersion of counts.
+        mutations (:obj:`int`,  :math:`\text{mutations}\geq 1`)): Number of
+            mutations per genome.
+        dim (:obj:`list` of :obj:`int`): List indicating the size of additional
+            genomic dimensions.
+        verbose (:obj:`bool`): Verbose mode.
     Returns:
         A TensorSignaturesData object.
     """
-    def __init__(self, seed, rank, samples=100, tau=50, mutations=1000,
+    def __init__(self, seed, rank, samples=100, dispersion=50, mutations=1000,
                  verbose=True, dim=[2], **kwargs):
         self.seed = seed
         np.random.seed(self.seed)
         self.verbose = verbose
         self.rank = rank
         self.gen = samples
-        self.tau = tau
+        self.tau = dispersion
         self.mut = mutations
         self.dim = dim
 
-        self.idx = np.random.choice(np.arange(40), replace=False, size=self.rank)
+        self.idx = np.random.choice(
+            np.arange(40), replace=False, size=self.rank)
         self.S0 = np.loadtxt(SIMULATION)[:, self.idx]
         self.T0 = np.loadtxt(OTHER)[:, self.idx]
 
@@ -48,25 +55,11 @@ class TensorSignatureData(object):
         self.M
         self.K
 
-
         self.S = self.S1 * self.B * self.A * self.M
-
         for i, k in self.K.items():
             self.S = self.S * k
-        #self.S /= self.S.sum(axis=(0,1,2,3,))
-        #self.S /= self.S.sum(axis=(2,4), keepdims=True)
-        #self.S3 = self.S2 / self.S2.sum(axis=(0,1,2,3))
-        #self.S = self.S3 * self.M
 
-        #self.S = self.S1 * self.M
-        self.T = self.T0 * (1-self.M.reshape(-1, self.rank))
-        # self.E
-        # additional code
-        # self.dim_snv = self.S.reshape(-1, self.rank).shape[0]
-        # tmp = np.concatenate([self.S.reshape(-1, self.rank), self.T])
-        # tmp /= tmp.sum(0)
-        # self.S = tmp[:self.dim_snv,:].reshape(3,3,KSIZ+1,96,self.rank)
-        # self.T = tmp[self.dim_snv:,:]
+        self.T = self.T0 * (1 - self.M.reshape(-1, self.rank))
 
     def __getitem__(self, item):
         if not hasattr(self, '_var'):
