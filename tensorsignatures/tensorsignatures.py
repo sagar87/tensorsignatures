@@ -55,19 +55,19 @@ class TensorSignature(object):
     containing other mutation types.
 
     Args:
-        snv (array-like, shape (3, 3, (t_1+1), ..., (t_l+1), p, n)): Input SNV
-            tensor; first and second dimension represent transcription and
-            replication, while the last two dimensions contain p mutation types
-            and n samples. Other dimensions may represent arbtrary genomic
-            states.
-        other (array-like, shape(q, n)): Mutation count matrix with q mutation
+        snv (array-like, shape :math:`(3, 3, (t_1+1), ..., (t_l+1), p, n)`):
+            Input SNV tensor; first and second dimension represent
+            transcription and replication, while the last two dimensions
+            contain p mutation types and n samples. Other dimensions may
+            represent arbtrary genomic states.
+        other (array-like, shape :math:`(q, n)`): Mutation count matrix with q mutation
             types and n samples.
-        rank (:obj:`int`, 2 <= rank < n): rank of the decomposition.
-        N (array_like, shape (3, 3, (t_1+1), ..., (t_l+1), p, 1)):
+        rank (:obj:`int`, :math:`2 \leq rank < n`): rank of the decomposition.
+        N (array_like, shape :math:`(3, 3, (t_1+1), ..., (t_l+1), p, 1)`):
             Optional normalization tensor containing trinucleotide frequencies
             for each genomic state.
-        dispersion (int, 1 <= + inf): Dispersion parameter for negative
-            binomial distribution.
+        dispersion (:obj:`int`, :math:`1 \leq \text{rank} \leq + \inf`):
+            Dispersion parameter for negative binomial distribution.
         objective (:obj:`str`, {'nbconst', 'poisson'}): Likelihood distribution
             to model mutation counts. Currently, the negative binomial or
             poisson are supported.
