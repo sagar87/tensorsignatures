@@ -55,35 +55,32 @@ class TensorSignature(object):
     containing other mutation types.
 
     Args:
-        snv: array-like, shape (3, 3, (t_1+1), ..., (t_l+1), p, n)
-            Input SNV tensor; first and second dimension represent
-            transcription and replication, while the last two dimensions
-            contain p mutation types and n samples. Other dimensions may
-            represent arbtrary genomic states.
-        other: array-like, shape(q, n)
-            Mutation count matrix with q mutation types and n samples.
-        rank: int, 2 <= rank < n
-        N: array_like, shape (3, 3, (t_1+1), ..., (t_l+1), p, 1)
+        snv (array-like, shape (3, 3, (t_1+1), ..., (t_l+1), p, n)): Input SNV
+            tensor; first and second dimension represent transcription and
+            replication, while the last two dimensions contain p mutation types
+            and n samples. Other dimensions may represent arbtrary genomic
+            states.
+        other (array-like, shape(q, n)): Mutation count matrix with q mutation
+            types and n samples.
+        rank (:obj:`int`, 2 <= rank < n): rank of the decomposition.
+        N (array_like, shape (3, 3, (t_1+1), ..., (t_l+1), p, 1)):
             Optional normalization tensor containing trinucleotide frequencies
             for each genomic state.
-        dispersion: int, 1 <= + inf
-            Dispersion parameter for negative binomial distribution.
-        objective: str, {'nbconst', 'poisson'}
-            Likelihood distribution to model mutation counts. Currently, the
-            negative binomial or poisson are supported.
-        collapse: bool
-            Deprecated
-        starter_learning_rate: flaot
-            Learning rate.
-        decay_learning_rate: str, {'exponential', 'constant'}
-            Learning rate decay.
-        optimizer: str, {'ADAM', 'gradient_descent'}
-            Allows to set the optimizer.
-        dtype: dtype
-            Allows to set tensorflow type.
+        dispersion (int, 1 <= + inf): Dispersion parameter for negative
+            binomial distribution.
+        objective (:obj:`str`, {'nbconst', 'poisson'}): Likelihood distribution
+            to model mutation counts. Currently, the negative binomial or
+            poisson are supported.
+        collapse (:obj:`bool`): Deprecated convinience function.
+        starter_learning_rate (:obj:`float`): Starting Learning rate.
+        decay_learning_rate (:obj:`str`, {'exponential', 'constant'}): Learning
+            rate decay.
+        optimizer (:obj:`str`, {'ADAM', 'gradient_descent'}): Allows to set the
+            optimizer.
+        dtype (:obj:`dtype`): Allows to set tensorflow number type.
 
     Returns:
-        A tensorsignatures object.
+        A tensorsignatures model.
 
     Examples:
 
