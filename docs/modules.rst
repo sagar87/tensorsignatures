@@ -16,10 +16,15 @@ The util module contains classes and functions to run tensorsignatures.
 
 
 
-tensorsignatures.train
-----------------------
+tensorsignatures.tensorsignatures
+---------------------------------
 
 The train module contains the train function used to train a model.
 
 .. automodule:: tensorsignatures.tensorsignatures
+   :members:
+
+tensorsignatures.benchmark
+--------------------------
+.. automodule:: tensorsignatures.benchmark
    :members:
