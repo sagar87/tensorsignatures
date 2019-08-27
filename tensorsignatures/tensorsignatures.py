@@ -78,6 +78,7 @@ class TensorSignature(object):
             rate decay.
         optimizer (:obj:`str, {'ADAM', 'gradient_descent'}`): Allows to set the
             optimizer.
+        epochs (:obj:`int`): Number of epochs for trainting.
         dtype (:obj:`dtype`): Allows to set tensorflow number type.
 
     Returns:
@@ -94,13 +95,15 @@ class TensorSignature(object):
     def __init__(self, snv, other, rank, N=None, dispersion=50,
                  objective='nbconst', collapse=False,
                  starter_learning_rate=0.1, decay_learning_rate='exponential',
-                 optimizer='ADAM', dtype=tf.float32, verbose=True, seed=None):
+                 optimizer='ADAM', epochs=10000, dtype=tf.float32,
+                 verbose=True, seed=None):
         assert(len(snv.shape) >= 5)
         self.verbose = verbose
         self.seed = seed
         self.dtype = dtype
         self.objective = objective
         self.collapse = collapse
+        self.epochs = epochs
         # TODO: include this field (?)
         # self.data_pts = np.array(np.sum(~np.isnan(snv)) + np.sum(~np.isnan(other)))
 
@@ -136,7 +139,7 @@ class TensorSignature(object):
         self.c = len(self.snv.shape) - 4
         self.card = list(self.snv.shape)[2: -2]
         self.card_prod = np.prod(self.card)
-        self.idex = self._indices_to_assignment(
+        self.idex = self.indices_to_assignment(
             np.arange(self.card_prod), self.card)
 
         # initialize variables
@@ -163,27 +166,46 @@ class TensorSignature(object):
 
     @staticmethod
     def collapse_data(snv):
+        # Deprecated convinience function.
         col1 = snv[[slice(None)] * (snv.ndim - 3) + [0] + [slice(None)] * 2]
         col2 = []
-        for i, j in [(1, 1), (1, 0), (1, 2), (0, 1), (0, 0), (0, 2), (2, 1), (2, 0), (2, 2)]:
-            col2.append(snv[[i, j]+[slice(None)]*(snv.ndim-5)+[1]+[slice(None)]*2])
+        dims = [
+            (1, 1), (1, 0), (1, 2),
+            (0, 1), (0, 0), (0, 2),
+            (2, 1), (2, 0), (2, 2)]
+
+        for i, j in dims:
+            col2.append(
+                snv[[i, j] + [slice(None)] * (snv.ndim - 5) +
+                    [1] + [slice(None)] * 2])
+
         col2 = np.stack(col2).reshape(col1.shape)
+
         return col1 + col2
 
-    def _indices_to_assignment(self, I, card):
-        """
-        :param - I: a list of indices
-        :param list card: a list of the cardinalities of the variables in the
-        assignment
-        """
-        I = np.array(I, copy=False)
+    def indices_to_assignment(self, I, card):
+        # Helper function to collapse additional genomic dimension
         card = np.array(card, copy=False)
         C = card.flatten()
-        A = np.mod(np.floor(np.tile(I.flatten().T, (len(card), 1)).T / np.tile(np.cumprod(np.concatenate(([1.0], C[:0:-1]))), (len(I), 1))), np.tile(C[::-1], (len(I), 1)))
+        A = np.mod(
+            np.floor(
+                np.tile(I.flatten().T, (len(card), 1)).T /
+                np.tile(np.cumprod(np.concatenate(([1.0], C[:0:-1]))),
+                        (len(I), 1))),
+            np.tile(C[::-1], (len(I), 1)))
 
         return A[:, ::-1]
 
     def get_tensors(self, sess):
+        """Extracts signatures, exposures and tensor factors.
+
+        Args:
+            sesss (:obj:`tf.Session`): Tensorflow session in which the model
+            was trained
+        Returns:
+            results (:obj:`dict`): dictionary containing signatures, exposures
+            and tensorfactors.
+        """
         tensors = [ var for var in dir(self) if (var.strip('_') in PARAMETERS+VARIABLES) ]
 
         data = {}
@@ -202,9 +224,10 @@ class TensorSignature(object):
 
     @define_scope
     def learning_rate(self):
+        # Initialize learning rates.
         if self.decay_learning_rate == 'constant':
-            self._learning_rate = tf.constant(self.starter_learning_rate,
-                                              dtype=tf.float32, shape=())
+            self._learning_rate = tf.constant(
+                self.starter_learning_rate, dtype=tf.float32, shape=())
         elif self.decay_learning_rate == 'exponential':
             self._learning_rate = tf.train.exponential_decay(
                 self.starter_learning_rate, self.global_step, 1000, 0.95,
@@ -214,6 +237,7 @@ class TensorSignature(object):
 
     @define_scope
     def minimize(self):
+        # Initializes the minimizer.
         if self.optimizer == 'ADAM':
             self._minimize = tf.train.AdamOptimizer(
                 self.learning_rate).minimize(-self.L, self.global_step)
@@ -225,8 +249,7 @@ class TensorSignature(object):
 
     @define_scope
     def S1(self):
-        """Initializes the SNV signature tensor."""
-        # initialize variables
+        # Initializes the SNV signature tensor.
         self.S0 = tf.Variable(
             tf.truncated_normal(
                 [2, 2, self.p - 1, self.rank],
@@ -258,7 +281,7 @@ class TensorSignature(object):
 
     @define_scope
     def T(self):
-        """Initializes the signature matrix for other mutaiton types."""
+        # Initializes the signature matrix for other mutaiton types.
         # initialize T0 with values from a truncated normal
         self.T0 = tf.Variable(
             tf.truncated_normal(
@@ -279,8 +302,7 @@ class TensorSignature(object):
 
     @define_scope
     def E(self):
-        """Initializes exposures."""
-        # initialize Exposurs
+        # Initializes exposures.
         self.E0 = tf.Variable(
             tf.truncated_normal(
                 [self.rank, self.samples], dtype=self.dtype, seed=self.seed),
@@ -295,10 +317,9 @@ class TensorSignature(object):
 
     @define_scope
     def A(self):
-        """Initializes signature activities transcription/replication."""
-        # initialize signature activities for transcription and replication
-        # self.a0[0,:] corresponds to a_t
-        # self.a0[1,:] corresponds to a_r
+        # Initializes signature activities transcription/replication.
+        # self.a0[0,:] => to a_t
+        # self.a0[1,:] => to a_r
         self.a0 = tf.Variable(
             tf.truncated_normal(
                 [2, self.rank], dtype=tf.float32, seed=self.seed),
@@ -321,8 +342,7 @@ class TensorSignature(object):
 
     @define_scope
     def B(self):
-        """Intializes transcription/replication biases."""
-        # initialize biases for transcription / replication
+        # Intializes transcription/replication biases.
         # self.b0[0,:] => b_t (coding / template)
         # self.b0[1,:] => b_r (lagging / leading)
         self.b0 = tf.Variable(
@@ -349,7 +369,7 @@ class TensorSignature(object):
 
     @define_scope
     def K(self):
-        """Initializes variables for generic tensorfactors."""
+        # Initializes variables for generic tensorfactors
         self._clu_var = {}
         self._cbiases = {}
 
@@ -390,7 +410,7 @@ class TensorSignature(object):
 
     @define_scope
     def M(self):
-        """Initializes mixing factor variables."""
+        # Initializes mixing factor variables.
 
         self.m0 = tf.Variable(
             tf.truncated_normal(
@@ -405,6 +425,7 @@ class TensorSignature(object):
 
     @define_scope
     def S(self):
+        # Initialize the final SNV tensor
         self._S = self.S1 * self.A * self.B * self.K * self.M
         if self.verbose:
             print('S:', self._S.shape)
@@ -412,6 +433,7 @@ class TensorSignature(object):
 
     @define_scope
     def C1(self):
+        # Stores the count tensor.
         self._C1 = tf.constant(
             self.snv.reshape(3, 3, -1, self.p, self.samples), dtype=self.dtype)
 
@@ -422,6 +444,7 @@ class TensorSignature(object):
 
     @define_scope
     def C2(self):
+        # Stores the other mutation types tensor
         sub_set = np.ones_like(self.other)
         sub_set[np.where(np.isnan(self.other))] = 0
         self.other[np.where(np.isnan(self.other))] = 0
@@ -433,7 +456,10 @@ class TensorSignature(object):
 
     @define_scope
     def Chat1(self):
-        self._Chat1 = tf.reshape(tf.matmul(tf.reshape(self.S, (-1, self.rank)), self.E), (3, 3, -1, 96, self.samples), name='Chat1')
+        # Compute predicted counts.
+        self._Chat1 = tf.reshape(
+            tf.matmul(tf.reshape(self.S, (-1, self.rank)), self.E),
+            (3, 3, -1, 96, self.samples), name='Chat1')
 
         if self.N is not None:
             self._Chat1 *= (self.N.astype('float32') + 1e-6)
@@ -516,7 +542,7 @@ class TensorSignatureRefit(TensorSignature):
         self.clu_dim = sorted([ var for var in list(self.clu.dset) if var.startswith('k') ])
         self.card = [ self.clu.dset[var][()].shape[0]+1 for var in self.clu_dim ]
         self.card_prod = np.prod(self.card)
-        self.idex = self._indices_to_assignment(np.arange(self.card_prod), self.card)
+        self.idex = self.indices_to_assignment(np.arange(self.card_prod), self.card)
 
         self.dtype = tf.float32
         self.p = kwargs.get('p', 96)
