@@ -60,22 +60,23 @@ class TensorSignature(object):
             transcription and replication, while the last two dimensions
             contain p mutation types and n samples. Other dimensions may
             represent arbtrary genomic states.
-        other (array-like, shape :math:`(q, n)`): Mutation count matrix with q mutation
-            types and n samples.
-        rank (:obj:`int`, :math:`2 \leq rank < n`): rank of the decomposition.
+        other (array-like, shape :math:`(q, n)`): Mutation count matrix with q
+            mutation types and n samples.
+        rank (:obj:`int`, :math:`2 \leq \text{rank} < n`): rank of the
+            decomposition.
         N (array_like, shape :math:`(3, 3, (t_1+1), ..., (t_l+1), p, 1)`):
             Optional normalization tensor containing trinucleotide frequencies
             for each genomic state.
-        dispersion (:obj:`int`, :math:`1 \leq \text{rank} \leq + \inf`):
+        dispersion (:obj:`int`, :math:`1 \leq \tau \leq + \inf`):
             Dispersion parameter for negative binomial distribution.
-        objective (:obj:`str`, {'nbconst', 'poisson'}): Likelihood distribution
+        objective (:obj:`str, {'nbconst', 'poisson'}`): Likelihood distribution
             to model mutation counts. Currently, the negative binomial or
             poisson are supported.
         collapse (:obj:`bool`): Deprecated convinience function.
         starter_learning_rate (:obj:`float`): Starting Learning rate.
         decay_learning_rate (:obj:`str`, {'exponential', 'constant'}): Learning
             rate decay.
-        optimizer (:obj:`str`, {'ADAM', 'gradient_descent'}): Allows to set the
+        optimizer (:obj:`str, {'ADAM', 'gradient_descent'}`): Allows to set the
             optimizer.
         dtype (:obj:`dtype`): Allows to set tensorflow number type.
 
