@@ -587,11 +587,10 @@ class TensorSignature(object):
         dimension (snv.shape[-2])
 
         Args:
-            snv (array-like, shape :math:`(3, 3, (t_1+1), \dots, (t_l), 2, p,
-                n`): SNV count tensor with distinct pyrimidine purine
-                dimension.
+            snv (array-like, shape :math:`(3,3,(t_1+1),\dots,(t_l),2,p,n)`):
+                SNV count tensor with distinct pyrimidine purine dimension.
         Returns:
-            snv (array, shape :math:`(3, 3, (t_1+1), \dots, (t_l), p, n`)):
+            snv (array, shape :math:`(3, 3, (t_1+1), \dots, (t_l), p, n)`):
                 Collapsed SNV array.
         """
         col1 = snv[[slice(None)] * (snv.ndim - 3) + [0] + [slice(None)] * 2]

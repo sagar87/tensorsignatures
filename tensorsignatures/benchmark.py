@@ -43,6 +43,7 @@ class TensorSignatureData(object):
         self.tau = dispersion
         self.mut = mutations
         self.dim = dim
+        self.shape = [1 for j in enumerate(self.dim)]
 
         self.idx = np.random.choice(
             np.arange(40), replace=False, size=self.rank)
@@ -72,7 +73,7 @@ class TensorSignatureData(object):
         return self._var[item]
 
     def __add_noise(self, signatures, noise_strengh):
-        # adds noise to mutation type probabilities
+        # Adds noise to mutation type probabilities.
         p, r = signatures.shape
         S = []
         for r_i in range(r):
@@ -86,81 +87,113 @@ class TensorSignatureData(object):
 
     @property
     def S1(self, noise=None):
+        # Constructs the SNV tensor.
         if not hasattr(self, '_S1'):
             pppu, pmpu, pppy, pmpy = self.S0, self.S0, self.S0, self.S0
 
             self._S1 = np.stack([
-                pppy, pmpu, 1 / 2 * (pppy + pmpu),
-                pmpy, pppu, 1 / 2 * (pmpy + pppu),
-                1/2 * (pppy + pmpy), 1/2 * (pmpu + pppu), 1/4 * (pppu + pmpy + pmpu + pppy)
-                ]).reshape(3, 3, *[ 1 for j in enumerate(self.dim) ], 96, self.rank)
-
-            #self._S1 = self._S1/self._S1.sum(axis=(0,1,2,3,4))
+                pppy,
+                pmpu,
+                .5 * (pppy + pmpu),
+                pmpy,
+                pppu,
+                .5 * (pmpy + pppu),
+                .5 * (pppy + pmpy),
+                .5 * (pmpu + pppu),
+                .25 * (pppu + pmpy + pmpu + pppy)]
+            ).reshape(3, 3, *self.shape, 96, self.rank)
 
             if self.verbose:
                 print(self._S1.shape)
-
 
         return self._S1
 
     @property
     def B(self):
+        # Initializes bias tensor B.
         if not hasattr(self, '_B'):
-            self.b0 = np.random.uniform(BMIN, BMAX, size=2*self.rank).reshape(2, self.rank)
-            self._B = np.exp(np.stack([
-                self.b0[1,:]+self.b0[0,:], self.b0[0,:]-self.b0[1,:], self.b0[0,:],
-                -self.b0[0,:]+self.b0[1,:], -self.b0[0,:]-self.b0[1,:], -self.b0[0,:],
-                self.b0[1,:], -self.b0[1,:], np.zeros((self.rank))
-            ]).reshape(3, 3, *[ 1 for j in enumerate(self.dim) ], 1, self.rank))
+            # creates vectors b_t and b_r
+            self.b0 = np.random.uniform(
+                BMIN, BMAX, size=2 * self.rank
+            ).reshape(2, self.rank)
 
+            # stack b_t and b_r
+            self._B = np.exp(
+                np.stack([
+                    self.b0[1, :] + self.b0[0, :],
+                    self.b0[0, :] - self.b0[1, :],
+                    self.b0[0, :],
+                    -self.b0[0, :] + self.b0[1, :],
+                    -self.b0[0, :] - self.b0[1, :],
+                    -self.b0[0, :],
+                    self.b0[1, :],
+                    -self.b0[1, :],
+                    np.zeros((self.rank))]
+                ).reshape(3, 3, *self.shape, 1, self.rank))
 
             if self.verbose:
                 print(self._B.shape)
+
         return self._B
 
     @property
     def A(self):
-        """
-        Initialize amplitudes.
-        """
+        # Initialize activity tensor A.
         if not hasattr(self, '_A'):
-            self.a0 = np.random.uniform(AMIN, AMAX, size=2*self.rank).reshape(2, self.rank)
-            a1 = np.exp(np.concatenate([self.a0, self.a0, np.zeros([2, self.rank])], axis=0).reshape(3, 2, self.rank))
-            a2 = a1[:, 0, :][:, None, :] * a1[:, 1, :][None, :, :] # outer product
-            self._A = a2.reshape(3, 3, *[ 1 for j in enumerate(self.dim) ], 1, self.rank)
+            self.a0 = np.random.uniform(
+                AMIN, AMAX, size=2 * self.rank
+            ).reshape(2, self.rank)
+
+            a1 = np.exp(
+                np.concatenate(
+                    [self.a0, self.a0, np.zeros([2, self.rank])], axis=0
+                ).reshape(3, 2, self.rank))
+
+            # outer product
+            a2 = a1[:, 0, :][:, None, :] * a1[:, 1, :][None, :, :]
+            # reshape tensor
+            self._A = a2.reshape(3, 3, *self.shape, 1, self.rank)
+
             if self.verbose:
                 print(self._A.shape)
+
         return self._A
 
     @property
     def M(self):
-        """
-        Initialize amplitudes.
-        """
+        # Initialize mixing factors.
         if not hasattr(self, '_M'):
-            self.m1 = np.random.uniform(0, 1, size=self.rank).reshape(1, self.rank)
-            self._M = self.m1.reshape(1, 1, *[ 1 for j in enumerate(self.dim) ], 1, self.rank)
+            self.m1 = np.random.uniform(
+                0, 1, size=self.rank
+            ).reshape(1, self.rank)
+
+            self._M = self.m1.reshape(1, 1, *self.shape, 1, self.rank)
+
             if self.verbose:
                 print(self._M.shape)
+
         return self._M
 
     @property
     def K(self):
-        """
-        Initialize amplitudes.
-        """
+        # Initialize tensorfactors for other genomic dimensions.
         if not hasattr(self, '_K'):
             self._k = {}
             self._K = {}
 
             for i, size in enumerate(self.dim):
-                ki = np.random.uniform(KMIN, KMAX, size=self.rank*(size-1)).reshape(size-1, self.rank)
-                self._k['k{}'.format(i)] = ki
+                ki = np.random.uniform(
+                    KMIN, KMAX, size=self.rank * (size - 1)
+                ).reshape(size - 1, self.rank)
 
+                self._k['k{}'.format(i)] = ki
+                # *[size if j == i else 1 for j, size in enumerate(self.dim)]
+                dim = [s if j == i else 1 for j, s in enumerate(self.dim)]
                 Ki = np.exp(
                     np.concatenate(
-                        [np.zeros([1, self.rank]), ki], axis=0).reshape(-1, self.rank)
-                ).reshape(1, 1, *[ size if j == i else 1 for j, size in enumerate(self.dim) ], 1, self.rank)
+                        [np.zeros([1, self.rank]), ki], axis=0
+                    ).reshape(-1, self.rank)
+                ).reshape(1, 1, *dim, 1, self.rank)
 
                 self._K['k{}'.format(i)] = Ki
 
@@ -171,36 +204,72 @@ class TensorSignatureData(object):
 
     @property
     def E(self):
+        # Initialize exposures.
         if not hasattr(self, '_E'):
             if self.mut == 'log_normal':
-                self.Ej = np.exp(np.random.normal(8.63, 1.43, size=self.samples)).reshape(1, -1)
+                # DEPRECATED
+                self.Ej = np.exp(
+                    np.random.normal(8.63, 1.43, size=self.samples)
+                ).reshape(1, -1)
             else:
-                self.Ej = self.mut #/ (self.S.sum(axis=(0,1,2,3,))+self.T.sum(0)).mean()
-            E = np.random.uniform(size=self.rank * self.gen).reshape(self.rank, self.gen)
-            self._E = E/E.sum(0) * self.Ej * 1/(self.S.sum(axis=tuple([j for j in range(self.S.ndim-1)]))+self.T.sum(0)).reshape(self.rank,1)
+                self.Ej = self.mut
+            E = np.random.uniform(
+                size=self.rank * self.gen
+            ).reshape(self.rank, self.gen)
+            # normalization
+            N = self.S.sum(axis=tuple([j for j in range(self.S.ndim - 1)])) \
+                + self.T.sum(0)
+            # final exposures
+            # (self.S.sum(axis=tuple([j for j in range(self.S.ndim-1)]))
+            # +self.T.sum(0))
+            self._E = E / E.sum(0) * self.Ej * 1 / N.reshape(self.rank, 1)
 
         return self._E
 
     @property
     def C1(self):
+        # Computes the expected value of the count tensor.
         if not hasattr(self, '_C1'):
-            self._C1 = (self.S.reshape(-1, self.rank) @ self.E).reshape(3, 3, *self.dim, 96, self.gen)
+            self._C1 = self.S.reshape(-1, self.rank) @ self.E
+            self._C1 = self._C1.reshape(3, 3, *self.dim, 96, self.gen)
 
         return self._C1
 
     @property
     def C2(self):
+        # Computes the expected value other mutation type matrix.
         if not hasattr(self, '_C2'):
             self._C2 = (self.T @ self.E).reshape(234, self.gen)
 
         return self._C2
 
     def snv(self, init=0):
-        self._snv = stats.nbinom.rvs(self.tau, self.tau/(self.C1 + self.tau), random_state=init)
+        """Computes the SNV count tensor with negative binomial noise.
+
+        Args:
+            init (:obj:`init`): Sets the random state of the initialization,
+                allowing to create several realizations of the same expected
+                value.
+        Returns:
+            snv (:obs:`array`): The resulting count tensor.
+        """
+        self._snv = stats.nbinom.rvs(
+            self.tau, self.tau / (self.C1 + self.tau), random_state=init)
         return self._snv
 
     def other(self, init=0):
-        self._other = stats.nbinom.rvs(self.tau, self.tau/(self.C2 + self.tau), random_state=init)
+        """Computes the other mutation type  count matrox with negative
+        binomial noise.
+
+        Args:
+            init (:obj:`init`): Sets the random state of the initialization,
+                allowing to create several realizations of the same expected
+                value.
+        Returns:
+            other (:obs:`array`): The resulting count tensor.
+        """
+        self._other = stats.nbinom.rvs(
+            self.tau, self.tau / (self.C2 + self.tau), random_state=init)
         return self._other
 
     def plot_signatures(self):
