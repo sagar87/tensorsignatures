@@ -72,6 +72,7 @@ class TensorSignatureData(object):
         return self._var[item]
 
     def __add_noise(self, signatures, noise_strengh):
+        # adds noise to mutation type probabilities
         p, r = signatures.shape
         S = []
         for r_i in range(r):

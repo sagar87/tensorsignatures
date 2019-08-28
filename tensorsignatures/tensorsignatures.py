@@ -15,6 +15,7 @@ from tensorsignatures.config import *
 from tqdm import trange
 import functools
 
+
 def doublewrap(function):
     # A decorator decorator, allowing to use the decorator to be used without
     # parentheses if no arguments are provided. All arguments must be optional.
@@ -41,6 +42,7 @@ def define_scope(function, scope=None, *args, **kwargs):
 
     attribute = '_cache_' + function.__name__
     name = scope or function.__name__
+
     @property
     @functools.wraps(function)
     def decorator(self):
@@ -112,9 +114,8 @@ class TensorSignature(object):
         self.starter_learning_rate = starter_learning_rate
         self.decay_learning_rate = decay_learning_rate
         self.optimizer = optimizer
-
-        # TODO: include this field (?)
-        # self.data_pts = np.array(np.sum(~np.isnan(snv)) + np.sum(~np.isnan(other)))
+        self.observations = np.array(
+            np.sum(~np.isnan(snv)) + np.sum(~np.isnan(other)))
 
         # hyperparams
         self.rank = rank
@@ -178,25 +179,6 @@ class TensorSignature(object):
             LOG_L2: np.zeros(self.epochs // self.log_step),
         }
 
-    @staticmethod
-    def collapse_data(snv):
-        # Deprecated convinience function.
-        col1 = snv[[slice(None)] * (snv.ndim - 3) + [0] + [slice(None)] * 2]
-        col2 = []
-        dims = [
-            (1, 1), (1, 0), (1, 2),
-            (0, 1), (0, 0), (0, 2),
-            (2, 1), (2, 0), (2, 2)]
-
-        for i, j in dims:
-            col2.append(
-                snv[[i, j] + [slice(None)] * (snv.ndim - 5) +
-                    [1] + [slice(None)] * 2])
-
-        col2 = np.stack(col2).reshape(col1.shape)
-
-        return col1 + col2
-
     def indices_to_assignment(self, I, card):
         # Helper function to collapse additional genomic dimension
         card = np.array(card, copy=False)
@@ -209,31 +191,6 @@ class TensorSignature(object):
             np.tile(C[::-1], (len(I), 1)))
 
         return A[:, ::-1]
-
-    def get_tensors(self, sess):
-        """Extracts signatures, exposures and tensor factors.
-
-        Args:
-            sesss (:obj:`tf.Session`): Tensorflow session in which the model
-                was trained.
-        Returns:
-            A :obj:`dict` containing signatures, exposures and tensorfactors.
-        """
-        tensors = [ var for var in dir(self) if (var.strip('_') in PARAMETERS+VARIABLES) ]
-
-        data = {}
-        for var in tensors:
-            if (type(getattr(self, var)) == tf.Tensor) or (type(getattr(self, var)) == tf.Variable):
-                data[var.strip('_')] = np.array(sess.run(getattr(self, var)))
-            elif (type(getattr(self, var)) == np.ndarray):
-                data[var.strip('_')] = getattr(self, var)
-            elif (type(getattr(self, var)) == int):
-                data[var] = getattr(self, var)
-
-        for k, v in self._clu_var.items():
-            data['k{}'.format(k)] = np.array(sess.run(v))
-
-        return data
 
     @define_scope
     def learning_rate(self):
@@ -438,7 +395,7 @@ class TensorSignature(object):
 
     @define_scope
     def S(self):
-        # Initialize the final SNV tensor
+        # Initialize the final SNV tensor.
         self._S = self.S1 * self.A * self.B * self.K * self.M
         if self.verbose:
             print('S:', self._S.shape)
@@ -457,7 +414,7 @@ class TensorSignature(object):
 
     @define_scope
     def C2(self):
-        # Stores the other mutation types tensor
+        # Stores the other mutation types tensor.
         sub_set = np.ones_like(self.other)
         sub_set[np.where(np.isnan(self.other))] = 0
         self.other[np.where(np.isnan(self.other))] = 0
@@ -469,7 +426,7 @@ class TensorSignature(object):
 
     @define_scope
     def Chat1(self):
-        # Compute predicted counts.
+        # Compute predicted counts of the count tensor.
         self._Chat1 = tf.reshape(
             tf.matmul(tf.reshape(self.S, (-1, self.rank)), self.E),
             (3, 3, -1, 96, self.samples), name='Chat1')
@@ -486,6 +443,7 @@ class TensorSignature(object):
 
     @define_scope
     def Chat2(self):
+        # Computes predicate counts for the ohter mutation count matrix.
         self._Chat2 = tf.matmul(self.T, self.E)
         if self.verbose:
             print('Chat2:', self._Chat2.shape)
@@ -493,57 +451,63 @@ class TensorSignature(object):
 
     @define_scope
     def L1ij(self):
+        # Computes the log likelihood for each enty in SNV count tensor.
         if self.objective == 'nbconst':
             if self.verbose:
                 print('Using negative binomial likelihood')
-            self._L1ij = (self.tau
-                          * tf.log(self.tau)
-                          - tf.lgamma(self.tau)
-                          + tf.lgamma(self.C1 + self.tau)
-                          + self.C1 * tf.log(self.Chat1)
-                          - tf.log(self.Chat1 + self.tau)
-                          * (self.tau + self.C1)
-                          - tf.lgamma(self.C1 + 1))
+            self._L1ij = self.tau \
+                * tf.log(self.tau) \
+                - tf.lgamma(self.tau) \
+                + tf.lgamma(self.C1 + self.tau) \
+                + self.C1 * tf.log(self.Chat1) \
+                - tf.log(self.Chat1 + self.tau) \
+                * (self.tau + self.C1) \
+                - tf.lgamma(self.C1 + 1)
         if self.objective == 'poisson':
             if self.verbose:
                 print('Using poisson likelihood')
-            self._L1ij = (self.C1
-                          * tf.log(self.Chat1)
-                          - self.Chat1
-                          - tf.lgamma(self.C1 + 1))
+            self._L1ij = self.C1 \
+                * tf.log(self.Chat1) \
+                - self.Chat1 \
+                - tf.lgamma(self.C1 + 1)
 
         return self._L1ij
 
     @define_scope
     def L2ij(self):
+        # Computes the log likelhood for each entry in the matrix of other.
+        # mutation types
         if self.objective == 'nbconst':
-            self._L2ij = (self.tau
-                          * tf.log(self.tau)
-                          - tf.lgamma(self.tau)
-                          + tf.lgamma(self.C2 + self.tau)
-                          + self.C2 * tf.log(self.Chat2)
-                          - tf.log(self.Chat2 + self.tau)
-                          * (self.tau + self.C2)
-                          - tf.lgamma(self.C2 + 1))
+            self._L2ij = self.tau \
+                * tf.log(self.tau) \
+                - tf.lgamma(self.tau) \
+                + tf.lgamma(self.C2 + self.tau) \
+                + self.C2 * tf.log(self.Chat2) \
+                - tf.log(self.Chat2 + self.tau) \
+                * (self.tau + self.C2) \
+                - tf.lgamma(self.C2 + 1)
         if self.objective == 'poisson':
-            self._L2ij = (self.C2
-                          * tf.log(self.Chat2)
-                          - self.Chat2
-                          - tf.lgamma(self.C2+1))
+            self._L2ij = self.C2 \
+                * tf.log(self.Chat2) \
+                - self.Chat2 \
+                - tf.lgamma(self.C2 + 1)
         return self._L2ij
 
     @define_scope
     def L1(self):
+        # Sums the log likelihood of each entry in L1ij.
         self._L1 = tf.reduce_sum(self.L1ij)
         return self._L1
 
     @define_scope
     def L2(self):
+        # Sums the log likelihood of each entry in L2ij.
         self._L2 = tf.reduce_sum(self.L2ij * self.C2_nans)
         return self._L2
 
     @define_scope
     def L(self):
+        # Sum of log likelihoods L1 and L2.
         self._L = self.L1 + self.L2
         return self._L
 
@@ -590,6 +554,65 @@ class TensorSignature(object):
 
         return sess
 
+    def get_tensors(self, sess):
+        """Extracts signatures, exposures and tensor factors.
+
+        Args:
+            sesss (:obj:`tf.Session`): Tensorflow session in which the model
+                was trained.
+        Returns:
+            A :obj:`dict` containing signatures, exposures and tensorfactors.
+        """
+        VARS = PARAMETERS + VARIABLES
+        tensors = [var for var in dir(self) if (var.strip('_') in VARS)]
+
+        data = {}
+        for var in tensors:
+            if (type(getattr(self, var)) == tf.Tensor or
+                    type(getattr(self, var)) == tf.Variable):
+                data[var.strip('_')] = np.array(sess.run(getattr(self, var)))
+            elif (type(getattr(self, var)) == np.ndarray):
+                data[var.strip('_')] = getattr(self, var)
+            elif (type(getattr(self, var)) == int):
+                data[var] = getattr(self, var)
+
+        for k, v in self._clu_var.items():
+            data['k{}'.format(k)] = np.array(sess.run(v))
+
+        return data
+
+    @staticmethod
+    def collapse_data(snv):
+        r"""Deprecated convinience function to collapse pyrimidine/purine
+        dimension (snv.shape[-2])
+
+        Args:
+            snv (array-like, shape :math:`(3, 3, (t_1+1), \dots, (t_l), 2, p,
+                n`): SNV count tensor with distinct pyrimidine purine
+                dimension.
+        Returns:
+            snv (array, shape :math:`(3, 3, (t_1+1), \dots, (t_l), p, n`)):
+                Collapsed SNV array.
+        """
+        col1 = snv[[slice(None)] * (snv.ndim - 3) + [0] + [slice(None)] * 2]
+        col2 = []
+        dims = [
+            (1, 1), (1, 0), (1, 2),
+            (0, 1), (0, 0), (0, 2),
+            (2, 1), (2, 0), (2, 2)]
+
+        for i, j in dims:
+            idx = [i, j] \
+                + [slice(None)] \
+                * (snv.ndim - 5) \
+                + [1] \
+                + [slice(None)] \
+                * 2
+            col2.append(snv[idx])
+
+        col2 = np.stack(col2).reshape(col1.shape)
+
+        return col1 + col2
 
 
 class TensorSignatureRefit(TensorSignature):
