@@ -266,7 +266,7 @@ class TensorSignatureData(object):
                 allowing to create several realizations of the same expected
                 value.
         Returns:
-            other (:obj:`array`): The resulting count tensor.
+            :obj:`array`: The resulting count tensor.
         """
         self._other = stats.nbinom.rvs(
             self.tau, self.tau / (self.C2 + self.tau), random_state=init)
@@ -281,7 +281,8 @@ class TensorSignatureData(object):
                 allowing to create several realizations of the same expected
                 value.
         Returns:
-            other (:obj:`array`): The resulting count tensor.
+            obj:`None`: Saves a hdf file containing example data for
+                TensorSignatures to disk.
 
         Examples:
 
@@ -290,12 +291,12 @@ class TensorSignatureData(object):
 
         >>> from tensorsignatures.data import TensorSignatureData
         >>> data_set = TensorSignatureData(0, 5, samples=100)
-        >>> data_set.save_init(~/data_0.h5, init = 0)
+        >>> data_set.save_init('~/data_0.h5', init = 0)
 
         To create another realization of the same data set, we change the
         :code:`init` argument.
 
-        >>> data_set.save_init(~/data_2.h5, init = 2)
+        >>> data_set.save_init('~/data_2.h5', init = 2)
         """
         fh = h5.File(path, 'w')
         dset = fh.create_dataset('SNV', data=self.snv(init=init))
