@@ -251,7 +251,7 @@ class TensorSignatureData(object):
                 allowing to create several realizations of the same expected
                 value.
         Returns:
-            snv (:obs:`array`): The resulting count tensor.
+            snv (:obj:`array`): The resulting count tensor.
         """
         self._snv = stats.nbinom.rvs(
             self.tau, self.tau / (self.C1 + self.tau), random_state=init)
@@ -266,11 +266,48 @@ class TensorSignatureData(object):
                 allowing to create several realizations of the same expected
                 value.
         Returns:
-            other (:obs:`array`): The resulting count tensor.
+            other (:obj:`array`): The resulting count tensor.
         """
         self._other = stats.nbinom.rvs(
             self.tau, self.tau / (self.C2 + self.tau), random_state=init)
         return self._other
+
+    def save_init(self, path, init=0):
+        """Saves a dataset to a hdf file.
+
+        Args:
+            path (:obj:`str`): Path where the file should be saved to.
+            init (:obj:`init`): Sets the random state of the initialization,
+                allowing to create several realizations of the same expected
+                value.
+        Returns:
+            other (:obj:`array`): The resulting count tensor.
+
+        Examples:
+
+        To save an example dataset to disk, we simply execute the
+        :code:`save_init` method of a TensorSignatureData object.
+
+        >>> from tensorsignatures.data import TensorSignatureData
+        >>> data_set = TensorSignatureData(0, 5, samples=100)
+        >>> data_set.save_init(~/data_0.h5, init = 0)
+
+        To create another realization of the same data set, we change the
+        :code:`init` argument.
+
+        >>> data_set.save_init(~/data_2.h5, init = 2)
+        """
+        fh = h5.File(path, 'w')
+        dset = fh.create_dataset('SNV', data=self.snv(init=init))
+        dset.attrs['seed'] = self.seed
+        dset.attrs['rank'] = self.rank
+        dset.attrs['samples'] = self.gen
+        dset.attrs['mutations'] = self.mut
+        dset.attrs['init'] = init
+        dset.attrs['path'] = path
+
+        fh.create_dataset('OTHER', data=self.other(init=init))
+        fh.close()
 
     def plot_signatures(self):
         plot_collapsed_signature(self.S.reshape(3, 3, -1, 96, self.rank))
@@ -287,20 +324,6 @@ class TensorSignatureData(object):
         }
         ax = sns.factorplot(x='variable', y='value', hue='sig',data=pd.DataFrame(coefficients).melt('sig'), kind='bar')
         return ax
-
-    def save_init(self, path, init):
-        fh = h5.File(path, 'w')
-        dset = fh.create_dataset('SNV', data=self.snv(init=init))
-        dset.attrs['seed'] = self.seed
-        dset.attrs['rank'] = self.rank
-        dset.attrs['samples'] = self.gen
-        dset.attrs['mutations'] = self.mut
-        dset.attrs['init'] = init
-        dset.attrs['path'] = path
-
-        fh.create_dataset('OTHER', data=self.other(init=init))
-        #fh.create_dataset('N', data=self.N)
-        fh.close()
 
     def coefficient_table(self, clu, cdim, as_df=True, unscaled=False, only_init=False):
         dic = {
