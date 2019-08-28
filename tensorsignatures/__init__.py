@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-from tensorsignatures.tensorsignatures import TensorSignature
-from tensorsignatures.data import TensorSignatureData
+from tensorsignatures.tensorsignatures import *
+from tensorsignatures.data import *
 from tensorsignatures.config import *
 from tensorsignatures.util import *
+from tensorsignatures.plot import *
 
 """Top-level package for tensorsignatures."""
 
