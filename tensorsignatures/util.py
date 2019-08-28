@@ -22,7 +22,7 @@ import sys
 import re
 from tensorsignatures.config import *
 from tensorsignatures.tensorsignatures import TensorSignature
-#import seaborn as sns
+
 
 def reshape_clustered_signatures(S):
     return np.moveaxis(S, [-1, -2], [0, 1]).reshape(S.shape[-1] * S.shape[-2], -1)
@@ -45,18 +45,18 @@ def assign_signatures(reference, signature):
 
 class Cluster(object):
     """
-    Base cluster class takes 
+    Base cluster class takes
 
     """
     def __init__(self, dset, **kwargs):
         self.dset = dset
         self.memo = {}
         self.seed = np.argmax(np.ma.array(self.dset['L'][()], mask=self.dset['L'][()]>=0))
-        
+
         # cluster init
         self.S, self.T, self.E, self.icol = Cluster.cluster_signatures(
             dset['S'], dset['T'], dset['E'], self.seed)
-        
+
         self.iter = self.S.shape[-1]
         self.rank = self.S.shape[-2]
         self.samples = self.E.shape[-2]
@@ -81,7 +81,7 @@ class Cluster(object):
 
         if item in list(self.dset.attrs):
             return self.dset.attrs[item]
-        
+
         raise KeyError('Could not find item.')
 
     def __contains__(self, item):
@@ -90,28 +90,28 @@ class Cluster(object):
         else:
             False
 
-    def __get_as_list(self, key, sign=1): 
+    def __get_as_list(self, key, sign=1):
         if key in self:
             if type(self[key]) == np.ndarray:
                 return (sign * self[key]).tolist()
-        
+
         return [np.nan] * self.iter
 
     def __sort_array(self, var, array):
         var_list = []
-        
+
         for k, v in self.icol.items():
             var_list.append(array[... , v, k])
-            
+
         self.memo[var] = np.stack(var_list, axis=array.ndim-1)
-        
+
         return self.memo[var]
 
     @staticmethod
     def pre_cluster_signatures(p, S, T, E, I):
-        S_clu, T_clu, E_clu, i_col = Cluster.cluster_signatures(S, T, E, I)        
+        S_clu, T_clu, E_clu, i_col = Cluster.cluster_signatures(S, T, E, I)
         return (p, S_clu, T_clu, E_clu, i_col, None)
-    
+
     @staticmethod
     def cluster_signatures(S, T, E, seed=None):
         """
@@ -131,7 +131,7 @@ class Cluster(object):
 
         if np.any(np.isnan(T_seed)) | np.any(np.isinf(T_seed)) | np.all(T_seed == 0):
             print("Warning: seed {} corrupted.".format(seed))
-            return (None, None, None, None)    
+            return (None, None, None, None)
 
         S_shape = S_seed.shape
         S_seed = np.concatenate([
@@ -208,7 +208,7 @@ class Cluster(object):
     @property
     def init(self):
         """
-        Returns the maximum likelihood initialisation. 
+        Returns the maximum likelihood initialisation.
         """
         return np.argmax(self.likelihood)
 
@@ -216,29 +216,29 @@ class Cluster(object):
     def summary_table(self):
         if not hasattr(self, '_summary'):
             df = pd.DataFrame({
-                'L1': self.__get_as_list('L1'),    
+                'L1': self.__get_as_list('L1'),
                 'L2': self.__get_as_list('L2'),
                 'L3': self.__get_as_list('L3'),
                 'L': self.likelihood, #self.__get_as_list('L', -1),
                 'size': self.__get_as_list('tau'),
                 'rank': [self.rank] * self.iter,
                 'init': np.arange(0, self.iter),
-                'k': [self.parameters] * self.iter,    
-                'n': list(map(int, self.__get_as_list('data_pts'))),    
+                'k': [self.parameters] * self.iter,
+                'n': list(map(int, self.__get_as_list('data_pts'))),
                 })
             df[AIC] = 2 * df['k'] - 2 * df['L']
             df[AIC_C] = df[AIC] + (2*df['k']**2 + 2 * df['k']) / (df['n'] - df['k'] - 1)
-            df[BIC] = np.log(df['n']) * df['k'] - 2*df['L'] 
+            df[BIC] = np.log(df['n']) * df['k'] - 2*df['L']
 
             self._summary = df
-        
+
         return self._summary
 
     def log_table(self, resolution=100, skip_front=20, skip_back=200):
-    
+
         end = self[EPOCHS] - skip_back * resolution
-        
-        df = pd.DataFrame({   
+
+        df = pd.DataFrame({
             EPOCHS : np.arange(resolution * skip_front, end, resolution).tolist() * self.iter,
             'init': np.array([[i] * int((end-resolution*skip_front)/resolution) for i in range(self.iter)]).reshape(-1),
             'L1': self['log_objective'][::resolution, :][skip_front:-skip_back,:].T.reshape(-1),
@@ -248,20 +248,20 @@ class Cluster(object):
             'lc': self['log_lambda_c'][::resolution, :][skip_front:-skip_back, :].T.reshape(-1),
             'la': self['log_lambda_a'][::resolution, :][skip_front:-skip_back, :].T.reshape(-1),
             })
-        
+
         return df
 
     def coefficient_table(self, cdim='b0', avg=False):
         """
-        Returns a panda data frame with inferred coefficients for each signature 
+        Returns a panda data frame with inferred coefficients for each signature
         and initialisation of the cluster.
-        
+
         Parameters:
         cdim (string): name of the coefficient (eg. "b0", "a0" etc.)
         avg (boolean): returns computes the average of fitted coefficient over initialisations
         """
         coeff_table = pd.DataFrame({
-            'sig': np.array([[i] * self[cdim].shape[0] for i in range(self.rank)]).reshape(-1).tolist() * self.iter, 
+            'sig': np.array([[i] * self[cdim].shape[0] for i in range(self.rank)]).reshape(-1).tolist() * self.iter,
             'dim': np.arange(self[cdim].shape[0]).tolist() * self[cdim].shape[1] * self[cdim].shape[2],
             'init': np.array([[i] * self.rank * self[cdim].shape[0] for i in range(self.iter)]).reshape(-1).tolist(),
             'val': self[cdim].T.reshape(-1).tolist()})
@@ -275,12 +275,12 @@ class Cluster(object):
     def plot_signature(self, init=None, **kwargs):
         """
         Plots the signature spectra. If no integer for the initialisation
-        is given the method selects the initialisation for which the likelihood        
+        is given the method selects the initialisation for which the likelihood
         was maximised.
         """
         if init is None:
             init = self.init
-        
+
         ax = plot_collapsed_signature(self.S[..., init], **kwargs)
         return ax
 
@@ -306,7 +306,7 @@ class Cluster(object):
             normed_mutations.append(snv_counts+other_counts)
 
         Enormed = np.stack(normed_mutations)
-        
+
         return Enormed
 
 class PreCluster(Cluster):
@@ -317,9 +317,9 @@ class PreCluster(Cluster):
         self.T = T
         self.E = E
         self.icol = icol
-        
+
         # added fast cluster option which sets the seed to -1
-        self.seed = np.argmax(np.ma.array(self.dset['L'][()], mask=self.dset['L'][()]>=0))        
+        self.seed = np.argmax(np.ma.array(self.dset['L'][()], mask=self.dset['L'][()]>=0))
         self.iter = self.S.shape[-1]
         self.rank = self.S.shape[-2]
         self.samples = self.E.shape[-2]
@@ -333,8 +333,8 @@ class Singleton(Cluster):
 
         self.iter = self.S.shape[-1]
         self.rank = self.S.shape[-2]
-        self.samples = self.E.shape[-2]                
-    
+        self.samples = self.E.shape[-2]
+
     def __getitem__(self, item):
         if item in self.dset:
             if item in ['S', 'T', 'E', 'S0', 'T0', 'E0', 'a0', 'b0', 'm0', 'm1', 'k0', 'k1', 'k2', 'k3', 'k4', 'k5', 'tau']:
@@ -343,19 +343,19 @@ class Singleton(Cluster):
                 return self.dset[item]
         else:
             raise KeyError('Could not find item.')
-        
+
     @staticmethod
     def load_dict(data):
         with open(data, 'rb') as fh:
             params = pickle.load(fh)
-        
+
         return (data.split('/')[-1], params)
 
 class Experiment(object):
 
     def __init__(self, path, cores=8):
         """
-        Experiment class 
+        Experiment class
         Experiment loads datasets dynamically.
         """
         self.dset = h5.File(path)
@@ -365,12 +365,12 @@ class Experiment(object):
 
         # walk through all experiment params
         self.dset.visititems(self.__visitor_func)
-        
+
         if len(self.data) == 0:
             self.dset.visititems(self.__visitor_func_merged)
-        
+
         #self.__cluster()
-            
+
     def __len__(self):
         return len(self.data)
 
@@ -390,12 +390,12 @@ class Experiment(object):
         if isinstance(node, h5.Dataset):
             path = '/'.join(node.name.split('/')[:-1])
             self.data.add(path)
-    
+
     def __visitor_func_merged(self, name, node):
         if isinstance(node, h5.Group):
             if len(node.attrs) != 0:
                 self.data.add(name)
-    
+
     def cluster(self):
         """
         Uses the initializsation with largest likelihood as seed, and does not
@@ -411,13 +411,13 @@ class Experiment(object):
             E = self.dset[dset]['E'][()]
             L = self.dset[dset]['L'][()]
             I = np.argmax(np.ma.array(L, mask=L >= 0))
-            data_sets.append((dset, S, T, E, I))    
-            
+            data_sets.append((dset, S, T, E, I))
+
         if self.cores > 1:
             pool = Pool(self.cores)
-            results = pool.starmap(Cluster.pre_cluster_signatures, data_sets) 
+            results = pool.starmap(Cluster.pre_cluster_signatures, data_sets)
             pool.close()
-        
+
         else:
             results = []
             for dset in data_sets:
@@ -425,10 +425,10 @@ class Experiment(object):
 
         for r in results:
             self.memo[r[0]] = PreCluster(self.dset[r[0]], r[1], r[2], r[3], r[4])
-            
+
     def close(self):
         self.dset.close()
-    
+
     def items(self):
         for dset in self.data:
             yield dset, self[dset]
@@ -467,55 +467,55 @@ class Bootstrap(object):
             self.init = self.clu.init
         else:
             self.init = init
-        
+
         # compute distances from each bootstrap sample to seed cluster
         boot_dic = defaultdict(list)
         for i in range(self.bootstrap['S'].shape[-1]):
             progress(i, self.bootstrap['S'].shape[-1], 'Iteration {}'.format(i))
             Sref = np.concatenate([self.clu.S[2, 2, 0, ..., self.init].reshape(-1, self.clu.rank), self.clu.T[..., self.init]])
-            Sbot = np.concatenate([self.bootstrap['S'][2,2,0,...,i].reshape(-1, self.clu.rank), self.bootstrap['T'][...,i]])    
+            Sbot = np.concatenate([self.bootstrap['S'][2,2,0,...,i].reshape(-1, self.clu.rank), self.bootstrap['T'][...,i]])
 
-            r, c, d = assign_signatures(Sref, Sbot)    
+            r, c, d = assign_signatures(Sref, Sbot)
             boot_dic['ref'].extend(r.tolist())
             boot_dic['boot'].extend(c.tolist())
             boot_dic['init'].extend([i]*len(d))
             boot_dic['tvd'].extend((1/2*np.linalg.norm(Sref-Sbot,ord=1,axis=0))[c])
-            
+
         # convert it to dataframe
-        self.boot_df = pd.DataFrame(boot_dic)        
+        self.boot_df = pd.DataFrame(boot_dic)
         # initialize dictionaries which store boundaries
         self.valid_init = defaultdict(dict)
         self.intervals = defaultdict(list)
-        
+
     def _filter(self, var, sig):
         if var not in self.valid_init[sig]:
             self.valid_init[sig][var] = list()
-            
+
             valid_init = self.boot_df[(self.boot_df.tvd < self.cutoff) & (self.boot_df.ref == sig)].init.tolist()
             valid_sig = self.boot_df[(self.boot_df.tvd < self.cutoff) & (self.boot_df.ref == sig)].boot.tolist()
-            
+
             for i, (idx, init) in enumerate(zip(valid_sig, valid_init)):
                 progress(i, len(valid_init), 'Sig {} ({})'.format(sig, init))
                 if (var=='E') or (var=='E0'):
                     values = np.zeros(self.clu.samples)
                     values[:] = np.nan
                     values[self.bootstrap['sub'][..., init].astype(int)] = self.bootstrap[var][idx, ..., init]
-                    
+
                     self.valid_init[sig][var].append(values)
                 else:
                     self.valid_init[sig][var].append(self.bootstrap[var][..., idx, init])
 
             # stack
             self.valid_init[sig][var] = np.stack(self.valid_init[sig][var], axis=-1)
-        
+
         return self.valid_init[sig][var]
-    
+
     def boundaries(self, var, sig=None):
-        if sig is not None: 
+        if sig is not None:
             if (var=='E') or (var=='E0'):
                 return np.stack([np.nanpercentile(self._filter(var, sig), self.lower, axis=-1),
                                  np.nanpercentile(self._filter(var, sig), self.upper, axis=-1)], axis=-1)
-            
+
             return np.stack([np.percentile(self._filter(var, sig), self.lower, axis=-1),
                              np.percentile(self._filter(var, sig), self.upper, axis=-1)], axis=-1)
         else:
@@ -525,16 +525,16 @@ class Bootstrap(object):
                         self.intervals[var].append(
                             np.stack([
                                 np.nanpercentile(self._filter(var, i), self.lower, axis=-1),
-                                np.nanpercentile(self._filter(var, i), self.upper, axis=-1)], axis=-1))                        
+                                np.nanpercentile(self._filter(var, i), self.upper, axis=-1)], axis=-1))
                     else:
                         self.intervals[var].append(
                             np.stack([
                                 np.percentile(self._filter(var, i), self.lower, axis=-1),
                                 np.percentile(self._filter(var, i), self.upper, axis=-1)], axis=-1))
                 self.intervals[var] = np.stack(self.intervals[var], axis=-2)
-        
+
         return self.intervals[var]
-    
+
     def yerr(self, var, func=lambda x: x):
         yerr = np.zeros([*self.clu[var][..., self.init].shape, 2])
         #print(yerr.shape)
@@ -543,12 +543,12 @@ class Bootstrap(object):
             if (var=='E') or (var=='E0'):
                 lower = self.boundaries(var)[...,i, 0]
                 upper = self.boundaries(var)[...,i, 1]
-                mle = self.clu[var][i,..., self.init]                
+                mle = self.clu[var][i,..., self.init]
             else:
                 lower = self.boundaries(var)[...,i,0]
                 upper = self.boundaries(var)[...,i,1]
                 mle = self.clu[var][..., i, self.init]
-                
+
             #print(lower.shape,upper.shape,mle.shape)
             # select indices
             bounded = (lower <= mle) & (mle <= upper)
@@ -557,7 +557,7 @@ class Bootstrap(object):
 
             bp = np.where(bounded & positive)
             bn = np.where(bounded & negative)
-            
+
             if (var=='E') or (var=='E0'):
                 yerr[i,...,1][bp] = func(upper[bp]) - func(mle[bp])
                 yerr[i,...,0][bp] = func(mle[bp]) - func(lower[bp])
@@ -586,33 +586,33 @@ class Bootstrap(object):
 #     if np.any(np.isnan(S_seed)) | np.any(np.isinf(S_seed)) | np.all(S_seed == 0):
 #         print("Warning: seed {} corrupted.".format(seed))
 #         return None, None, None
-    
+
 #     S_shape = S_seed.shape
 #     S_seed = S_seed.reshape(-1, S_seed.shape[-1])
-    
+
 #     S_list, E_list = [], []
-    
+
 #     i_col = {}
 
 #     for i in range(S.shape[-1]):
 #         S_i = S[..., i]
-        
+
 #         if np.any(np.isnan(S_i)) | np.any(np.isinf(S_i)) | np.all(S_i == 0):
 #             continue
-        
+
 #         S_i = S_i.reshape(-1, S_i.shape[-1])
 #         E_i = E[..., i]
 
 #         ridx, cidx, _ = assign_signatures(S_seed, S_i)
-        
+
 #         S_i = S_i.reshape(S_shape)
 #         #S_clu[..., i] = S_i[..., cidx]
 #         #E_clu[..., i] = E_i[cidx, :,]
 #         S_list.append(S_i[..., cidx])
 #         E_list.append(E_i[cidx, :])
-        
+
 #         i_col[i] = cidx
-        
+
 #     S_clu = np.stack(S_list, axis=S.ndim-1)
 #     E_clu = np.stack(E_list, axis=2)
 
@@ -621,7 +621,7 @@ class Bootstrap(object):
 # def silhouette_signatures(S, sample=False):
 #     labels = [i for i in range(S.shape[-2])] * S.shape[-1]
 #     S_reshaped = reshape_clustered_signatures(S) #np.moveaxis(S, [-1, -2], [0, 1]).reshape(S.shape[-1] * S.shape[-2], -1)
-    
+
 #     if sample:
 #         return silhouette_samples(S_reshaped, labels, metric='cosine')
 
@@ -634,7 +634,7 @@ class Bootstrap(object):
 #     i_col = None
 
 #     scores = np.zeros(S.shape[-1])
-    
+
 #     for seed in range(S.shape[-1]):
 #         S_i, E_i, col_i = cluster_signatures(S, E, seed)
 #         if (S_i is None) & (E_i is None):
@@ -643,7 +643,7 @@ class Bootstrap(object):
 #             scores[seed] = silhouette_signatures(S_i)
 
 #         if np.argmax(scores) == seed:
-            
+
 #             S_clu = S_i
 #             E_clu = E_i
 #             i_col = col_i
@@ -661,7 +661,7 @@ class Bootstrap(object):
 #         self.dset = dset
 #         self.memo = {}
 #         self.scores = np.zeros(dset['S'].shape[-1])
-        
+
 #         for seed in range(dset['S'].shape[-1]):
 #             S_clu, E_clu, _ = cluster_signatures(dset['S'], dset['E'], seed)
 #             if (S_clu is None) & (E_clu is None):
@@ -671,7 +671,7 @@ class Bootstrap(object):
 
 #         self.seed = np.argmax(self.scores)
 #         self.S, self.E, self.icol = cluster_signatures(dset['S'], dset['E'], self.seed)
-        
+
 #         self.iter = self.S.shape[-1]
 #         self.rank = self.S.shape[-2]
 #         self.samples = self.E.shape[-2]
@@ -694,10 +694,10 @@ class Bootstrap(object):
 #             else:
 #                 return self.dset[item][()]
 
-        
+
 #         if item in list(self.dset.attrs):
 #             return self.dset.attrs[item]
-        
+
 #         raise KeyError('Could not find item.')
 
 #     def __contains__(self, item):
@@ -706,22 +706,22 @@ class Bootstrap(object):
 #         else:
 #             False
 
-#     def __get_as_list(self, key, sign=1): 
+#     def __get_as_list(self, key, sign=1):
 #         if key in self:
 #             if type(self[key]) == np.ndarray:
 #                 return (sign * self[key]).tolist()
-        
+
 #         return [np.nan] * self.iter
 #         #return (sign * self[key]).tolist() if (key in self) & (type(self[key]) == np.ndarray) else [np.nan] * self.iter
 
 #     def __sort_array(self, var, array):
 #         var_list = []
-        
+
 #         for k, v in self.icol.items():
 #             var_list.append(array[... , v, k])
-            
+
 #         self.memo[var] = np.stack(var_list, axis=array.ndim-1)
-        
+
 #         return self.memo[var]
 
 #     @property
@@ -762,7 +762,7 @@ class Bootstrap(object):
 #     @property
 #     def init(self):
 #         """
-#         Returns the maximum likelihood initialisation. 
+#         Returns the maximum likelihood initialisation.
 #         """
 #         return np.argmax(self.likelihood)
 
@@ -770,7 +770,7 @@ class Bootstrap(object):
 #     def summary_table(self):
 #         if not hasattr(self, '_summary'):
 #             df = pd.DataFrame({
-#                 'L1': self.__get_as_list('L1'),    
+#                 'L1': self.__get_as_list('L1'),
 #                 'L2': self.__get_as_list('L2'),
 #                 'L3': self.__get_as_list('L3'),
 #                 'L': self.likelihood, #self.__get_as_list('L', -1),
@@ -783,22 +783,22 @@ class Bootstrap(object):
 #                 #'ks': self.__get_as_list('KS'),
 #                 'rank': [self.rank] * self.iter,
 #                 'init': np.arange(0, self.iter),
-#                 'k': [self.parameters] * self.iter,    
-#                 'n': list(map(int, self.__get_as_list('data_pts'))),    
+#                 'k': [self.parameters] * self.iter,
+#                 'n': list(map(int, self.__get_as_list('data_pts'))),
 #                 })
 #             df[AIC] = 2 * df['k'] - 2 * df['L']
 #             df[AIC_C] = df[AIC] + (2*df['k']**2 + 2 * df['k']) / (df['n'] - df['k'] - 1)
-#             df[BIC] = np.log(df['n']) * df['k'] - 2*df['L'] 
+#             df[BIC] = np.log(df['n']) * df['k'] - 2*df['L']
 
 #             self._summary = df
-        
+
 #         return self._summary
 
 #     def log_table(self, resolution=100, skip_front=20, skip_back=200):
-    
+
 #         end = self[EPOCHS] - skip_back * resolution
-        
-#         df = pd.DataFrame({   
+
+#         df = pd.DataFrame({
 #             EPOCHS : np.arange(resolution * skip_front, end, resolution).tolist() * self.iter,
 #             'init': np.array([[i] * int((end-resolution*skip_front)/resolution) for i in range(self.iter)]).reshape(-1),
 #             'L1': self['log_objective'][::resolution, :][skip_front:-skip_back,:].T.reshape(-1),
@@ -808,20 +808,20 @@ class Bootstrap(object):
 #             'lc': self['log_lambda_c'][::resolution, :][skip_front:-skip_back, :].T.reshape(-1),
 #             'la': self['log_lambda_a'][::resolution, :][skip_front:-skip_back, :].T.reshape(-1),
 #             })
-        
+
 #         return df
 
 #     def coefficient_table(self, cdim='b0', avg=False):
 #         """
-#         Returns a panda data frame with inferred coefficients for each signature 
+#         Returns a panda data frame with inferred coefficients for each signature
 #         and initialisation of the cluster.
-        
+
 #         Parameters:
 #         cdim (string): name of the coefficient (eg. "b0", "a0" etc.)
 #         avg (boolean): returns computes the average of fitted coefficient over initialisations
 #         """
 #         coeff_table = pd.DataFrame({
-#             'sig': np.array([[i] * self[cdim].shape[0] for i in range(self.rank)]).reshape(-1).tolist() * self.iter, 
+#             'sig': np.array([[i] * self[cdim].shape[0] for i in range(self.rank)]).reshape(-1).tolist() * self.iter,
 #             'dim': np.arange(self[cdim].shape[0]).tolist() * self[cdim].shape[1] * self[cdim].shape[2],
 #             'init': np.array([[i] * self.rank * self[cdim].shape[0] for i in range(self.iter)]).reshape(-1).tolist(),
 #             'val': self[cdim].T.reshape(-1).tolist()})
@@ -842,33 +842,33 @@ class Bootstrap(object):
 #     def plot_signature(self, init=None, **kwargs):
 #         """
 #         Plots the signature spectra. If no integer for the initialisation
-#         is given the method selects the initialisation for which the likelihood        
+#         is given the method selects the initialisation for which the likelihood
 #         was maximised.
 #         """
 #         if init is None:
 #             init = self.init
-        
+
 #         ax = plot_multdim_sig(self.S[..., init], **kwargs)
 #         return ax
-    
+
 #     def plot_collapsed_signature(self, init=None, **kwargs):
 #         """
 #         Plots the signature spectra. If no integer for the initialisation
-#         is given the method selects the initialisation for which the likelihood        
+#         is given the method selects the initialisation for which the likelihood
 #         was maximised.
 #         """
 #         if init is None:
 #             init = self.init
-        
+
 #         ax = plot_collapsed_signature(self.S[..., init], **kwargs)
 #         return ax
-    
+
 #     def plot_tSNE_signature(self):
 #         plot_tSNE_signature(self.S)
 
 #     def plot_likelihood_across_tr(self):
 #         likelihood_across_transcription_replication(self['Lij_1'])
-    
+
 #     def plot_likelihood_across_sub(self):
 #         likelihood_across_subs(self['Lij_1'])
 
@@ -912,11 +912,11 @@ class Bootstrap(object):
 #         self.S = S
 #         self.E = E
 #         self.icol = icol
-        
+
 #         self.scores = scores
 #         # added fast cluster option which sets the seed to -1
-#         self.seed = np.argmax(self.scores) if self.scores is not None else -1 
-        
+#         self.seed = np.argmax(self.scores) if self.scores is not None else -1
+
 #         self.iter = self.S.shape[-1]
 #         self.rank = self.S.shape[-2]
 #         self.samples = self.E.shape[-2]
@@ -926,11 +926,11 @@ class Bootstrap(object):
 #         self.dset = load_dict(dset)[1]
 #         self.S = self.dset['S']
 #         self.E = self.dset['E']
-                
+
 #         self.iter = 1
 #         self.rank = self.S.shape[-1]
 #         self.samples = self.E.shape[-2]
-    
+
 #     def __getitem__(self, item):
 #         if item in self.dset:
 #             if item in ['T', 'a0', 'b0', 'm0', 'm1', 'k0', 'k1', 'k2', 'k3', 'k4', 'k5']:
@@ -950,12 +950,12 @@ class Bootstrap(object):
 #         L = dset['L'][()]
 #         m = L >= 0
 #         I = np.argmax(np.ma.array(L, mask=m))
-        
+
 #         self.S, self.E, self.icol = cluster_signatures(dset['S'], dset['E'], I)
-        
+
 #         self.iter = self.S.shape[-1]
 #         self.rank = self.S.shape[-2]
-#         self.samples = self.E.shape[-2]    
+#         self.samples = self.E.shape[-2]
 
 
 # class Experiment(object):
@@ -973,7 +973,7 @@ class Bootstrap(object):
 
 #         # walk through all experiment params
 #         experiment.visititems(self.__visitor_func)
-    
+
 #     def __len__(self):
 #         return len(self.data)
 
@@ -1005,7 +1005,7 @@ class Bootstrap(object):
 #             if isinstance(node, h5.Group):
 #                 if len(node.attrs) != 0:
 #                     self.data.add(name)
-    
+
 #     def items(self):
 #         for dset in self.data:
 #             yield dset, self[dset]
@@ -1044,13 +1044,13 @@ class Bootstrap(object):
 #             m = L >= 0
 #             I = np.argmax(np.ma.array(L, mask=m))
 
-#             data_sets.append((dset, S, E, I))        
+#             data_sets.append((dset, S, E, I))
 #         if cores > 1:
 #             pool = Pool(cores)
 #             results = pool.starmap(mp_fast_cluster, data_sets)
-            
+
 #             pool.close()
-        
+
 #         else:
 #             results = []
 #             for dset in data_sets:
@@ -1078,16 +1078,16 @@ class Bootstrap(object):
 #
 # load data functions
 #
-    
+
 def create_df(arr):
     d1, d2 = arr.shape
     print (d1, d2)
     df = pd.DataFrame({
         'signature': np.arange(d2).tolist() * d1,
-        'val': arr.reshape(-1).tolist(), 
+        'val': arr.reshape(-1).tolist(),
         'dim': np.array([ [i]*d2 for i in range(d1) ]).reshape(-1).tolist()
     })
-    
+
     return df
 
 
@@ -1103,10 +1103,10 @@ def ksstat(LT1, LT2):
 def compute_left_tails(C, Chat, k, inv_norm=False):
     u = uniform.rvs(size=np.prod(C.shape)).reshape(C.shape)
     left_tail = u * nbinom.cdf(C, k, k/(Chat + k)) + (1-u) * nbinom.cdf(C-1, k, k/(Chat + k))
-    
+
     if inv_norm:
         left_tail = norm.ppf(left_tail)
-    
+
     return left_tail
 
 def compute_tnc_freq(genome_type='whole_genome'):
@@ -1118,9 +1118,9 @@ def compute_tnc_freq(genome_type='whole_genome'):
             M0 = fh['TNC/WG'][()].reshape(3,3,2,96)
         elif genome_type == 'exome':
             M0 = fh['TNC/AGILENT'][()].reshape(3,3,2,96)
-    
+
     M = (M0/M0.sum(axis=3, keepdims=True) * M0.sum()/M0.sum(axis=(0,1,2), keepdims=True)).reshape(3,3,1,2,96,1)
-    
+
     return M
 
 def compute_snv_freq(counts):
@@ -1138,7 +1138,7 @@ def load_counts():
     counts = subs['TRC'][()]
     counts = counts.transpose(3, 2, 1, 4, 0)
     counts = counts.reshape(3,3,2,2,96,2703)
-    counts = counts.sum(axis=2) 
+    counts = counts.sum(axis=2)
 
     N = counts.sum((2,3), keepdims=True)/counts.sum((0,1,2,3),keepdims=True)
     N = np.concatenate([N, N[[2, 1, 0],:,:,:,:][:,[2,1,0],:,:,:]], axis=2)
@@ -1159,7 +1159,7 @@ def load_pcawg_tcga():
     data = h5.File(PCAWG_TGCA)
     pcawg_snv = data['PCAWG/SNV'][()]
     tcga_snv = data['TCGA/SNV'][()]
-    
+
     pcawg_ncl = pcawg_snv.sum(axis=2)
     tcga_ncl = tcga_snv.sum(axis=2)
 
@@ -1167,7 +1167,7 @@ def load_pcawg_tcga():
     tcga_nan = nans(tcga_ncl.shape)
     tcga_fin = np.concatenate([tcga_ncl.reshape(3,3,1,2,96,-1), tcga_nan.reshape(3,3, 1, 2, 96, -1)], axis=2)
     snv = np.concatenate([pcawg_snv, tcga_fin], axis=5)
-    
+
     # loads all other covariates
     other = data['MERGED/COMBINED'][()].T
 
@@ -1182,7 +1182,7 @@ def load_pcawg_tcga():
     M2 = np.concatenate([M2] * tcga_snv.shape[-1], axis=5)
     M = np.concatenate([M1, M2], axis=5)
 
-    
+
     N1 = (np.sum(pcawg_ncl, axis=(2,3,4)) / np.sum(pcawg_ncl)).reshape(3, 3, 1, 1, 1, 1)
     N1_pyr = np.concatenate([N1] * pcawg_ncl.shape[-1], axis=5)
     N1_pur = np.concatenate([N1[[1, 0, 2],:,:][:,[1,0,2],:]] * pcawg_ncl.shape[-1], axis=5)
@@ -1233,15 +1233,15 @@ def load_pcawg():
 
     other  = np.concatenate([mnv, indel, sv], axis=0)
 
-    
+
     M = (M1/M1.sum(axis=3, keepdims=True) * M1.sum()/M1.sum(axis=(0,1,2), keepdims=True)).reshape(3,3,1,2,96,1)
-    
+
     N0 = (np.sum(pcawg_ncl, axis=(2,3,4)) / np.sum(pcawg_ncl)).reshape(3, 3, 1, 1, 1, 1)
     N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=3)
-    
+
     N = (M*N)/2
     print('N={}'.format(N.sum()))
-    
+
     return pcawg_snv, other, N
 
 def load_pcawg_chrom():
@@ -1251,7 +1251,7 @@ def load_pcawg_chrom():
     pcawg_snv = pcawg_snv.reshape(3,3,16,2,96,-1)
     pcawg_ncl = pcawg_snv.sum(axis=2)
 
-    
+
     with h5.File(PCAWG_TGCA) as data:
         mnv = data['PCAWG/MNV'][()].T
         indel = data['PCAWG/INDEL'][()].T
@@ -1266,7 +1266,7 @@ def load_pcawg_chrom():
     #M = (M0/M0.sum()).reshape(3,3,16,2,96,1)
 
     #M = (M1/M1.sum(axis=3, keepdims=True) * M1.sum()/M1.sum(axis=(0,1,2), keepdims=True)).reshape(3,3,1,2,96,1)
-    
+
     N0 = (np.sum(pcawg_snv, axis=(3,4,5)) / np.sum(pcawg_snv)).reshape(3, 3, 16, 1, 1, 1)
     N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=3)
     #N = np.ones_like(M)
@@ -1280,7 +1280,7 @@ def load_pcawg_chrom_clust():
     pcawg_snv = pcawg_snv.reshape(3, 3, 16, 2, 2, 96, -1)
     pcawg_ncl = pcawg_snv.sum(axis=3)
 
-    
+
     with h5.File(PCAWG_TGCA) as data:
         mnv = data['PCAWG/MNV'][()].T
         indel = data['PCAWG/INDEL'][()].T
@@ -1294,14 +1294,14 @@ def load_pcawg_chrom_clust():
     #M = (M0/M0.sum(axis=4, keepdims=True)*M0.sum()/M0.sum(axis=(0,1,2,3))).reshape(3,3,16,2,96,1)
     M = (M0/M0.sum()).reshape(3,3,16,2,96,1)
     M = M.reshape(3,3,16,2,1,96,1)
-    
+
     #M = (M1/M1.sum(axis=3, keepdims=True) * M1.sum()/M1.sum(axis=(0,1,2), keepdims=True)).reshape(3,3,1,2,96,1)
-    
+
     #N0 = (np.sum(pcawg_snv, axis=(4,5,6)) / np.sum(pcawg_snv)).reshape(3, 3, 16, 1, 1, 1)
     #N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=3)
     N = np.ones_like(M)
     N = N.reshape(3,3,16,1,2,96, 1)
-    
+
     return pcawg_snv, other, M, N
 
 
@@ -1310,7 +1310,7 @@ def load_pcawg_chrom_clust2():
         pcawg_snv = data['SNV'][()].T
 
     pcawg_snv = pcawg_snv.reshape(3, 3, 16, 2, 2, 96, -1)
-    
+
     with h5.File(PCAWG_TGCA) as data:
         mnv = data['PCAWG/MNV'][()].T
         indel = data['PCAWG/INDEL'][()].T
@@ -1322,19 +1322,19 @@ def load_pcawg_chrom_clust2():
     TNC = pd.read_csv(CHROM_CLUST_TNC, index_col=0)
     tnc192 = pd.read_csv(CHROM_CLUST_TNC, index_col=0)
     M1 = tnc192.as_matrix().T.reshape(9, 16, 2, 96).reshape(3,3,16,2,96)
-    M2 = M1/M1.sum(axis=(4), keepdims=True) / M1.sum(axis=(0,1,2,3), keepdims=True) * M1.sum(keepdims=True) 
-    
+    M2 = M1/M1.sum(axis=(4), keepdims=True) / M1.sum(axis=(0,1,2,3), keepdims=True) * M1.sum(keepdims=True)
+
     #M0 = TNC.as_matrix().T.reshape(9, 16, 2, 96).reshape(3,3,16,2,96)
     #M = (M0/M0.sum(axis=4, keepdims=True)*M0.sum()/M0.sum(axis=(0,1,2,3))).reshape(3,3,16,2,96,1)
-    
-    
+
+
     N0 = (pcawg_snv.sum(axis=(3,4,5,6))/ pcawg_snv.sum()).reshape(3,3,16,1,1,1,1)
     N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=4)
-    
+
     N = M2.reshape(3,3,16,1,2,96,1) * N / 2
     #N = np.array([1])
     print("SUM N={}".format(N.sum()))
-    
+
     return pcawg_snv, other, N
 
 def load_pcawg_nucleosome():
@@ -1342,7 +1342,7 @@ def load_pcawg_nucleosome():
         pcawg_snv = data['SNV'][()].T
 
     pcawg_snv = pcawg_snv.reshape(3, 3, 2, 2, 2, 96, -1)
-    
+
     with h5.File(PCAWG_TGCA) as data:
         mnv = data['PCAWG/MNV'][()].T
         indel = data['PCAWG/INDEL'][()].T
@@ -1352,19 +1352,19 @@ def load_pcawg_nucleosome():
 
     tnc192 = pd.read_csv(PCAWG_NUC_TNC, index_col=0)
     M1 = tnc192.as_matrix().T.reshape(9, 2, 2, 96).reshape(3,3,2,2,96)
-    M2 = M1/M1.sum(axis=(4), keepdims=True) / M1.sum(axis=(0,1,2,3), keepdims=True) * M1.sum(keepdims=True) 
-    
+    M2 = M1/M1.sum(axis=(4), keepdims=True) / M1.sum(axis=(0,1,2,3), keepdims=True) * M1.sum(keepdims=True)
+
     #M0 = TNC.as_matrix().T.reshape(9, 16, 2, 96).reshape(3,3,16,2,96)
     #M = (M0/M0.sum(axis=4, keepdims=True)*M0.sum()/M0.sum(axis=(0,1,2,3))).reshape(3,3,16,2,96,1)
-    
-    
+
+
     N0 = (pcawg_snv.sum(axis=(3,4,5,6))/ pcawg_snv.sum()).reshape(3,3,2,1,1,1,1)
     N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=4)
-    
+
     N = M2.reshape(3,3,2,1,2,96,1) * N / 2
     #N = np.array([1])
     print("SUM N={}".format(N.sum()))
-    
+
     return pcawg_snv, other, N
 
 
@@ -1379,7 +1379,7 @@ def load_pcawg_min_maj():
         pcawg_snv[:,:,0,:,:,:,:].reshape(3,3,1,2,2,96,-1),
         pcawg_snv[:,:,1,:,:,:,:].reshape(3,3,1,2,2,96,-1)], axis=2)
 
-    
+
     with h5.File(PCAWG_TGCA) as data:
         mnv = data['PCAWG/MNV'][()].T
         indel = data['PCAWG/INDEL'][()].T
@@ -1389,19 +1389,19 @@ def load_pcawg_min_maj():
 
     tnc192 = pd.read_csv(PCAWG_MINMAJ_TNC, index_col=0)
     M1 = tnc192.as_matrix().T.reshape(9, 3, 2, 96).reshape(3,3,3,2,96)
-    M2 = M1/M1.sum(axis=(4), keepdims=True) / M1.sum(axis=(0,1,2,3), keepdims=True) * M1.sum(keepdims=True) 
-    
+    M2 = M1/M1.sum(axis=(4), keepdims=True) / M1.sum(axis=(0,1,2,3), keepdims=True) * M1.sum(keepdims=True)
+
     #M0 = TNC.as_matrix().T.reshape(9, 16, 2, 96).reshape(3,3,16,2,96)
     #M = (M0/M0.sum(axis=4, keepdims=True)*M0.sum()/M0.sum(axis=(0,1,2,3))).reshape(3,3,16,2,96,1)
-    
-    
+
+
     N0 = (pcawg_snv.sum(axis=(3,4,5,6))/ pcawg_snv.sum()).reshape(3,3,3,1,1,1,1)
     N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=4)
-    
+
     M = M2.reshape(3,3,3,1,2,96,1) * N / 2
     #N = np.array([1])
     print("SUM N={}".format(N.sum()))
-    
+
     return pcawg_snv, other, N
 
 def load_pcawg_min_maj_lin():
@@ -1409,7 +1409,7 @@ def load_pcawg_min_maj_lin():
         pcawg_snv = data['SNV'][()].T
 
     pcawg_snv = pcawg_snv.reshape(3, 3, 4, 2, 2, 96, -1)
-    
+
     with h5.File(PCAWG_TGCA) as data:
         mnv = data['PCAWG/MNV'][()].T
         indel = data['PCAWG/INDEL'][()].T
@@ -1419,19 +1419,19 @@ def load_pcawg_min_maj_lin():
 
     tnc192 = pd.read_csv(PCAWG_MINMAJLIN_TNC, index_col=0)
     M1 = tnc192.as_matrix().T.reshape(9, 4, 2, 96).reshape(3,3,4,2,96)
-    M2 = M1/M1.sum(axis=(4), keepdims=True) / M1.sum(axis=(0,1,2,3), keepdims=True) * M1.sum(keepdims=True) 
-    
+    M2 = M1/M1.sum(axis=(4), keepdims=True) / M1.sum(axis=(0,1,2,3), keepdims=True) * M1.sum(keepdims=True)
+
     #M0 = TNC.as_matrix().T.reshape(9, 16, 2, 96).reshape(3,3,16,2,96)
     #M = (M0/M0.sum(axis=4, keepdims=True)*M0.sum()/M0.sum(axis=(0,1,2,3))).reshape(3,3,16,2,96,1)
-    
-    
+
+
     N0 = (pcawg_snv.sum(axis=(3,4,5,6))/ pcawg_snv.sum()).reshape(3,3,4,1,1,1,1)
     N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=4)
-    
+
     N = M2.reshape(3,3,4,1,2,96,1) * N / 2
     #N = np.array([1])
     print("SUM N={}".format(N.sum()))
-    
+
     return pcawg_snv, other, N
 
 
@@ -1440,7 +1440,7 @@ def load_pcawg_8dim():
         snv = data['SNV'][()].T
 
     snv = snv.reshape(3,3,16,4,2,2,96,-1)
-    
+
     with h5.File(PCAWG_TGCA) as data:
         mnv = data['PCAWG/MNV'][()].T
         indel = data['PCAWG/INDEL'][()].T
@@ -1450,7 +1450,7 @@ def load_pcawg_8dim():
 
     tnc = pd.read_csv(PCAWG_8DIM_TNC, index_col=0)
     # rearrangement to get numbers into the right dimension
-    M0 = tnc.as_matrix().T.reshape(9, 16*4, 2, 96) 
+    M0 = tnc.as_matrix().T.reshape(9, 16*4, 2, 96)
     M1 = M0.reshape(3, 3, 16*4, 2, 96)
     M2 = M1.reshape(3, 3, 4, 16, 2, 96)
     M3 = M2.swapaxes(3, 2) # has now shape (3, 3, 16, 4, 2, 96)
@@ -1459,15 +1459,15 @@ def load_pcawg_8dim():
     M3 += tnc96.reshape(1,1,1,1,1,96)
     M4 = M3/M3.sum(axis=5, keepdims=True) / M3.sum(axis=(0,1,2,3,4), keepdims=True) * M3.sum()
     M5 = M4.reshape(3, 3, 16, 4, 1, 2, 96, 1)
-    
-    
+
+
     N0 = (snv.sum(axis=(4,5,6,7)) / snv.sum()).reshape(3,3,16,4,1) # shape (3, 3, 16, 4, 1)
     N1 = np.concatenate([N0, N0[[1,0,2],:,:][:,[1,0,2],:,:]], axis=4)
     N2 = N1.reshape(3,3,16,4,1,2,1,1)
     N = (N2*M5)/2
 
     print("SUM N={}".format(N.sum()))
-    
+
     return snv, other, N
 
 
@@ -1539,8 +1539,8 @@ def progress(iteration, total, log_string):
 def create_file_name(params):
     assert params[FILENAME][0] == 'J', 'A filename has to start with the job name'
     PARSER = dict(
-        R=RANK, 
-        LR=STARTER_LEARNING_RATE, 
+        R=RANK,
+        LR=STARTER_LEARNING_RATE,
         I=ITERATION,
         L=LAMBDA,
         J=JOB_NAME,
@@ -1552,14 +1552,14 @@ def create_file_name(params):
         LC=LAMBDA_C,
         LA=LAMBDA_A
     )
-    
+
     fname = ''
     for exp in params[FILENAME].split('_'):
         if exp == 'J':
             fname += params[PARSER[exp]]
         else:
             fname += '_' + exp + '=' + str(params[PARSER[exp]])
-    
+
     return fname
 
 def collapse_data(snv):

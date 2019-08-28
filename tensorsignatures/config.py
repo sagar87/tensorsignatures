@@ -54,7 +54,7 @@ PCAWG_COLORS = resource_filename('tensorsignatures', 'data/pcawg_colors.txt')
 COUNTS = 'counts'
 SIGNATURE = 'signature'
 EXPOSURE = 'exposure'
-SEED='seed'
+SEED = 'seed'
 
 INPUT_ROWS = 'rows'
 INPUT_COLS = 'cols'
@@ -64,7 +64,7 @@ RANK = 'rank'
 LOSS = 'loss'
 OBJECTIVE = 'objective'
 CONSTRAINT = 'constraint'
-CONSTRAINT_CHOICE = [ 'l1', 'l2', 'sigmoid', 'relu', -1]
+CONSTRAINT_CHOICE = ['l1', 'l2', 'sigmoid', 'relu', -1]
 LEARNING_RATE = 'learning_rate'
 DISPERSION = 'dispersion'
 LAMBDA = 'lambda'
@@ -163,6 +163,28 @@ CHROMSTATES = {
     14:"weak repressed polycomb",
     15:"quiescent/low"
 }
+
+COLORPAIRS = [
+    ['#a6cee3', '#2196F3'],
+    ['dimgray', '#212121'],
+    ['#fb9a99', '#f44336'],
+    ['lightgrey', '#BDBDBD'],
+    ['#b2df8a', '#8BC34A'],
+    ['papayawhip', '#FFAB91']
+]
+
+LIGHT_PALETTE = [COLORPAIRS[0][0]] * 16 \
+    + [COLORPAIRS[1][0]] * 16 \
+    + [COLORPAIRS[2][0]] * 16 \
+    + [COLORPAIRS[3][0]] * 16 \
+    + [COLORPAIRS[4][0]] * 16 \
+    + [COLORPAIRS[5][0]] * 16
+DARK_PALETTE = [COLORPAIRS[0][1]] * 16 \
+    + [COLORPAIRS[1][1]] * 16 \
+    + [COLORPAIRS[2][1]] * 16 \
+    + [COLORPAIRS[3][1]] * 16 \
+    + [COLORPAIRS[4][1]] * 16 \
+    + [COLORPAIRS[5][1]] * 16
 
 PARAMETERS = ['S', 'T', 'E', 'a0', 'b0', 'm1', 'k0', 'k1', 'k2', 'k3', 'k4', 'k5', 'L1', 'L2', 'L', 'tau', 'sub']
 VARIABLES = ['S0', 'S0s', 'T0', 'E0', 'm0']
