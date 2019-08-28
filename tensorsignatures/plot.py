@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gs
+from matplotlib.colors import LogNorm
+
 
 class MidPointLogNorm(LogNorm):
     def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
