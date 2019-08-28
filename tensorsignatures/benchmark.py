@@ -281,7 +281,7 @@ class TensorSignatureData(object):
                 allowing to create several realizations of the same expected
                 value.
         Returns:
-            obj:`None`: Saves a hdf file containing example data for
+            :obj:`None`: Saves a hdf file containing example data for
                 TensorSignatures to disk.
 
         Examples:
