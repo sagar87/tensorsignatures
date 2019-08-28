@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import gs
+import matplotlib.gridspec as gs
 
 class MidPointLogNorm(LogNorm):
     def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
