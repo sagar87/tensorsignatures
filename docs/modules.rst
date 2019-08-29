@@ -4,8 +4,8 @@
 Modules
 =======
 
-tensorsignatures.util
----------------------
+:code:`tensorsignatures.util`
+----------------------------
 
 The util module contains classes and functions to run tensorsignatures.
 
@@ -16,16 +16,16 @@ The util module contains classes and functions to run tensorsignatures.
 
 
 
-tensorsignatures.tensorsignatures
----------------------------------
+:code:`tensorsignatures.tensorsignatures`
+-----------------------------------------
 
 The train module contains the train function used to train a model.
 
 .. automodule:: tensorsignatures.tensorsignatures
    :members:
 
-The :code:`tensorsignatures.data` module
-----------------------------------------
+:code:`tensorsignatures.data`
+-----------------------------
 
 The :code:`data` module contains the :code:`TensorSignaturesData` class, which
 is can be used to create sample data for simulation purposes.
@@ -34,8 +34,8 @@ is can be used to create sample data for simulation purposes.
    :members:
 
 
-The :code:`tensorsignatures.plot` module
-----------------------------------------
+:code:`tensorsignatures.plot`
+-----------------------------
 
 The :code:`plot` contains various functions to plot extracted signatures,
 exposures and tensorfactors.
