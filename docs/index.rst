@@ -7,7 +7,7 @@ Welcome to tensorsignatures's documentation!
 
    readme
    installation
-   usage
+   tutorials
    modules
    cli
    contributing
