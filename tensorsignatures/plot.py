@@ -110,15 +110,17 @@ def heatmap(data, row_labels=None, col_labels=None, ax=None, vmin=None,
     # Let the horizontal axes labeling appear on top.
     ax.tick_params(top=True, bottom=False, right=False,
                    labeltop=True, labelbottom=False)
-
+    ax.tick_params(which='major', axis='both', direction='out', length=3,
+                   width=1)
     # Turn spines off and create white grid.
     for edge, spine in ax.spines.items():
         spine.set_visible(False)
 
     ax.set_xticks(np.arange(data.shape[1] + 1) - .5, minor=True)
     ax.set_yticks(np.arange(data.shape[0] + 1) - .5, minor=True)
-    ax.grid(which="minor", color="w", linestyle='-', linewidth=3)
-    ax.tick_params(which="minor", bottom=False, left=False, right=False)
+    ax.grid(which="minor", color="w", linestyle='-', linewidth=4)
+    ax.tick_params(which="minor", bottom=False, left=False, right=False,
+                   top=False)
 
     if annotate:
         annotate_heatmap(im)

@@ -9,11 +9,6 @@ from tensorsignatures.util import *
 import subprocess
 import os
 
-BMIN, BMAX = -.5, .5
-AMIN, AMAX = -.5, .5
-KMIN, KMAX = -2, 2
-KSIZ = 2
-
 
 class TensorSignatureData(object):
     r"""Makes sample data for TensorSignatures

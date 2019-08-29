@@ -1,5 +1,5 @@
 Welcome to tensorsignatures's documentation!
-======================================
+============================================
 
 .. toctree::
    :maxdepth: 2
