@@ -65,7 +65,7 @@ the underlying signatures for the dataset by executing
 >>> plt.figure(figsize=(12, 2))
 >>> ts.plot_signatures(d.S, width=0.4)
 
-.. figure::  images/samples.png
+.. figure::  images/signatures.png
    :align:   center
 
 which illustrates that shown samples above are a superposition of both signatures.
