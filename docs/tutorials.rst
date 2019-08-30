@@ -46,7 +46,7 @@ SNV count tensor it must have the following structure:
 From this we can see that :code:`data_set` contains only a single additional
 genomic dimension of size 2 as :code:`snv.shape[2] == 2`. Note, that we can
 reconstruct well acquinted 96 trinucleotide profiles for each sample by summing
-over the first dimensions
+over the first 3 dimensions.
 
 >>> snv_collapsed = snv.sum(axis=(0, 1, 2,)) # snv_collapsed.shape == (96, 100)
 >>> fig, axes = plt.subplots(3, 3, sharey=True, sharex=True)
@@ -58,6 +58,17 @@ over the first dimensions
 .. figure::  images/samples.png
    :align:   center
 
+Plotting the trinucleotide profile of the first samples reveals that samples
+are dominated by C>A (blue) and T>C (green). To understand this, we can plot
+the underlying signatures for the dataset by executing
+
+>>> plt.figure(figsize=(12, 2))
+>>> ts.plot_signatures(d.S, width=0.4)
+
+.. figure::  images/samples.png
+   :align:   center
+
+which illustrates that shown samples above are a superposition of both signatures.
 
 
 
