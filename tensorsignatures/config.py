@@ -51,68 +51,120 @@ PCAWG_COLORS = resource_filename('tensorsignatures', 'data/pcawg_colors.txt')
 #               'PCAWG_TRINUC': PCAWG_TRINUC,
 #               'PCAWG_LABELS': PCAWG_LABELS}
 
-COUNTS = 'counts'
-SIGNATURE = 'signature'
-EXPOSURE = 'exposure'
 SEED = 'seed'
-
-INPUT_ROWS = 'rows'
-INPUT_COLS = 'cols'
 RANK = 'rank'
+SIZE = 'size'
+VERBOSE = 'verbose'
+OBSERVATIONS = 'observations'
+ID = 'id'
+INIT = 'init'
 
 # parameters saved during training
-LOSS = 'loss'
-OBJECTIVE = 'objective'
-CONSTRAINT = 'constraint'
-CONSTRAINT_CHOICE = ['l1', 'l2', 'sigmoid', 'relu', -1]
-LEARNING_RATE = 'learning_rate'
-DISPERSION = 'dispersion'
-LAMBDA = 'lambda'
-
-PREFIX = 'prefix'
-SUFFIX = 'suffix'
-
-
-STARTER_KEEP_PROB = 'starter_keep_prob'
-DROPOUT = 'dropout'
-KEEP_PROB = 'keep_probability'
-
-FULL_TRAIN = 'full_train'  # full train proportion
-
-LOG_CONSTRAINT = 'log_constraint'
-LOG_LEARNING_RATE = 'log_learning_rate'
-LOG_OBJECTIVE = 'log_objective'
-LOG_KEEP_PROB = 'log_keep_prob'
-LOG_SIZE = 'log_size'
-LOG_L1 = 'log_L1'
-LOG_L2 = 'log_L2'
-LOG_L = 'log_L'
-LOG_EPOCH = 'log_epoch'
-LOG_LAMBDA_T = 'log_lambda_t' # lambda for transcription bias
-LOG_LAMBDA_R = 'log_lambda_r' # lambda for replication bias
-LOG_LAMBDA_C = 'log_lambda_c' # lambda for
-LOG_LAMBDA_A = 'log_lambda_a'
-LOG_STRING = 'Likelihood {lh:.2f} delta {delta:.2f} snv {snv:.2f} other {other:.2f} lr {lr:.4f}'
-
-VERBOSE = 'verbose'
-INPUT = 'input'
-OUTPUT = 'output'
-LOGS = 'logs'
 OBJECTIVE = 'objective'
 OBJECTIVE_CHOICE = click.Choice(['nbconst', 'poisson'])
 OPTIMIZER = 'optimizer'
 OPTIMIZER_CHOICE = click.Choice(['ADAM', 'gradient_descent'])
-FILENAME = 'file_name'
+DISPERSION = 'dispersion'
+LEARNING_RATE = 'learning_rate'
+
+
+PREFIX = 'prefix'
+SUFFIX = 'suffix'
+
+LOG_STEP = 'log_step'
+LOG_EPOCHS = 'log_epochs'
+LOG_LEARNING_RATE = 'log_learning_rate'
+LOG_L = 'log_L'
+LOG_L1 = 'log_L1'
+LOG_L2 = 'log_L2'
+LOG_STRING = 'Likelihood {lh:.2f} delta {delta:.2f} snv {snv:.2f} other {other:.2f} lr {lr:.4f}'
+
+INPUT = 'input'
+OUTPUT = 'output'
+LOGS = 'logs'
 
 EPOCHS = 'epochs'
 STARTER_LEARNING_RATE = 'starter_learning_rate'
 DECAY_LEARNING_RATE = 'decay_learning_rate'
 DECAY_LEARNING_RATE_CHOICE = click.Choice(['exponential', 'constant'])
 
-PARARMS = 'params'
 JOB_NAME = 'job_name'
 ITERATION = 'iteration'
 DISPLAY_STEP = 'display_step'
+
+PARAMS = [
+    RANK,
+    SIZE,
+    OBJECTIVE,
+    STARTER_LEARNING_RATE,
+    DECAY_LEARNING_RATE,
+    OPTIMIZER,
+    EPOCHS,
+    LOG_STEP,
+    DISPLAY_STEP,
+    ID,
+    INIT,
+    SEED,
+    OBSERVATIONS
+]
+
+LOGS = [
+    LOG_EPOCHS,
+    LOG_LEARNING_RATE,
+    LOG_L,
+    LOG_L1,
+    LOG_L2
+]
+
+
+S0 = 'S0'
+a0 = 'a0'
+b0 = 'b0'
+k0 = '_k0'
+m0 = 'm0'
+E0 = 'E0'
+T0 = 'T0'
+
+
+VARS = [
+    S0,
+    a0,
+    b0,
+    k0,
+    m0,
+    T0,
+    E0
+]
+
+DUMP = PARAMS + VARS + LOGS
+
+DUMPO = [
+    'seed',
+    'objective',
+    'epochs',
+    'log_step',
+    'display_step',
+    'starter_learning_rate',
+    'decay_learning_rate',
+    'optimizer',
+    'observations',
+    'rank',
+    'dispersion',
+    'id',
+    'init',
+    'S0',
+    'a0',
+    'b0',
+    'k0',
+    'm0',
+    'T0',
+    'E0',
+    'log_epochs',
+    'log_learning_rate',
+    'log_L',
+    'log_L1',
+    'log_L2'
+]
 
 
 # CONSTANTS FOR util
@@ -123,6 +175,8 @@ BIC = 'BIC'
 REPRODUCIBILITY = 'reproducibility'
 RECOGNITION = 'recognition'
 SAMPLES = 'samples'
+MUTATIONS = 'mutations'
+DIMENSIONS = 'dimensions'
 SILHOUETTE = 'silhouette'
 DATAPOINTS = 'data_points'
 DOF = 'dof'
@@ -130,38 +184,31 @@ DOF = 'dof'
 ROW = 'row'
 COL = 'col'
 
-
-LAMBDA_T = 'lambda_t' # lambda for transcription bias
-LAMBDA_R = 'lambda_r' # lambda for replication bias
-LAMBDA_C = 'lambda_c' # lambda for
-LAMBDA_A = 'lambda_a'
-
 NORMALIZE = 'norm'
 COLLAPSE = 'collapse'
 
-
 ORI = ['+', '-', '*']
 NUC = ['A', 'C', 'G', 'T']
-PYR = ['C'] *3 +['T']*3
+PYR = ['C'] * 3 + ['T'] * 3
 SUB = ['[C->A]', '[C->G]', '[C->T]', '[T->A]', '[T->C]', '[T->G]']
 
 CHROMSTATES = {
-    0:"NA",
-    1:"active TSS",
-    2:"flanking active TSS",
-    3:"transcr. at gene 5'and 3'",
-    4:"strong transcription",
-    5:"weak transcription",
-    6:"genic enhancers",
-    7:"enhancers",
-    8:"ZNF genes + repeats",
-    9:"heterochromatin",
-    10:"bivalent/poised TSS",
-    11:"flanking bivalent TSS/Enh",
-    12:"bivalent enhancer",
-    13:"repressed polycomb",
-    14:"weak repressed polycomb",
-    15:"quiescent/low"
+    0: "NA",
+    1: "active TSS",
+    2: "flanking active TSS",
+    3: "transcr. at gene 5'and 3'",
+    4: "strong transcription",
+    5: "weak transcription",
+    6: "genic enhancers",
+    7: "enhancers",
+    8: "ZNF genes + repeats",
+    9: "heterochromatin",
+    10: "bivalent/poised TSS",
+    11: "flanking bivalent TSS/Enh",
+    12: "bivalent enhancer",
+    13: "repressed polycomb",
+    14: "weak repressed polycomb",
+    15: "quiescent/low"
 }
 
 COLORPAIRS = [
@@ -204,6 +251,8 @@ COLORS = ["#2196F3", "#212121", "#f44336", "#BDBDBD", "#8BC34A", "#FFAB91"]
 BMIN, BMAX = -0.6931471805599453, 0.6931471805599453
 AMIN, AMAX = -0.6931471805599453, 0.6931471805599453
 KMIN, KMAX = -2, 2
+
+
 
 
 DESCRIPTION = '''\

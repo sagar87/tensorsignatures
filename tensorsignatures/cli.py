@@ -5,14 +5,20 @@ import sys
 import click
 import glob
 import os
+import h5py as h5
 
 from multiprocessing import Pool
 from multiprocessing import cpu_count
 
 from tensorsignatures.util import load_dict
+from tensorsignatures.util import load_dump
 from tensorsignatures.util import progress
+
 from tensorsignatures.writer import link_datasets
-from tensorsignatures.writer import save_h5f
+from tensorsignatures.writer import save_hdf
+
+from tensorsignatures.tensorsignatures import TensorSignature
+from tensorsignatures.data import TensorSignatureData
 from tensorsignatures.config import *
 
 class Config(object):
@@ -35,25 +41,58 @@ def main(config, verbose):
 @click.option('--seed',
               default=0,
               help='Sets the seed for reproduceability.')
-def data():
-    print('Create some sample data to run with tensor signatures.')
+@click.argument(SEED, type=int)
+@click.argument(RANK, type=int)
+@click.argument(OUTPUT, type=str)
+@click.option('--' + INIT, '-i',
+              metavar='<int>',
+              type=int,
+              default=0,
+              help='realization of the data (default = 0)')
+@click.option('--' + SAMPLES, '-s',
+              metavar='<int>',
+              type=int,
+              default=100,
+              help='number of genomes/samples (default = 100)')
+@click.option('--' + MUTATIONS, '-m',
+              metavar='<int>',
+              type=int,
+              default=1000,
+              help='mutations per genome (default = 1000)')
+@click.option('--' + DIMENSIONS, '-d',
+              metavar='<int>',
+              multiple=True,
+              type=int,
+              help='number of additional genomic dimensions',
+              default=[2])
+def data(seed, rank, output, init, samples, mutations, dimensions):
+
+    synthetic = TensorSignatureData(
+        seed=seed,
+        rank=rank,
+        samples=samples,
+        mutations=mutations,
+        dimensions=dimensions)
+
+    synthetic.save_init(output, init=init)
+    return 0
 
 
 @main.command()
 @click.argument(INPUT, type=str)
-@click.argument(PREFIX, type=str)
+@click.argument(ID, type=str)
 @click.argument(RANK, type=int)
 @click.option('--' + OBJECTIVE, '-o',
               metavar='<str>',
               type=OBJECTIVE_CHOICE,
               default='nbconst',
               help='What likelihood model shall be used to model count data')
-@click.option('--' + DISPERSION, '-k',
+@click.option('--' + SIZE, '-k',
               metavar='<float>',
               type=int,
               default=50,
               help='dispersion factor (default = 50)')
-@click.option('--' + ITERATION, '-i',
+@click.option('--' + INIT, '-i',
               metavar='<int>',
               type=int,
               default=0,
@@ -90,20 +129,43 @@ def data():
 @click.option('--' + SUFFIX, '-su',
               metavar='<str>',
               type=str,
-              help='File suffix (default J_R_I)',
+              help='File suffix (default R_I)',
               default='J_R_I')
-@click.option('--' + SEED, 'se',
+@click.option('--' + SEED, '-se',
               metavar='<int>',
               type=int,
               default=None,
               help='initialize TensorSignatures variables with a seed')
 @pass_config
-def train(input, prefix, rank, dispersion, objective, iteration,
-          norm, collapse, epochs, optimizer, starter_learning_rate,
-          decay_learning_rate, display_step, suffix, seed):
+def train(config, input, id, rank, objective, size, init, norm, collapse,
+          epochs, optimizer, decay_learning_rate, starter_learning_rate,
+          display_step, suffix, seed):
     """Deciphers tensorsignatures on a dataset.
     """
-    click.echo('Ready to learn')
+    snv = h5.File(input, 'r')['SNV'][()]
+    other = h5.File(input, 'r')['OTHER'][()]
+
+    model = TensorSignature(
+        snv=snv,
+        other=other,
+        rank=rank,
+        N=None,
+        size=size,
+        objective=objective,
+        collapse=collapse,
+        starter_learning_rate=starter_learning_rate,
+        optimizer=optimizer,
+        epochs=epochs,
+        log_step=100,
+        display_step=display_step,
+        id=id,
+        init=init,
+        seed=seed,
+        verbose=config.verbose)
+
+    results = model.fit()
+
+    results.dump(id + '_R=' + str(rank) + '_I=' + str(init) + '.pkl')
 
 
 @main.command()
@@ -160,12 +222,12 @@ def write(config, input, output, cores, block_size, remove, link):
 
         click.echo('Processing {} files.'.format(total_files))
         if cores > 1:
-            data = pool.map(load_dict, files)
+            data = pool.map(load_dump, files)
         else:
-            data = [load_dict(f) for f in files]
+            data = [load_dump(f) for f in files]
 
         mode = 'a' if os.path.exists(output) else 'w'
-        save_h5f(output, mode, data, config.verbose)
+        save_hdf(data, output, mode, config.verbose)
 
     else:
         block_size = block_size
@@ -183,13 +245,13 @@ def write(config, input, output, cores, block_size, remove, link):
             block = files[block_start:block_end]
 
             if cores > 1:
-                block_data = pool.map(load_dict, block)
+                block_data = pool.map(load_dump, block)
             else:
-                block_data = [load_dict(b) for b in block]
+                block_data = [load_dump(b) for b in block]
 
             click.echo("Writing Block {}.".format(current_block))
             mode = 'a' if os.path.exists(output) else 'w'
-            save_h5f(output, mode, block_data, config.verbose)
+            save_hdf(block_data, output, mode, config.verbose)
             current_block += 1
 
     if remove:

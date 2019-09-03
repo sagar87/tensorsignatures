@@ -19,7 +19,7 @@ class TensorSignatureData(object):
             that shall be used to create the mutation counts.
         samples (:obj:`int`, :math:`n\geq 1`): The number of samples in the
             artificial dataset
-        dispersion (:obj:`int`, :math:`\tau\geq 1`)): Dispersion of counts.
+        size (:obj:`int`, :math:`\tau\geq 1`)): size of counts.
         mutations (:obj:`int`,  :math:`\text{mutations}\geq 1`)): Number of
             mutations per genome.
         dim (:obj:`list` of :obj:`int`): List indicating the size of additional
@@ -28,16 +28,23 @@ class TensorSignatureData(object):
     Returns:
         A TensorSignaturesData object.
     """
-    def __init__(self, seed, rank, samples=100, dispersion=50, mutations=1000,
-                 verbose=True, dim=[2], **kwargs):
+    def __init__(self,
+                 seed,
+                 rank,
+                 samples=100,
+                 size=50,
+                 mutations=1000,
+                 verbose=True,
+                 dimensions=[2],
+                 **kwargs):
         self.seed = seed
         np.random.seed(self.seed)
         self.verbose = verbose
+        self.samples = samples
+        self.mutations = mutations
         self.rank = rank
-        self.gen = samples
-        self.tau = dispersion
-        self.mut = mutations
-        self.dim = dim
+        self.size = size
+        self.dim = dimensions
         self.shape = [1 for j in enumerate(self.dim)]
 
         self.idx = np.random.choice(
@@ -201,16 +208,16 @@ class TensorSignatureData(object):
     def E(self):
         # Initialize exposures.
         if not hasattr(self, '_E'):
-            if self.mut == 'log_normal':
+            if self.mutations == 'log_normal':
                 # DEPRECATED
                 self.Ej = np.exp(
                     np.random.normal(8.63, 1.43, size=self.samples)
                 ).reshape(1, -1)
             else:
-                self.Ej = self.mut
+                self.Ej = self.mutations
             E = np.random.uniform(
-                size=self.rank * self.gen
-            ).reshape(self.rank, self.gen)
+                size=self.rank * self.samples
+            ).reshape(self.rank, self.samples)
             # normalization
             N = self.S.sum(axis=tuple([j for j in range(self.S.ndim - 1)])) \
                 + self.T.sum(0)
@@ -226,7 +233,7 @@ class TensorSignatureData(object):
         # Computes the expected value of the count tensor.
         if not hasattr(self, '_C1'):
             self._C1 = self.S.reshape(-1, self.rank) @ self.E
-            self._C1 = self._C1.reshape(3, 3, *self.dim, 96, self.gen)
+            self._C1 = self._C1.reshape(3, 3, *self.dim, 96, self.samples)
 
         return self._C1
 
@@ -234,7 +241,7 @@ class TensorSignatureData(object):
     def C2(self):
         # Computes the expected value other mutation type matrix.
         if not hasattr(self, '_C2'):
-            self._C2 = (self.T @ self.E).reshape(234, self.gen)
+            self._C2 = (self.T @ self.E).reshape(234, self.samples)
 
         return self._C2
 
@@ -249,7 +256,7 @@ class TensorSignatureData(object):
             snv (:obj:`array`): The resulting count tensor.
         """
         self._snv = stats.nbinom.rvs(
-            self.tau, self.tau / (self.C1 + self.tau), random_state=init)
+            self.size, self.size / (self.C1 + self.size), random_state=init)
         return self._snv
 
     def other(self, init=0):
@@ -264,7 +271,7 @@ class TensorSignatureData(object):
             :obj:`array`: The resulting count tensor.
         """
         self._other = stats.nbinom.rvs(
-            self.tau, self.tau / (self.C2 + self.tau), random_state=init)
+            self.size, self.size / (self.C2 + self.size), random_state=init)
         return self._other
 
     def save_init(self, path, init=0):
@@ -295,11 +302,11 @@ class TensorSignatureData(object):
         """
         fh = h5.File(path, 'w')
         dset = fh.create_dataset('SNV', data=self.snv(init=init))
-        dset.attrs['seed'] = self.seed
-        dset.attrs['rank'] = self.rank
-        dset.attrs['samples'] = self.gen
-        dset.attrs['mutations'] = self.mut
-        dset.attrs['init'] = init
+        dset.attrs[SEED] = self.seed
+        dset.attrs[RANK] = self.rank
+        dset.attrs[SAMPLES] = self.samples
+        dset.attrs['mutations'] = self.mutations
+        dset.attrs[INIT] = init
         dset.attrs['path'] = path
 
         fh.create_dataset('OTHER', data=self.other(init=init))

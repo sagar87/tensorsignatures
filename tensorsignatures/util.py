@@ -3,15 +3,12 @@
 from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
 
-
-#from sklearn.metrics import silhouette_score
-#from sklearn.metrics import silhouette_samples
-#from sklearn.decomposition import NMF
 from scipy.stats import nbinom
 from scipy.stats import poisson
 from scipy.stats import kstest
 from scipy.stats import uniform
 from collections import defaultdict
+
 from multiprocessing import Pool
 import pickle
 import numpy as np
@@ -20,12 +17,14 @@ import h5py as h5
 import os
 import sys
 import re
+
 from tensorsignatures.config import *
-from tensorsignatures.tensorsignatures import TensorSignature
 
 
 def reshape_clustered_signatures(S):
-    return np.moveaxis(S, [-1, -2], [0, 1]).reshape(S.shape[-1] * S.shape[-2], -1)
+    return np.moveaxis(
+        S, [-1, -2], [0, 1]).reshape(S.shape[-1] * S.shape[-2], -1)
+
 
 def assign_signatures(reference, signature):
     """
@@ -43,6 +42,199 @@ def assign_signatures(reference, signature):
 
     return row_ind, col_ind, distances
 
+
+class TensorSignatureInit(object):
+    """Stores results of a TensorSignature run.
+
+    Args:
+        S0 (obj:`array`): Fitted signature tensor.
+        a0 (obj:`array`): Fitted signature amplitudes.
+        b0 (obj:`array`): Fitted signature biases.
+        k0 (obj:`array`): Fitted signature activities.
+        m0 (obj:`array`): Fitted signature mixing factors.
+        T0 (obj:`array`): Fitted other mutation types signature matrix.
+        E0 (obj:`array`): Fitted exposures.
+        rank (obj:`int`): Rank of decomposition.
+        dispersion (obj:`int`): Dispersion
+        objective (:obj:`str`): Used likelihood function.
+        starter_learning_rate (:obj:`float`): Starter learning rate.
+        decay_learning_rate (:obj:`float`): Decay of learning rate.
+        optimizer (:obj:`str`): Used optimizer.
+        epochs (obj:`int`): Number of training epochs.
+        log_step (obj:`int`): Logging steps.
+        display_step (obj:`int`): Diplay steps.
+        observations (obj:`int`): Number of observations (non NA entries).
+        seed (obj:`int`): Used seed.
+    Returns:
+        A :obj:`TensorSingatureInit` object.
+    """
+    def __init__(self,
+                 S0,
+                 a0,
+                 b0,
+                 k0,
+                 m0,
+                 T0,
+                 E0,
+                 rank,
+                 size,
+                 objective,
+                 starter_learning_rate,
+                 decay_learning_rate,
+                 optimizer,
+                 epochs,
+                 log_step,
+                 display_step,
+                 observations,
+                 id,
+                 init,
+                 seed,
+                 log_epochs,
+                 log_learning_rate,
+                 log_L,
+                 log_L1,
+                 log_L2):
+        # store hyperparameters
+        self.seed = seed
+        self.objective = objective
+        self.epochs = epochs
+        self.log_step = log_step
+        self.display_step = display_step
+        self.starter_learning_rate = starter_learning_rate
+        self.decay_learning_rate = decay_learning_rate
+        self.optimizer = optimizer
+        self.observations = observations
+        self.rank = rank
+        self.size = size
+        self.id = id
+        self.init = init
+
+        self.S0 = S0
+        self.a0 = a0
+        self.b0 = b0
+        self._k0 = k0
+
+        for key, value in self._k0.items():
+            setattr(self, 'k' + str(key), np.exp(value))
+
+        self.m0 = m0
+        self.T0 = T0
+        self.E0 = E0
+
+        self.log_epochs = log_epochs
+        self.log_learning_rate = log_learning_rate
+        self.log_L = log_L
+        self.log_L1 = log_L1
+        self.log_L2 = log_L2
+
+    @property
+    def S0s(self):
+        # with
+        if not hasattr(self, '_S0s'):
+            self._S0s = np.concatenate(
+                [self.S0, np.zeros((2, 2, 1, self.rank))], axis=2)
+            self._S0s = np.exp(self._S0s) \
+                / np.sum(np.exp(self._S0s), axis=2, keepdims=True)
+
+        return self._S0s
+
+    @property
+    def S1(self):
+        if not hasattr(self, '_S1'):
+            self._S1 = np.stack([
+                self.S0s[0, 0, :, :],
+                self.S0s[1, 0, :, :],
+                0.5 * self.S0s[:, 0, :, :].sum(axis=0),
+                self.S0s[1, 1, :, :],
+                self.S0s[0, 1, :, :],
+                0.5 * self.S0s[:, 1, :, :].sum(axis=0),
+                0.5 * (self.S0s[0, 0, :, :] + self.S0s[1, 1, :, :]),
+                0.5 * (self.S0s[1, 0, :, :] + self.S0s[0, 1, :, :]),
+                0.25 * self.S0s.sum(axis=(0, 1))
+            ]).reshape(3, 3, -1, self.rank)
+
+        return self._S1
+
+    @property
+    def S(self):
+        if not hasattr(self, '_S'):
+            self.B = np.exp(np.stack([
+                self.b0[0, :] + self.b0[1, :],
+                self.b0[0, :] - self.b0[1, :],
+                self.b0[0, :],
+                self.b0[1, :] - self.b0[0, :],
+                -self.b0[1, :] - self.b0[0, :],
+                -self.b0[0, :],
+                self.b0[1, :],
+                -self.b0[1, :], np.zeros(self.b0[0, :].shape)
+            ])).reshape(3, 3, 1, self.rank)
+
+            a1 = np.concatenate(
+                [self.a, self.a, np.ones([2, self.rank])],
+                axis=0).reshape(3, 2, self.rank)
+
+            self.A = a1[:, 0, :][:, None, :] \
+                * a1[:, 1, :][None, :, :]
+            self._S = self.S1 \
+                * self.B \
+                * self.A.reshape(3, 3, 1, self.rank) \
+                * self.m.reshape(1, 1, 1, self.rank)
+
+        return self._S
+
+    @property
+    def T1(self):
+        if not hasattr(self, '_T1'):
+            self._T1 = np.concatenate(
+                [self.T0, np.zeros((1, self.rank))], axis=0)
+            self._T1 = np.exp(self._T1) \
+                / np.sum(np.exp(self._T1), axis=0, keepdims=True)
+
+        return self._T1
+
+    @property
+    def T(self):
+        if not hasattr(self, '_T'):
+            self._T = self.T1 * (1 - self.m)
+
+        return self._T
+
+    @property
+    def a(self):
+        if not hasattr(self, '_a'):
+            self._a = np.exp(self.a0)
+
+        return self._a
+
+    @property
+    def b(self):
+        if not hasattr(self, '_b'):
+            self._b = np.exp(self.b0)
+
+        return self._b
+
+    @property
+    def m(self):
+        if not hasattr(self, '_m'):
+            self._m = 1 / (1 + np.exp(-self.m0))
+
+        return self._m
+
+    def to_dic(self):
+        data = {}
+        for var in DUMP:
+            data[var] = getattr(self, var)
+
+        for k, v in self._k0.items():
+            data['k' + str(k)] = v
+
+        return data
+
+    def dump(self, path):
+        data = self.to_dic()
+        save_dict(data, path)
+
+
 class Cluster(object):
     """
     Base cluster class takes
@@ -51,15 +243,18 @@ class Cluster(object):
     def __init__(self, dset, **kwargs):
         self.dset = dset
         self.memo = {}
-        self.seed = np.argmax(np.ma.array(self.dset['L'][()], mask=self.dset['L'][()]>=0))
+        self.seed = np.argmax(
+            np.ma.array(
+                self.dset[LOG_L][()][-1, :],
+                mask=self.dset[LOG_L][()][-1, :] >= 0))
 
         # cluster init
-        self.S, self.T, self.E, self.icol = Cluster.cluster_signatures(
-            dset['S'], dset['T'], dset['E'], self.seed)
+        self.S0, self.T0, self.E0, self.icol = Cluster.cluster_signatures(
+            dset[S0], dset[T0], dset[E0], self.seed)
 
-        self.iter = self.S.shape[-1]
-        self.rank = self.S.shape[-2]
-        self.samples = self.E.shape[-2]
+        self.iter = self.S0.shape[-1]
+        self.rank = self.S0.shape[-2]
+        self.samples = self.E0.shape[-2]
 
     def __len__(self):
         return self.iter
@@ -72,9 +267,9 @@ class Cluster(object):
         if item in self.memo:
             return self.memo[item]
         elif item in list(self.dset):
-            if item in ['T', 'S0', 'T0', 'a0', 'b0', 'm0', 'm1', 'k0', 'k1', 'k2', 'k3', 'k4', 'k5']:
-                return self.__sort_array(item, self.dset[item][()])
-            elif item in ['L', 'L1', 'L2', 'tau', 'data_pts', 'log_L1', 'log_L2', 'log_learning_rate']:
+            if item in VARS:
+                return self.sort_array(item, self.dset[item][()])
+            elif item in LOGS:
                 return self.dset[item][()][..., list(self.icol.keys())]
             else:
                 return self.dset[item][()]
@@ -90,22 +285,120 @@ class Cluster(object):
         else:
             False
 
-    def __get_as_list(self, key, sign=1):
+    def as_list(self, key, sign=1):
         if key in self:
             if type(self[key]) == np.ndarray:
                 return (sign * self[key]).tolist()
 
         return [np.nan] * self.iter
 
-    def __sort_array(self, var, array):
+    def sort_array(self, var, array):
+        # sort array
         var_list = []
 
         for k, v in self.icol.items():
-            var_list.append(array[... , v, k])
+            var_list.append(array[..., v, k])
 
-        self.memo[var] = np.stack(var_list, axis=array.ndim-1)
+        self.memo[var] = np.stack(var_list, axis=array.ndim - 1)
 
         return self.memo[var]
+
+    @property
+    def a(self):
+        if not hasattr(self, '_a'):
+            self._a = np.exp(self[a0])
+
+        return self._a
+
+    @property
+    def b(self):
+        if not hasattr(self, '_b'):
+            self._b = np.exp(self[b0])
+
+        return self._b
+
+    @property
+    def m(self):
+        if not hasattr(self, '_m'):
+            self._m = 1 / (1 + np.exp(-self[m0]))
+
+        return self._m
+
+    @property
+    def S0s(self):
+        # with
+        if not hasattr(self, '_S0s'):
+            self._S0s = np.exp(
+                np.concatenate(
+                    [self.S0, np.zeros((2, 2, 1, self.rank, self.iter))],
+                    axis=2))
+            self._S0s = self._S0s \
+                / np.sum(self._S0s, axis=(2), keepdims=True)
+
+        return self._S0s
+
+    @property
+    def S1(self):
+        if not hasattr(self, '_S1'):
+            self._S1 = np.stack([
+                self.S0s[0, 0],
+                self.S0s[1, 0],
+                0.5 * self.S0s[:, 0].sum(axis=0),
+                self.S0s[1, 1],
+                self.S0s[0, 1],
+                0.5 * self.S0s[:, 1].sum(axis=0),
+                0.5 * (self.S0s[0, 0] + self.S0s[1, 1]),
+                0.5 * (self.S0s[1, 0] + self.S0s[0, 1]),
+                0.25 * self.S0s.sum(axis=(0, 1))
+            ]).reshape(3, 3, -1, self.rank, self.iter)
+
+        return self._S1
+
+    @property
+    def S(self):
+        if not hasattr(self, '_S'):
+            self.B = np.exp(np.stack([
+                self[b0][0] + self[b0][1],
+                self[b0][0] - self[b0][1],
+                self[b0][0],
+                self[b0][1] - self[b0][0],
+                -self[b0][1] - self[b0][0],
+                -self[b0][0],
+                self[b0][1],
+                -self[b0][1], np.zeros(self[b0][0].shape)
+            ])).reshape(3, 3, 1, self.rank, self.iter)
+
+            a1 = np.concatenate(
+                [self.a, self.a, np.ones([2, self.rank, self.iter])],
+                axis=0).reshape(3, 2, self.rank, self.iter)
+
+            self.A = a1[:, 0, :, :][:, None, :, :] \
+                * a1[:, 1, :, :][None, :, :, :]
+
+            self._S = self.S1 \
+                * self.B \
+                * self.A.reshape(3, 3, 1, self.rank, self.iter) \
+                * self.m.reshape(1, 1, 1, self.rank, self.iter)
+
+        return self._S
+
+    @property
+    def T1(self):
+        if not hasattr(self, '_T1'):
+            self._T1 = np.exp(
+                np.concatenate(
+                    [self.T0, np.zeros((1, self.rank, self.iter))], axis=0))
+            self._T1 = self._T1 \
+                / np.sum(self._T1, axis=0, keepdims=True)
+
+        return self._T1
+
+    @property
+    def T(self):
+        if not hasattr(self, '_T'):
+            self._T = self.T1 * (1 - self.m.reshape(1, self.rank, self.iter))
+
+        return self._T
 
     @staticmethod
     def pre_cluster_signatures(p, S, T, E, I):
@@ -125,18 +418,23 @@ class Cluster(object):
         S_seed = S[..., seed]
         T_seed = T[..., seed]
 
-        if np.any(np.isnan(S_seed)) | np.any(np.isinf(S_seed)) | np.all(S_seed == 0):
+        if (np.any(np.isnan(S_seed)) or
+                np.any(np.isinf(S_seed)) or
+                np.all(S_seed == 0)):
+
             print("Warning: seed {} corrupted.".format(seed))
             return (None, None, None, None)
 
-        if np.any(np.isnan(T_seed)) | np.any(np.isinf(T_seed)) | np.all(T_seed == 0):
+        if (np.any(np.isnan(T_seed)) or
+                np.any(np.isinf(T_seed)) or
+                np.all(T_seed == 0)):
+
             print("Warning: seed {} corrupted.".format(seed))
             return (None, None, None, None)
 
         S_shape = S_seed.shape
         S_seed = np.concatenate([
-            S_seed[2,2,0].reshape(-1, S_seed.shape[-1]),
-            T_seed])
+            S_seed.reshape(-1, S_seed.shape[-1]), T_seed])
 
         S_list, T_list, E_list = [], [], []
         i_col = {}
@@ -145,15 +443,18 @@ class Cluster(object):
             S_i = S[..., i]
             T_i = T[..., i]
 
-            if np.any(np.isnan(S_i)) | np.any(np.isinf(S_i)) | np.all(S_i == 0):
+            if (np.any(np.isnan(S_i)) or
+                    np.any(np.isinf(S_i)) or
+                    np.all(S_i == 0)):
                 continue
 
-            if np.any(np.isnan(T_i)) | np.any(np.isinf(T_i)) | np.all(T_i == 0):
+            if (np.any(np.isnan(T_i)) or
+                    np.any(np.isinf(T_i)) or
+                    np.all(T_i == 0)):
                 continue
 
             S_i = np.concatenate([
-                S_i[2,2,0].reshape(-1, S_i.shape[-1]),
-                T_i])
+                S_i.reshape(-1, S_i.shape[-1]), T_i])
             E_i = E[..., i]
 
             ridx, cidx, _ = assign_signatures(S_seed, S_i)
@@ -164,44 +465,46 @@ class Cluster(object):
 
             i_col[i] = cidx
 
-        S_clu = np.stack(S_list, axis=S.ndim-1)
-        T_clu = np.stack(T_list, axis=T.ndim-1)
+        S_clu = np.stack(S_list, axis=S.ndim - 1)
+        T_clu = np.stack(T_list, axis=T.ndim - 1)
         E_clu = np.stack(E_list, axis=2)
 
         return (S_clu, T_clu, E_clu, i_col)
 
     @property
     def parameters(self):
-        if hasattr(self, '_params'):
-            return self._params
+        if not hasattr(self, '_params'):
+            p = 4 * 95
+            p += self[a0].shape[0] if a0 in self else 0
+            p += self[b0].shape[0] if b0 in self else 0
 
-        p = 4*95 # basic signature spectra
-        p += self['a0'].shape[0] if 'a0' in self else 0 # biases for replication
-        p += self['b0'].shape[0] if 'b0' in self else 0 # biases for transcription
+            p += self['k0'].shape[0] if 'k0' in self else 0
+            p += self['k1'].shape[0] if 'k1' in self else 0
+            p += self['k2'].shape[0] if 'k2' in self else 0
+            p += self['k3'].shape[0] if 'k3' in self else 0
 
-        p += self['k0'].shape[0] if 'k0' in self else 0
-        p += self['k1'].shape[0] if 'k1' in self else 0
-        p += self['k2'].shape[0] if 'k2' in self else 0
-        p += self['k3'].shape[0] if 'k3' in self else 0
+            p += 1 if m0 in self else 0
+            p += self[T0].shape[0] if T0 in self else 0
 
-        p += 1 if 'm1' in self else 0 # mixing factor
-        p += self['T'].shape[0]-1 if 'T' in self else 0 # other covariates
+            p = p * self.rank
+            p += self.samples * self.rank
 
-        p = p * self.rank # multiply times number of signatures
-        p += self.E.shape[-2] * self.rank # 2778 * x['rank'] # all fitted exposures
-
-        self._params = p
+            self._params = p
 
         return self._params
 
     @property
+    def observations(self):
+        return self[OBSERVATIONS]
+
+    @property
     def likelihood(self):
-        return self['L']
+        return self[LOG_L][-1, :]
 
     @property
     def size(self):
         if not hasattr(self, '_size'):
-            self._size = self['tau']
+            self._size = self[SIZE]
 
         return self._size
 
@@ -216,40 +519,24 @@ class Cluster(object):
     def summary_table(self):
         if not hasattr(self, '_summary'):
             df = pd.DataFrame({
-                'L1': self.__get_as_list('L1'),
-                'L2': self.__get_as_list('L2'),
-                'L3': self.__get_as_list('L3'),
-                'L': self.likelihood, #self.__get_as_list('L', -1),
-                'size': self.__get_as_list('tau'),
-                'rank': [self.rank] * self.iter,
-                'init': np.arange(0, self.iter),
+                LOG_L1: self[LOG_L1][-1, list(self.icol.keys())].tolist(),
+                LOG_L2: self[LOG_L2][-1, list(self.icol.keys())].tolist(),
+                LOG_L: self.likelihood.tolist(),
+                SIZE: [self.size] * self.iter,
+                RANK: [self.rank] * self.iter,
+                INIT: np.arange(0, self.iter),
                 'k': [self.parameters] * self.iter,
-                'n': list(map(int, self.__get_as_list('data_pts'))),
-                })
-            df[AIC] = 2 * df['k'] - 2 * df['L']
-            df[AIC_C] = df[AIC] + (2*df['k']**2 + 2 * df['k']) / (df['n'] - df['k'] - 1)
-            df[BIC] = np.log(df['n']) * df['k'] - 2*df['L']
+                OBSERVATIONS: [self.observations] * self.iter,
+            })
+
+            df[AIC] = 2 * df['k'] - 2 * df[LOG_L]
+            df[AIC_C] = df[AIC] + (2 * df['k']**2 + 2 * df['k']) \
+                / (df[OBSERVATIONS] - df['k'] - 1)
+            df[BIC] = np.log(df[OBSERVATIONS]) * df['k'] - 2 * df[LOG_L]
 
             self._summary = df
 
         return self._summary
-
-    def log_table(self, resolution=100, skip_front=20, skip_back=200):
-
-        end = self[EPOCHS] - skip_back * resolution
-
-        df = pd.DataFrame({
-            EPOCHS : np.arange(resolution * skip_front, end, resolution).tolist() * self.iter,
-            'init': np.array([[i] * int((end-resolution*skip_front)/resolution) for i in range(self.iter)]).reshape(-1),
-            'L1': self['log_objective'][::resolution, :][skip_front:-skip_back,:].T.reshape(-1),
-            'lrate': self['log_learning_rate'][::resolution, :][skip_front:-skip_back, :].T.reshape(-1),
-            'lr': self['log_lambda_r'][::resolution, :][skip_front:-skip_back, :].T.reshape(-1),
-            'lt': self['log_lambda_t'][::resolution, :][skip_front:-skip_back, :].T.reshape(-1),
-            'lc': self['log_lambda_c'][::resolution, :][skip_front:-skip_back, :].T.reshape(-1),
-            'la': self['log_lambda_a'][::resolution, :][skip_front:-skip_back, :].T.reshape(-1),
-            })
-
-        return df
 
     def coefficient_table(self, cdim='b0', avg=False):
         """
@@ -442,12 +729,13 @@ class Experiment(object):
 
         for k, v in self.items():
             df = v.summary_table
-            df[JOB_NAME] = k
+            df[ID] = k
             data_frames.append(df)
 
         self._summary = pd.concat(data_frames)
 
         return self._summary
+
 
 class Bootstrap(object):
     """
@@ -558,17 +846,17 @@ class Bootstrap(object):
             bp = np.where(bounded & positive)
             bn = np.where(bounded & negative)
 
-            if (var=='E') or (var=='E0'):
-                yerr[i,...,1][bp] = func(upper[bp]) - func(mle[bp])
-                yerr[i,...,0][bp] = func(mle[bp]) - func(lower[bp])
-                yerr[i,...,1][bn] = func(upper[bn]) - func(mle[bn])
-                yerr[i,...,0][bn] = func(mle[bn]) - func(lower[bn])
+            if (var == 'E' or var == 'E0'):
+                yerr[i, ..., 1][bp] = func(upper[bp]) - func(mle[bp])
+                yerr[i, ..., 0][bp] = func(mle[bp]) - func(lower[bp])
+                yerr[i, ..., 1][bn] = func(upper[bn]) - func(mle[bn])
+                yerr[i, ..., 0][bn] = func(mle[bn]) - func(lower[bn])
 
             else:
-                yerr[...,i,1][bp] = func(upper[bp]) - func(mle[bp])
-                yerr[...,i,0][bp] = func(mle[bp]) - func(lower[bp])
-                yerr[...,i,1][bn] = func(upper[bn]) - func(mle[bn])
-                yerr[...,i,0][bn] = func(mle[bn]) - func(lower[bn])
+                yerr[..., i, 1][bp] = func(upper[bp]) - func(mle[bp])
+                yerr[..., i, 0][bp] = func(mle[bp]) - func(lower[bp])
+                yerr[..., i, 1][bn] = func(upper[bn]) - func(mle[bn])
+                yerr[..., i, 0][bn] = func(mle[bn]) - func(lower[bn])
 
         return yerr
 
@@ -1109,376 +1397,6 @@ def compute_left_tails(C, Chat, k, inv_norm=False):
 
     return left_tail
 
-def compute_tnc_freq(genome_type='whole_genome'):
-    """
-    genome_type can be "whole_genome" or "exome"
-    """
-    with h5.File(PCAWG_TGCA) as fh:
-        if genome_type == 'whole_genome':
-            M0 = fh['TNC/WG'][()].reshape(3,3,2,96)
-        elif genome_type == 'exome':
-            M0 = fh['TNC/AGILENT'][()].reshape(3,3,2,96)
-
-    M = (M0/M0.sum(axis=3, keepdims=True) * M0.sum()/M0.sum(axis=(0,1,2), keepdims=True)).reshape(3,3,1,2,96,1)
-
-    return M
-
-def compute_snv_freq(counts):
-    """
-    Computes the SNV frequencies for a given count matrix.
-    """
-    counts = counts.sum(axis=2)
-    N0_pyr = (np.sum(counts, axis=(2,3,4)) / np.sum(counts)).reshape(3, 3, 1, 1, 1, 1)
-    N0_pur = N0_pyr[[1, 0, 2],:,:][:,[1,0,2],:]
-    N = np.concatenate([N0_pyr, N0_pur], axis=3)
-    return N
-
-def load_counts():
-    subs = h5.File(PCAWG_SNV)
-    counts = subs['TRC'][()]
-    counts = counts.transpose(3, 2, 1, 4, 0)
-    counts = counts.reshape(3,3,2,2,96,2703)
-    counts = counts.sum(axis=2)
-
-    N = counts.sum((2,3), keepdims=True)/counts.sum((0,1,2,3),keepdims=True)
-    N = np.concatenate([N, N[[2, 1, 0],:,:,:,:][:,[2,1,0],:,:,:]], axis=2)
-
-    T = pd.read_csv(PCAWG_TNC, sep="\t")
-    TNC = np.transpose(T.as_matrix().reshape(3,3,2,96) + 0.0, (1,0,2,3))
-    M = TNC / TNC.sum(axis=(3),keepdims=True) * TNC.sum(keepdims=True) / TNC.sum(axis=(0,1,2),keepdims=True)
-    M = M.reshape(3,3,2,96,1)
-
-    return counts, N, M
-
-def nans(shape, dtype=np.float32):
-    a = np.empty(shape, dtype)
-    a.fill(np.nan)
-    return a
-
-def load_pcawg_tcga():
-    data = h5.File(PCAWG_TGCA)
-    pcawg_snv = data['PCAWG/SNV'][()]
-    tcga_snv = data['TCGA/SNV'][()]
-
-    pcawg_ncl = pcawg_snv.sum(axis=2)
-    tcga_ncl = tcga_snv.sum(axis=2)
-
-    # set the clustered dimension of the TCGA SNV array to NA
-    tcga_nan = nans(tcga_ncl.shape)
-    tcga_fin = np.concatenate([tcga_ncl.reshape(3,3,1,2,96,-1), tcga_nan.reshape(3,3, 1, 2, 96, -1)], axis=2)
-    snv = np.concatenate([pcawg_snv, tcga_fin], axis=5)
-
-    # loads all other covariates
-    other = data['MERGED/COMBINED'][()].T
-
-    # some changes
-    # compute trinucleotide frequencies
-    M1 = data['TNC/WG'][()].reshape(3,3,2,96)
-    M1 = (M1/M1.sum(axis=3, keepdims=True) * M1.sum()/M1.sum(axis=(0,1,2), keepdims=True)).reshape(3,3,1,2,96,1)
-    M2 = data['TNC/AGILENT'][()].reshape(3, 3, 2, 96)
-    M2 = (M2/M2.sum(axis=3, keepdims=True) * M2.sum()/M2.sum(axis=(0,1,2) , keepdims=True)).reshape(3, 3, 1, 2, 96, 1)
-    # merge the in a big array
-    M1 = np.concatenate([M1] * pcawg_snv.shape[-1], axis=5)
-    M2 = np.concatenate([M2] * tcga_snv.shape[-1], axis=5)
-    M = np.concatenate([M1, M2], axis=5)
-
-
-    N1 = (np.sum(pcawg_ncl, axis=(2,3,4)) / np.sum(pcawg_ncl)).reshape(3, 3, 1, 1, 1, 1)
-    N1_pyr = np.concatenate([N1] * pcawg_ncl.shape[-1], axis=5)
-    N1_pur = np.concatenate([N1[[1, 0, 2],:,:][:,[1,0,2],:]] * pcawg_ncl.shape[-1], axis=5)
-    N1 = np.concatenate([N1_pyr, N1_pur], axis=3)
-
-    N2 = (np.sum(tcga_ncl, axis=(2,3,4)) / np.sum(tcga_ncl)).reshape(3, 3, 1, 1, 1, 1)
-    N2_pyr = np.concatenate([N2] * tcga_ncl.shape[-1], axis=5)
-    N2_pur = np.concatenate([N2[[1,0,2],:,:][:,[1,0,2],:]] * tcga_ncl.shape[-1], axis=5)
-    N2 = np.concatenate([N2_pyr, N2_pur], axis=3)
-
-    N = np.concatenate([N1, N2], axis=5)
-
-    return snv, other, M, N
-
-def moritz_data():
-    with h5.File(MORITZ_SNV, 'r') as f:
-        countsTRC = f['allSubsTransRepClust'][()]
-    countsTRC = countsTRC.transpose(3,2,1,4,0).reshape(3,3,3,2,96,2778)
-    countsTRC.shape
-    countsTR = countsTRC.sum(axis=2)
-
-    tab = pd.read_csv(MORITZ_TNC, sep="\t")
-    tncTR=np.transpose(tab.as_matrix().reshape(3,3,2,96) + 0.0, (1,0,2,3)) # python has reverse indexing
-
-    tab = pd.read_csv(MORITZ_OTHER, sep="\t")
-    mutations = list(tab.columns)
-    countsO=tab.as_matrix()+0.0
-    countsO=countsO[:,96:(475-145)].transpose() ## Remove SNVs and CN
-    mutations = list(tab)
-    #import pdb; pdb.set_trace()
-
-    N = (np.sum(countsTR, axis=(2,3,4)) / np.sum(countsTR, axis=(0,1,2,3,4))).reshape(3,3,1,1,1)
-    N = np.concatenate([N,N[[1,0,2],:,:,:,:][:,[1,0,2],:,:,:]], axis=2).reshape(3,3,1,2,1,1)
-    M = tncTR / tncTR.sum(axis=(3),keepdims=True) * tncTR.sum(keepdims=True) / tncTR.sum(axis=(0,1,2),keepdims=True)
-    M = M.reshape(3,3,1,2,96,1)
-
-    return countsTRC, countsO, M, N
-
-
-def load_pcawg():
-    with h5.File(PCAWG_TGCA) as data:
-        pcawg_snv = data['PCAWG/SNV'][()]
-        mnv = data['PCAWG/MNV'][()].T
-        indel = data['PCAWG/INDEL'][()].T
-        sv = data['PCAWG/SV'][()].T
-        M1 = data['TNC/WG'][()].reshape(3,3,2,96)
-    pcawg_ncl = pcawg_snv.sum(axis=2)
-
-    other  = np.concatenate([mnv, indel, sv], axis=0)
-
-
-    M = (M1/M1.sum(axis=3, keepdims=True) * M1.sum()/M1.sum(axis=(0,1,2), keepdims=True)).reshape(3,3,1,2,96,1)
-
-    N0 = (np.sum(pcawg_ncl, axis=(2,3,4)) / np.sum(pcawg_ncl)).reshape(3, 3, 1, 1, 1, 1)
-    N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=3)
-
-    N = (M*N)/2
-    print('N={}'.format(N.sum()))
-
-    return pcawg_snv, other, N
-
-def load_pcawg_chrom():
-    with h5.File(PCAWG_CHROM_SNV) as data:
-        pcawg_snv = data['SNV'][()].T
-
-    pcawg_snv = pcawg_snv.reshape(3,3,16,2,96,-1)
-    pcawg_ncl = pcawg_snv.sum(axis=2)
-
-
-    with h5.File(PCAWG_TGCA) as data:
-        mnv = data['PCAWG/MNV'][()].T
-        indel = data['PCAWG/INDEL'][()].T
-        sv = data['PCAWG/SV'][()].T
-        M1 = data['TNC/WG'][()].reshape(3,3,2,96)
-
-    other  = np.concatenate([mnv, indel, sv], axis=0)
-
-    TNC = pd.read_csv(PCAWG_CHRM_TNC, index_col=0)
-    M0 = TNC.as_matrix().T.reshape(9, 16, 2, 96).reshape(3,3,16,2,96)
-    M = (M0/M0.sum(axis=4, keepdims=True)*M0.sum()/M0.sum(axis=(0,1,2,3))).reshape(3,3,16,2,96,1)
-    #M = (M0/M0.sum()).reshape(3,3,16,2,96,1)
-
-    #M = (M1/M1.sum(axis=3, keepdims=True) * M1.sum()/M1.sum(axis=(0,1,2), keepdims=True)).reshape(3,3,1,2,96,1)
-
-    N0 = (np.sum(pcawg_snv, axis=(3,4,5)) / np.sum(pcawg_snv)).reshape(3, 3, 16, 1, 1, 1)
-    N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=3)
-    #N = np.ones_like(M)
-
-    return pcawg_snv, other, M, N
-
-def load_pcawg_chrom_clust():
-    with h5.File(PCAWG_CHROM_CLUST) as data:
-        pcawg_snv = data['SNV'][()].T
-
-    pcawg_snv = pcawg_snv.reshape(3, 3, 16, 2, 2, 96, -1)
-    pcawg_ncl = pcawg_snv.sum(axis=3)
-
-
-    with h5.File(PCAWG_TGCA) as data:
-        mnv = data['PCAWG/MNV'][()].T
-        indel = data['PCAWG/INDEL'][()].T
-        sv = data['PCAWG/SV'][()].T
-        M1 = data['TNC/WG'][()].reshape(3,3,2,96)
-
-    other  = np.concatenate([mnv, indel, sv], axis=0)
-
-    TNC = pd.read_csv(PCAWG_CHRM_TNC, index_col=0)
-    M0 = TNC.as_matrix().T.reshape(9, 16, 2, 96).reshape(3,3,16,2,96)
-    #M = (M0/M0.sum(axis=4, keepdims=True)*M0.sum()/M0.sum(axis=(0,1,2,3))).reshape(3,3,16,2,96,1)
-    M = (M0/M0.sum()).reshape(3,3,16,2,96,1)
-    M = M.reshape(3,3,16,2,1,96,1)
-
-    #M = (M1/M1.sum(axis=3, keepdims=True) * M1.sum()/M1.sum(axis=(0,1,2), keepdims=True)).reshape(3,3,1,2,96,1)
-
-    #N0 = (np.sum(pcawg_snv, axis=(4,5,6)) / np.sum(pcawg_snv)).reshape(3, 3, 16, 1, 1, 1)
-    #N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=3)
-    N = np.ones_like(M)
-    N = N.reshape(3,3,16,1,2,96, 1)
-
-    return pcawg_snv, other, M, N
-
-
-def load_pcawg_chrom_clust2():
-    with h5.File(PCAWG_CHROM_CLUST) as data:
-        pcawg_snv = data['SNV'][()].T
-
-    pcawg_snv = pcawg_snv.reshape(3, 3, 16, 2, 2, 96, -1)
-
-    with h5.File(PCAWG_TGCA) as data:
-        mnv = data['PCAWG/MNV'][()].T
-        indel = data['PCAWG/INDEL'][()].T
-        sv = data['PCAWG/SV'][()].T
-        M1 = data['TNC/WG'][()].reshape(3,3,2,96)
-
-    other  = np.concatenate([mnv, indel, sv], axis=0)
-
-    TNC = pd.read_csv(CHROM_CLUST_TNC, index_col=0)
-    tnc192 = pd.read_csv(CHROM_CLUST_TNC, index_col=0)
-    M1 = tnc192.as_matrix().T.reshape(9, 16, 2, 96).reshape(3,3,16,2,96)
-    M2 = M1/M1.sum(axis=(4), keepdims=True) / M1.sum(axis=(0,1,2,3), keepdims=True) * M1.sum(keepdims=True)
-
-    #M0 = TNC.as_matrix().T.reshape(9, 16, 2, 96).reshape(3,3,16,2,96)
-    #M = (M0/M0.sum(axis=4, keepdims=True)*M0.sum()/M0.sum(axis=(0,1,2,3))).reshape(3,3,16,2,96,1)
-
-
-    N0 = (pcawg_snv.sum(axis=(3,4,5,6))/ pcawg_snv.sum()).reshape(3,3,16,1,1,1,1)
-    N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=4)
-
-    N = M2.reshape(3,3,16,1,2,96,1) * N / 2
-    #N = np.array([1])
-    print("SUM N={}".format(N.sum()))
-
-    return pcawg_snv, other, N
-
-def load_pcawg_nucleosome():
-    with h5.File(PCAWG_NUC) as data:
-        pcawg_snv = data['SNV'][()].T
-
-    pcawg_snv = pcawg_snv.reshape(3, 3, 2, 2, 2, 96, -1)
-
-    with h5.File(PCAWG_TGCA) as data:
-        mnv = data['PCAWG/MNV'][()].T
-        indel = data['PCAWG/INDEL'][()].T
-        sv = data['PCAWG/SV'][()].T
-
-    other  = np.concatenate([mnv, indel, sv], axis=0)
-
-    tnc192 = pd.read_csv(PCAWG_NUC_TNC, index_col=0)
-    M1 = tnc192.as_matrix().T.reshape(9, 2, 2, 96).reshape(3,3,2,2,96)
-    M2 = M1/M1.sum(axis=(4), keepdims=True) / M1.sum(axis=(0,1,2,3), keepdims=True) * M1.sum(keepdims=True)
-
-    #M0 = TNC.as_matrix().T.reshape(9, 16, 2, 96).reshape(3,3,16,2,96)
-    #M = (M0/M0.sum(axis=4, keepdims=True)*M0.sum()/M0.sum(axis=(0,1,2,3))).reshape(3,3,16,2,96,1)
-
-
-    N0 = (pcawg_snv.sum(axis=(3,4,5,6))/ pcawg_snv.sum()).reshape(3,3,2,1,1,1,1)
-    N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=4)
-
-    N = M2.reshape(3,3,2,1,2,96,1) * N / 2
-    #N = np.array([1])
-    print("SUM N={}".format(N.sum()))
-
-    return pcawg_snv, other, N
-
-
-def load_pcawg_min_maj():
-    with h5.File(PCAWG_MINMAJ) as data:
-        pcawg_snv = data['SNV'][()].T
-
-    pcawg_snv = pcawg_snv.reshape(3, 3, 3, 2, 2, 96, -1)
-    # resort layers * + -
-    pcawg_snv = np.concatenate([
-        pcawg_snv[:,:,2,:,:,:,:].reshape(3,3,1,2,2,96,-1),
-        pcawg_snv[:,:,0,:,:,:,:].reshape(3,3,1,2,2,96,-1),
-        pcawg_snv[:,:,1,:,:,:,:].reshape(3,3,1,2,2,96,-1)], axis=2)
-
-
-    with h5.File(PCAWG_TGCA) as data:
-        mnv = data['PCAWG/MNV'][()].T
-        indel = data['PCAWG/INDEL'][()].T
-        sv = data['PCAWG/SV'][()].T
-
-    other  = np.concatenate([mnv, indel, sv], axis=0)
-
-    tnc192 = pd.read_csv(PCAWG_MINMAJ_TNC, index_col=0)
-    M1 = tnc192.as_matrix().T.reshape(9, 3, 2, 96).reshape(3,3,3,2,96)
-    M2 = M1/M1.sum(axis=(4), keepdims=True) / M1.sum(axis=(0,1,2,3), keepdims=True) * M1.sum(keepdims=True)
-
-    #M0 = TNC.as_matrix().T.reshape(9, 16, 2, 96).reshape(3,3,16,2,96)
-    #M = (M0/M0.sum(axis=4, keepdims=True)*M0.sum()/M0.sum(axis=(0,1,2,3))).reshape(3,3,16,2,96,1)
-
-
-    N0 = (pcawg_snv.sum(axis=(3,4,5,6))/ pcawg_snv.sum()).reshape(3,3,3,1,1,1,1)
-    N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=4)
-
-    M = M2.reshape(3,3,3,1,2,96,1) * N / 2
-    #N = np.array([1])
-    print("SUM N={}".format(N.sum()))
-
-    return pcawg_snv, other, N
-
-def load_pcawg_min_maj_lin():
-    with h5.File(PCAWG_MINMAJLIN) as data:
-        pcawg_snv = data['SNV'][()].T
-
-    pcawg_snv = pcawg_snv.reshape(3, 3, 4, 2, 2, 96, -1)
-
-    with h5.File(PCAWG_TGCA) as data:
-        mnv = data['PCAWG/MNV'][()].T
-        indel = data['PCAWG/INDEL'][()].T
-        sv = data['PCAWG/SV'][()].T
-
-    other  = np.concatenate([mnv, indel, sv], axis=0)
-
-    tnc192 = pd.read_csv(PCAWG_MINMAJLIN_TNC, index_col=0)
-    M1 = tnc192.as_matrix().T.reshape(9, 4, 2, 96).reshape(3,3,4,2,96)
-    M2 = M1/M1.sum(axis=(4), keepdims=True) / M1.sum(axis=(0,1,2,3), keepdims=True) * M1.sum(keepdims=True)
-
-    #M0 = TNC.as_matrix().T.reshape(9, 16, 2, 96).reshape(3,3,16,2,96)
-    #M = (M0/M0.sum(axis=4, keepdims=True)*M0.sum()/M0.sum(axis=(0,1,2,3))).reshape(3,3,16,2,96,1)
-
-
-    N0 = (pcawg_snv.sum(axis=(3,4,5,6))/ pcawg_snv.sum()).reshape(3,3,4,1,1,1,1)
-    N = np.concatenate([N0, N0[[1, 0, 2],:,:][:,[1,0,2],:]], axis=4)
-
-    N = M2.reshape(3,3,4,1,2,96,1) * N / 2
-    #N = np.array([1])
-    print("SUM N={}".format(N.sum()))
-
-    return pcawg_snv, other, N
-
-
-def load_pcawg_8dim():
-    with h5.File(PCAWG_8DIM) as data:
-        snv = data['SNV'][()].T
-
-    snv = snv.reshape(3,3,16,4,2,2,96,-1)
-
-    with h5.File(PCAWG_TGCA) as data:
-        mnv = data['PCAWG/MNV'][()].T
-        indel = data['PCAWG/INDEL'][()].T
-        sv = data['PCAWG/SV'][()].T
-
-    other  = np.concatenate([mnv, indel, sv], axis=0)
-
-    tnc = pd.read_csv(PCAWG_8DIM_TNC, index_col=0)
-    # rearrangement to get numbers into the right dimension
-    M0 = tnc.as_matrix().T.reshape(9, 16*4, 2, 96)
-    M1 = M0.reshape(3, 3, 16*4, 2, 96)
-    M2 = M1.reshape(3, 3, 4, 16, 2, 96)
-    M3 = M2.swapaxes(3, 2) # has now shape (3, 3, 16, 4, 2, 96)
-    # add genome wide relative freq
-    tnc96 = M0.sum(axis=(0,1,2))/M0.sum()
-    M3 += tnc96.reshape(1,1,1,1,1,96)
-    M4 = M3/M3.sum(axis=5, keepdims=True) / M3.sum(axis=(0,1,2,3,4), keepdims=True) * M3.sum()
-    M5 = M4.reshape(3, 3, 16, 4, 1, 2, 96, 1)
-
-
-    N0 = (snv.sum(axis=(4,5,6,7)) / snv.sum()).reshape(3,3,16,4,1) # shape (3, 3, 16, 4, 1)
-    N1 = np.concatenate([N0, N0[[1,0,2],:,:][:,[1,0,2],:,:]], axis=4)
-    N2 = N1.reshape(3,3,16,4,1,2,1,1)
-    N = (N2*M5)/2
-
-    print("SUM N={}".format(N.sum()))
-
-    return snv, other, N
-
-
-def load_pcawg_8dim_merged():
-    snv, other, N = load_pcawg_8dim()
-    N = np.concatenate([N[:,:,[0,3,6,10,11,12],:,:,:,:,:].sum(axis=2).reshape(3,3,1,4,1,2,96,1), N[:,:,[1,2,4,5,7,8,9,13,14,15],:,:,:,:,:]], axis=2)
-    N = np.concatenate([N.reshape(3,3,-1,2,96,1)]*2, axis=2)
-    snv = np.concatenate([snv[:,:,[0,3,6,10,11,12],:,:,:,:,:].sum(axis=2).reshape(3,3,1,4,2,2,96,2778), snv[:,:,[1,2,4,5,7,8,9,13,14,15],:,:,:,:]], axis=2)
-    return snv, other, N
-
-
 def save_dict(data, out_path):
     with open(out_path, 'wb') as fh:
         pickle.dump(data, fh, pickle.HIGHEST_PROTOCOL)
@@ -1488,6 +1406,37 @@ def load_dict(data):
         params = pickle.load(fh)
 
     return (data.split('/')[-1], params)
+
+def load_dump(path):
+    fname, data = load_dict(path)
+    init = TensorSignatureInit(
+        S0=data['S0'],
+        a0=data['a0'],
+        b0=data['b0'],
+        k0={ int(key[1:]): data[key] for key in [key for key in list(data.keys()) if key.startswith('k')]},
+        m0=data['m0'],
+        T0=data['T0'],
+        E0=data['E0'],
+        rank=data[RANK],
+        size=data[SIZE],
+        objective=data[OBJECTIVE],
+        starter_learning_rate=data[STARTER_LEARNING_RATE],
+        decay_learning_rate=data[DECAY_LEARNING_RATE],
+        optimizer=data[OPTIMIZER],
+        epochs=data[EPOCHS],
+        log_step=data[LOG_STEP],
+        display_step=data[DISPLAY_STEP],
+        observations=data[OBSERVATIONS],
+        id=data[ID],
+        init=data[INIT],
+        seed=data[SEED],
+        log_epochs=data[LOG_EPOCHS],
+        log_learning_rate=data[LOG_LEARNING_RATE],
+        log_L=data[LOG_L],
+        log_L1=data[LOG_L1],
+        log_L2=data[LOG_L2])
+    return init
+
 
 def generate_correlation_map(x, y):
     """Correlate each n with each m.
@@ -1545,12 +1494,6 @@ def create_file_name(params):
         L=LAMBDA,
         J=JOB_NAME,
         K=DISPERSION,
-        #A=ALPHA,
-        #B=BETA,
-        LRT=LAMBDA_R,
-        LTS=LAMBDA_T,
-        LC=LAMBDA_C,
-        LA=LAMBDA_A
     )
 
     fname = ''

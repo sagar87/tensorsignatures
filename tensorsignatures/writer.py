@@ -12,9 +12,10 @@ import re
 from tensorsignatures.config import *
 from tensorsignatures.util import load_dict, progress
 
+
 def link_datasets(merged, path, verbose=True):
-    
-    def visitor_func(name, node, merged, path, verbose = True):
+
+    def visitor_func(name, node, merged, path, verbose=True):
         if isinstance(node, h5.Dataset):
             if verbose:
                 print('Linking', name)
@@ -22,8 +23,6 @@ def link_datasets(merged, path, verbose=True):
                 merged[name] = h5.ExternalLink(path, name)
             except RuntimeError:
                 print('Warning could link {}'.format(name))
-                
-
 
             splitted = name.split("/")
             data_path = "/".join(splitted[:-1])
@@ -37,7 +36,7 @@ def link_datasets(merged, path, verbose=True):
 
         if isinstance(node, h5.Group):
             if name not in merged:
-                if verbose == True:
+                if verbose:
                     print('Adding attr to', name)
                 merged.create_group(name)
 
@@ -48,11 +47,14 @@ def link_datasets(merged, path, verbose=True):
     if verbose:
         print("Linking:", path)
     fh = h5.File(path)
-    fh.visititems(lambda name, node: visitor_func(name, node, merged, path, verbose = verbose))
+    fh.visititems(
+        lambda name, node: visitor_func(name, node, merged, path,
+                                        verbose=verbose))
     fh.close()
 
+
 def add_array(group, name, array, index):
-    
+
     if name not in group:
         dset = group.create_dataset(
             name, (*array.shape, index + 1),
@@ -65,10 +67,74 @@ def add_array(group, name, array, index):
         dset[..., index] = array
 
 
+def save_hdf(data, fname, mode='w', verbose=False):
+    with h5.File(fname, mode) as fh:
+        for i, init in enumerate(data):
+            # create a group name which consists of the ID and rank
+            group_name = init.id + '/' + str(init.rank)
+
+            if group_name not in fh:
+                group = fh.create_group(group_name)
+            else:
+                group = fh[group_name]
+            for var in VARS:
+                if var == k0:
+                    for key, value in getattr(init, var).items():
+                        add_array(group, 'k' + str(key), value, init.init)
+                else:
+                    add_array(group, var, getattr(init, var), init.init)
+            for param in PARAMS:
+                val = getattr(init, param)
+                if val is None:
+                    group.attrs[param] = -1
+                else:
+                    group.attrs[param] = val
+            for log in LOGS:
+                add_array(group, log, getattr(init, log), init.init)
+    return 0
+
+
+def save_hdf_old(fname, mode, data, verbose=False):
+    """Saves a list of tensorsignature initializations to a hdf file.
+
+
+    """
+    with h5.File(fname, mode) as fh:
+        for i, (fname, params) in enumerate(data):
+            # create a group name which consists of the ID and rank
+            group_name = params[ID] + '/' + str(params[RANK])
+
+            if group_name not in fh:
+                group = fh.create_group(group_name)
+            else:
+                group = fh[group_name]
+
+            for key, value in params.items():
+                if type(value) == np.ndarray:
+                    add_array(group, key, value, params[INIT])
+                elif (type(value) == int or
+                        type(value) == float or
+                        type(value) == str or
+                        type(value) == np.float32 or
+                        type(value) == np.int64):
+                    group.attrs[key] = value
+                elif (type(value) == bool):
+                    if value:
+                        group.attrs[key] = 1
+                    else:
+                        group.attrs[key] = 0
+                elif (None is None):
+                    group.attrs[key] = 0
+                else:
+                    raise TypeError('Unsupported type {}'.format(type(value)))
+
+    return 0
+
+
 def save_h5f(fname, mode, data, verbose=False):
     with h5.File(fname, mode) as h5f:
         for i, (fname, params) in enumerate(data):
-            
+
 
             progress(i, len(data), fname)
             #TODO: extract group name directly from params (?)
@@ -95,7 +161,6 @@ def save_h5f(fname, mode, data, verbose=False):
                 elif (None is None):
                     group.attrs[k] = 0
                 else:
-                    
                     print(type(v))
                     raise TypeError('unsupported type')
 
@@ -150,7 +215,7 @@ def main():
 
     files = glob.glob(args.input)
     len_files = len(files)
-    
+
 
     if args.c > 1:
         pool = Pool(args.c)

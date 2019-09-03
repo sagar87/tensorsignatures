@@ -70,8 +70,10 @@ the underlying signatures for the dataset by executing
 
 which illustrates that shown samples above are a superposition of both signatures.
 
-Running TensorSignatures :code:`TensorSignatureData`
-=====================================================
+Running TensorSignatures on example data
+========================================
+
+
 
 
 

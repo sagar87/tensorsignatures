@@ -12,6 +12,7 @@ import tensorflow as tf
 import numpy as np
 import h5py as h5
 from tensorsignatures.config import *
+from tensorsignatures.util import TensorSignatureInit
 from tqdm import trange
 import functools
 
@@ -65,27 +66,30 @@ class TensorSignature(object):
             represent arbtrary genomic states.
         other (array-like, shape :math:`(q, n)`): Mutation count matrix with q
             mutation types and n samples.
-        rank (:obj:`int`, :math:`2 \leq \text{rank} < n`): rank of the
+        rank (:obj:`int`, :math:`2 \leq s < n`): Rank :math:`s` of the
             decomposition.
         N (array_like, shape :math:`(3, 3, (t_1+1), \dots, (t_l+1), p, 1)`):
             Optional normalization tensor containing trinucleotide frequencies
             for each genomic state.
-        dispersion (:obj:`int`, :math:`1 \leq \tau \leq + \inf`):
-            Dispersion parameter for negative binomial distribution.
-        objective (:obj:`str, {'nbconst', 'poisson'}`): Likelihood distribution
-            to model mutation counts. Currently, the negative binomial or
-            poisson are supported.
+        size (:obj:`int`, :math:`1 \leq \tau \leq + \inf`): Size parameter
+            :math:`\tau` for negative binomial distribution.
+        objective (:obj:`str`, :obj:`{'nbconst', 'poisson'}`): Likelihood
+            distribution to model mutation counts. Currently, the negative
+            binomial or poisson are supported.
         collapse (:obj:`bool`): Deprecated convinience function.
         starter_learning_rate (:obj:`float`): Starting Learning rate.
-        decay_learning_rate (:obj:`str`, {'exponential', 'constant'}): Learning
-            rate decay.
-        optimizer (:obj:`str, {'ADAM', 'gradient_descent'}`): Allows to set the
-            optimizer.
+        decay_learning_rate (:obj:`str`, :obj:`{'exponential', 'constant'}`):
+            Learning rate decay.
+        optimizer (:obj:`str`, :obj:`{'ADAM', 'gradient_descent'}`): Allows
+            to set the optimizer.
+        epochs (:obj:`int`): Number of training epochs.
         log_step (:obj:`int`): Log freuqency.
         display_step (:obj:`int`): Update intervals of progress bar during.
-        epochs (:obj:`int`): Number of epochs for trainting.
         dtype (:obj:`dtype`): Allows to set tensorflow number type.
-
+        verbose (:obj:`bool`): Verbose mode.
+        id (:obj:`str`): Job id.
+        init (:obj:`int`): Initialization.
+        seed (:obj:`int`): Random seed.
     Returns:
         A tensorsignatures model.
 
@@ -97,37 +101,52 @@ class TensorSignature(object):
 
     """
 
-    def __init__(self, snv, other, rank, N=None, dispersion=50,
-                 objective='nbconst', collapse=False,
-                 starter_learning_rate=0.1, decay_learning_rate='exponential',
-                 optimizer='ADAM', epochs=10000, log_step=100,
-                 display_step=100, dtype=tf.float32, verbose=True, seed=None):
+    def __init__(self,
+                 snv,
+                 other,
+                 rank,
+                 N=None,
+                 size=50,
+                 objective='nbconst',
+                 collapse=False,
+                 starter_learning_rate=0.1,
+                 decay_learning_rate='exponential',
+                 optimizer='ADAM',
+                 epochs=10000,
+                 log_step=100,
+                 display_step=100,
+                 id='TSJOB',
+                 init=0,
+                 seed=None,
+                 dtype=tf.float32,
+                 verbose=True):
         # store hyperparameters
-        self.verbose = verbose
-        self.seed = seed
-        self.dtype = dtype
+        self.rank = rank
+        self.size = size
         self.objective = objective
         self.collapse = collapse
-        self.epochs = epochs
-        self.log_step = log_step
-        self.display_step = display_step
         self.starter_learning_rate = starter_learning_rate
         self.decay_learning_rate = decay_learning_rate
         self.optimizer = optimizer
-        self.observations = np.array(
-            np.sum(~np.isnan(snv)) + np.sum(~np.isnan(other)))
+        self.epochs = epochs
+        self.log_step = log_step
+        self.display_step = display_step
+        self.id = id
+        self.init = init
+        self.seed = seed
+        self.dtype = dtype
+        self.verbose = verbose
 
         # hyperparams
-        self.rank = rank
         self.samples = snv.shape[-1]
-        self.size = dispersion
+        self.observations = np.sum(~np.isnan(snv)) + np.sum(~np.isnan(other))
 
         # dimensions
         self.p = snv.shape[-2]
         self.q = other.shape[0]
 
         # intialize C1 and C2
-        self.tau = tf.constant(dispersion, dtype=self.dtype)
+        self.tau = tf.constant(self.size, dtype=self.dtype)
 
         # keep data
         if self.collapse:
@@ -171,13 +190,11 @@ class TensorSignature(object):
         self.minimize
 
         # intialize logs
-        self.logs = {
-            LOG_EPOCH: np.zeros(self.epochs // self.log_step),
-            LOG_LEARNING_RATE: np.zeros(self.epochs // self.log_step),
-            LOG_L: np.zeros(self.epochs // self.log_step),
-            LOG_L1: np.zeros(self.epochs // self.log_step),
-            LOG_L2: np.zeros(self.epochs // self.log_step),
-        }
+        self.log_epochs = np.zeros(self.epochs // self.log_step)
+        self.log_learning_rate = np.zeros(self.epochs // self.log_step)
+        self.log_L = np.zeros(self.epochs // self.log_step)
+        self.log_L1 = np.zeros(self.epochs // self.log_step)
+        self.log_L2 = np.zeros(self.epochs // self.log_step)
 
     def indices_to_assignment(self, I, card):
         # Helper function to collapse additional genomic dimension
@@ -237,7 +254,8 @@ class TensorSignature(object):
                 self.S0s[0, 0, :, :],
                 self.S0s[1, 0, :, :],
                 0.5 * tf.reduce_sum(self.S0s[:, 0, :, :], axis=0),
-                self.S0s[1, 1, :, :], self.S0s[0, 1, :, :],
+                self.S0s[1, 1, :, :],
+                self.S0s[0, 1, :, :],
                 0.5 * tf.reduce_sum(self.S0s[:, 1, :, :], axis=0),
                 0.5 * (self.S0s[0, 0, :, :] + self.S0s[1, 1, :, :]),
                 0.5 * (self.S0s[1, 0, :, :] + self.S0s[0, 1, :, :]),
@@ -515,8 +533,9 @@ class TensorSignature(object):
         """Fits the model.
 
         Args:
-            sess (:obj:`tf.Session`): Optional session, if no is provided
-                TensorSignatures will open new tensorflow session.
+            sess (:obj:`tensorflow.Session`): Tensorflow session, if None
+                TensorSignatures will open new tensorflow session and close it
+                after fitting the model.
         Returns:
             The tensoflow session.
         """
@@ -526,19 +545,18 @@ class TensorSignature(object):
             sess = tf.Session()
             sess.run(init)
 
-        t = trange(self.epochs, desc='Progress:', leave=True)
+        t = trange(self.epochs, desc='Progress', leave=True)
         previous_likelihood = 0
         for i in t:
             _ = sess.run(self.minimize)
             log_step = i // self.log_step
 
             if (i % self.log_step == 0):
-                self.logs[LOG_LEARNING_RATE][log_step] = i
-                self.logs[LOG_LEARNING_RATE][log_step] = sess.run(
-                    self.learning_rate)
-                self.logs[LOG_L][log_step] = sess.run(self.L)
-                self.logs[LOG_L1][log_step] = sess.run(self.L1)
-                self.logs[LOG_L2][log_step] = sess.run(self.L2)
+                self.log_epochs[log_step] = i
+                self.log_learning_rate[log_step] = sess.run(self.learning_rate)
+                self.log_L[log_step] = sess.run(self.L)
+                self.log_L1[log_step] = sess.run(self.L1)
+                self.log_L2[log_step] = sess.run(self.L2)
 
             if (i % self.display_step == 0) and self.verbose:
                 current_likelihood = sess.run(self.L)
@@ -552,7 +570,44 @@ class TensorSignature(object):
                 t.refresh()
                 previous_likelihood = current_likelihood
 
-        return sess
+        # save the loglikelihood value of the last iteration
+        self.log_epochs[-1] = i
+        self.log_learning_rate[-1] = sess.run(self.learning_rate)
+        self.log_L[-1] = sess.run(self.L)
+        self.log_L1[-1] = sess.run(self.L1)
+        self.log_L2[-1] = sess.run(self.L2)
+
+        self.result = TensorSignatureInit(
+            S0=sess.run(self.S0),
+            a0=sess.run(self.a0),
+            b0=sess.run(self.b0),
+            k0=sess.run(self._clu_var),
+            m0=sess.run(self.m0),
+            T0=sess.run(self.T0),
+            E0=sess.run(self.E0),
+            rank=self.rank,
+            size=self.size,
+            objective=self.objective,
+            starter_learning_rate=self.starter_learning_rate,
+            decay_learning_rate=self.decay_learning_rate,
+            optimizer=self.optimizer,
+            epochs=self.epochs,
+            log_step=self.log_step,
+            display_step=self.display_step,
+            observations=self.observations,
+            id=self.id,
+            init=self.init,
+            seed=self.seed,
+            log_epochs=self.log_epochs,
+            log_learning_rate=self.log_learning_rate,
+            log_L=self.log_L,
+            log_L1=self.log_L1,
+            log_L2=self.log_L2)
+
+        if sess is None:
+            sess.close()
+
+        return self.result
 
     def get_tensors(self, sess):
         """Extracts signatures, exposures and tensor factors.
