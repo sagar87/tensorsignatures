@@ -187,10 +187,7 @@ def boot():
 @click.option('--block_size', '-b',
               type=int,
               default=-1,
-              help='To prevent loading too many files to memory, this parameter \
-              can be adjusted such that block_size files are written to the hdf \
-              file before further pkl are loaded to memory (default = -1 meaning \
-              that all files are loaded to memory before writing them to disk).')
+              help='Saves files after block_size files.')
 @click.option('--remove',
               is_flag=True,
               help='Removes all Tensorsignatures pkl files after they have been \

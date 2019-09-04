@@ -94,79 +94,6 @@ def save_hdf(data, fname, mode='w', verbose=False):
     return 0
 
 
-def save_hdf_old(fname, mode, data, verbose=False):
-    """Saves a list of tensorsignature initializations to a hdf file.
-
-
-    """
-    with h5.File(fname, mode) as fh:
-        for i, (fname, params) in enumerate(data):
-            # create a group name which consists of the ID and rank
-            group_name = params[ID] + '/' + str(params[RANK])
-
-            if group_name not in fh:
-                group = fh.create_group(group_name)
-            else:
-                group = fh[group_name]
-
-            for key, value in params.items():
-                if type(value) == np.ndarray:
-                    add_array(group, key, value, params[INIT])
-                elif (type(value) == int or
-                        type(value) == float or
-                        type(value) == str or
-                        type(value) == np.float32 or
-                        type(value) == np.int64):
-                    group.attrs[key] = value
-                elif (type(value) == bool):
-                    if value:
-                        group.attrs[key] = 1
-                    else:
-                        group.attrs[key] = 0
-                elif (None is None):
-                    group.attrs[key] = 0
-                else:
-                    raise TypeError('Unsupported type {}'.format(type(value)))
-
-    return 0
-
-
-def save_h5f(fname, mode, data, verbose=False):
-    with h5.File(fname, mode) as h5f:
-        for i, (fname, params) in enumerate(data):
-
-
-            progress(i, len(data), fname)
-            #TODO: extract group name directly from params (?)
-
-            regex = re.compile('([A-Z]*=\d+\.?\d*)')
-            sub_group = '/'.join([sub for sub in regex.findall(fname.split('.pkl')[0]) if not sub.startswith('I')])
-            group_name = fname.split('_')[0] + '/' + sub_group
-
-            if group_name not in h5f:
-                group = h5f.create_group(group_name)
-            else:
-                group = h5f[group_name]
-
-            for k, v in params.items():
-                if type(v) == np.ndarray:
-                    add_array(group, k, v, params[ITERATION])
-                elif (type(v) == int) or (type(v) == float) or (type(v) == str) or (type(v) == np.float32) or (type(v) == np.int64):
-                    group.attrs[k] = v
-                elif (type(v) == bool):
-                    if v:
-                        group.attrs[k] = 1
-                    else:
-                        group.attrs[k] = 0
-                elif (None is None):
-                    group.attrs[k] = 0
-                else:
-                    print(type(v))
-                    raise TypeError('unsupported type')
-
-    return 0
-
-
 def arg():
     import argparse
     description = """A description"""
@@ -192,7 +119,6 @@ def arg():
     parser.add_argument('-l', action='store_true',
                         help='linking files',
                         default=False)
-
 
     return parser
 

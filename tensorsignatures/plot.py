@@ -1,5 +1,9 @@
 import numpy as np
 import pandas as pd
+# can be deleted if tk is installed
+import matplotlib
+matplotlib.use('agg')
+
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gs
 
