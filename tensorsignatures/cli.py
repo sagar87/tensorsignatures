@@ -174,11 +174,9 @@ def boot():
 
 
 @main.command()
-@click.argument('input',
-                metavar='GLOB',
+@click.argument(INPUT,
                 type=str)
-@click.argument('output',
-                metavar='FILE',
+@click.argument(OUTPUT,
                 type=str)
 @click.option('--cores', '-c',
               type=int,
@@ -199,10 +197,12 @@ def write(config, input, output, cores, block_size, remove, link):
     """Creates a hdf file out of dumped tensor signatures pkls.
 
     Args:
+
         input (:obj:`str`): A GLOB argument (eg. "test_project*.pkl").
         output (:obj:`str`): Output hdf file.
 
     Example:
+
         $ tensorsignature write "*.pkl" results.h5
     """
 
