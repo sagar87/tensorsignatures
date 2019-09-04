@@ -80,7 +80,7 @@ def data(seed, rank, output, init, samples, mutations, dimensions):
 
 @main.command()
 @click.argument(INPUT, type=str)
-@click.argument(ID, type=str)
+@click.argument(OUTPUT, type=str)
 @click.argument(RANK, type=int)
 @click.option('--' + OBJECTIVE, '-o',
               metavar='<str>',
@@ -126,20 +126,15 @@ def data(seed, rank, output, init, samples, mutations, dimensions):
               type=int,
               default=100,
               help='progress updates / log step (default = 100)')
-@click.option('--' + SUFFIX, '-su',
-              metavar='<str>',
-              type=str,
-              help='File suffix (default R_I)',
-              default='J_R_I')
 @click.option('--' + SEED, '-se',
               metavar='<int>',
               type=int,
               default=None,
               help='initialize TensorSignatures variables with a seed')
 @pass_config
-def train(config, input, id, rank, objective, size, init, norm, collapse,
+def train(config, input, output, rank, objective, size, init, norm, collapse,
           epochs, optimizer, decay_learning_rate, starter_learning_rate,
-          display_step, suffix, seed):
+          display_step, seed):
     """Deciphers tensorsignatures on a dataset.
     """
     snv = h5.File(input, 'r')['SNV'][()]
@@ -165,7 +160,7 @@ def train(config, input, id, rank, objective, size, init, norm, collapse,
 
     results = model.fit()
 
-    results.dump(id + '_R=' + str(rank) + '_I=' + str(init) + '.pkl')
+    results.dump(output)
 
 
 @main.command()
