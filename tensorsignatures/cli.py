@@ -190,17 +190,20 @@ def boot():
               help='Saves files after block_size files.')
 @click.option('--remove',
               is_flag=True,
-              help='Removes all Tensorsignatures pkl files after they have been \
-              written to the hdf file.')
+              help='Removes pkl files after writing them to the hdf file.')
 @click.option('--link',
               is_flag=True,
-              help='Links several hdf files, which is sometimes useful for large \
-              experiments.')
+              help='Links several hdf files (useful for large experiments)')
 @pass_config
 def write(config, input, output, cores, block_size, remove, link):
-    """Creates a hdf file out of tensor signatures pkls. Accepts a
-    glob argument (eg. "*.pkl"). Example: $tensorsignature write
-    "*.pkl" results.h5
+    """Creates a hdf file out of dumped tensor signatures pkls.
+
+    Args:
+        input (:obj:`str`): A GLOB argument (eg. "test_project*.pkl").
+        output (:obj:`str`): Output hdf file.
+
+    Example:
+        $ tensorsignature write "*.pkl" results.h5
     """
 
     files = glob.glob(input)
