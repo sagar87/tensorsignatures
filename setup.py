@@ -4,6 +4,14 @@
 """The setup script."""
 
 from setuptools import setup, find_packages
+from subprocess import check_output, CalledProcessError
+
+try:
+    num_gpus = len(check_output(['nvidia-smi', '--query-gpu=gpu_name', '--format=csv']).decode().strip().split('\n'))
+    tf = 'tensorflow-gpu>=1.14' if num_gpus > 1 else 'tensorflow'
+except CalledProcessError:
+    tf = 'tensorflow>=1.14'
+
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -19,7 +27,7 @@ requirements = [
     'numpy>=1.14.5',
     'scikit-learn>=0.20.0',
     'matplotlib>=3.0.2',
-    'tensorflow>=1.10.1',
+    tf,
     'tqdm>=4.11.0']
 
 setup_requirements = [ ]
