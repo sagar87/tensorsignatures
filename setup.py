@@ -10,9 +10,9 @@ from subprocess import check_output, CalledProcessError
 
 try:
     num_gpus = len(check_output(['nvidia-smi', '--query-gpu=gpu_name', '--format=csv']).decode().strip().split('\n'))
-    tf = 'tensorflow-gpu>=1.14' if num_gpus > 1 else 'tensorflow'
+    tf = 'tensorflow-gpu>=1.12' if num_gpus > 1 else 'tensorflow'
 except CalledProcessError:
-    tf = 'tensorflow>=1.14'
+    tf = 'tensorflow>=1.12'
 
 
 with open('README.rst') as readme_file:
@@ -58,7 +58,7 @@ setup(
     include_package_data=True,
     keywords='tensorsignatures',
     name='tensorsignatures',
-    packages=find_packages(include=['tensorsignatures']), #
+    packages=find_packages(include=['tensorsignatures']),
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
