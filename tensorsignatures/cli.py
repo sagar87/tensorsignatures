@@ -96,6 +96,11 @@ def data(seed, rank, output, init, samples, mutations, dimensions):
               type=int,
               default=0,
               help='Iteration to (default = 0)')
+@click.option('--' + ID, '-j',
+              metavar='<str>',
+              type=str,
+              default='tsTrain',
+              help='job id (default = 0)')
 @click.option('--' + NORMALIZE, '-n',
               is_flag=True,
               help='multiply Chat1 with supplied normalisation constant N')
@@ -131,9 +136,9 @@ def data(seed, rank, output, init, samples, mutations, dimensions):
               default=None,
               help='initialize TensorSignatures variables with a seed')
 @pass_config
-def train(config, input, output, rank, objective, size, init, norm, collapse,
-          epochs, optimizer, decay_learning_rate, starter_learning_rate,
-          display_step, seed):
+def train(config, input, output, rank, objective, size, init, id,
+          norm, collapse, epochs, optimizer, decay_learning_rate,
+          starter_learning_rate, display_step, seed):
     """Deciphers tensorsignatures on a dataset.
     """
     snv = h5.File(input, 'r')['SNV'][()]
