@@ -79,32 +79,10 @@ class Initialization(object):
     Returns:
         A :obj:`TensorSingatureInit` object.
     """
-    def __init__(self,
-                 S0,
-                 a0,
-                 b0,
-                 k0,
-                 m0,
-                 T0,
-                 E0,
-                 rank,
-                 size,
-                 objective,
-                 starter_learning_rate,
-                 decay_learning_rate,
-                 optimizer,
-                 epochs,
-                 log_step,
-                 display_step,
-                 observations,
-                 id,
-                 init,
-                 seed,
-                 log_epochs,
-                 log_learning_rate,
-                 log_L,
-                 log_L1,
-                 log_L2):
+    def __init__(self, S0, a0, b0, k0, m0, T0, E0, rank, size, objective,
+                 starter_learning_rate, decay_learning_rate, optimizer,
+                 epochs, log_step, display_step, observations, id, init,
+                 seed, log_epochs, log_learning_rate, log_L, log_L1, log_L2):
         # store hyperparameters
         self.seed = seed
         self.objective = objective
