@@ -10,6 +10,7 @@ from scipy.stats import uniform
 from collections import defaultdict
 
 from multiprocessing import Pool
+import functools
 import pickle
 import numpy as np
 import pandas as pd
@@ -21,9 +22,19 @@ import re
 from tensorsignatures.config import *
 from tqdm import tqdm
 
-def reshape_clustered_signatures(S):
-    return np.moveaxis(
-        S, [-1, -2], [0, 1]).reshape(S.shape[-1] * S.shape[-2], -1)
+
+def lazy_property(function):
+    # Source: https://danijar.com/structuring-your-tensorflow-models/
+    attribute = '_cache_' + function.__name__
+
+    @property
+    @functools.wraps(function)
+    def decorator(self):
+        if not hasattr(self, attribute):
+            setattr(self, attribute, function(self))
+        return getattr(self, attribute)
+
+    return decorator
 
 
 def assign_signatures(reference, signature):
@@ -43,7 +54,7 @@ def assign_signatures(reference, signature):
     return row_ind, col_ind, distances
 
 
-class TensorSignatureInit(object):
+class Initialization(object):
     """Stores results of a TensorSignature run.
 
     Args:
@@ -108,125 +119,122 @@ class TensorSignatureInit(object):
         self.size = size
         self.id = id
         self.init = init
+        self.iter = 1
 
-        self.S0 = S0
-        self.a0 = a0
-        self.b0 = b0
-        self._k0 = k0
+        self.S0 = S0.reshape(*S0.shape, self.iter)
+        self.a0 = a0.reshape(*a0.shape, self.iter)
+        self.b0 = b0.reshape(*b0.shape, self.iter)
+        self._k0 = {k: v.reshape(*v.shape, self.iter) for k, v in k0.items()}
 
         for key, value in self._k0.items():
             setattr(self, 'k' + str(key), np.exp(value))
 
-        self.m0 = m0
-        self.T0 = T0
-        self.E0 = E0
+        self.m0 = m0.reshape(*m0.shape, self.iter)
+        self.T0 = T0.reshape(*T0.shape, self.iter)
+        self.E0 = E0.reshape(*E0.shape, self.iter)
 
-        self.log_epochs = log_epochs
-        self.log_learning_rate = log_learning_rate
-        self.log_L = log_L
-        self.log_L1 = log_L1
-        self.log_L2 = log_L2
+        self.log_epochs = log_epochs.reshape(*log_epochs.shape, self.iter)
+        self.log_learning_rate = log_learning_rate.reshape(
+            *log_learning_rate.shape, self.iter)
+        self.log_L = log_L.reshape(*log_L.shape, self.iter)
+        self.log_L1 = log_L1.reshape(*log_L1.shape, self.iter)
+        self.log_L2 = log_L2.reshape(*log_L2.shape, self.iter)
 
-    @property
+    @lazy_property
     def S0s(self):
-        # with
-        if not hasattr(self, '_S0s'):
-            self._S0s = np.concatenate(
-                [self.S0, np.zeros((2, 2, 1, self.rank))], axis=2)
-            self._S0s = np.exp(self._S0s) \
-                / np.sum(np.exp(self._S0s), axis=2, keepdims=True)
+        self._S0s = np.concatenate(
+            [self.S0, np.zeros((2, 2, 1, self.rank, self.iter))], axis=2)
+        self._S0s = np.exp(self._S0s) \
+            / np.sum(np.exp(self._S0s), axis=2, keepdims=True)
 
         return self._S0s
 
-    @property
+    @lazy_property
     def S1(self):
-        if not hasattr(self, '_S1'):
-            self._S1 = np.stack([
-                self.S0s[0, 0, :, :],
-                self.S0s[1, 0, :, :],
-                0.5 * self.S0s[:, 0, :, :].sum(axis=0),
-                self.S0s[1, 1, :, :],
-                self.S0s[0, 1, :, :],
-                0.5 * self.S0s[:, 1, :, :].sum(axis=0),
-                0.5 * (self.S0s[0, 0, :, :] + self.S0s[1, 1, :, :]),
-                0.5 * (self.S0s[1, 0, :, :] + self.S0s[0, 1, :, :]),
-                0.25 * self.S0s.sum(axis=(0, 1))
-            ]).reshape(3, 3, -1, self.rank)
+        self._S1 = np.stack([
+            self.S0s[0, 0],
+            self.S0s[1, 0],
+            0.5 * self.S0s[:, 0].sum(axis=0),
+            self.S0s[1, 1],
+            self.S0s[0, 1],
+            0.5 * self.S0s[:, 1].sum(axis=0),
+            0.5 * (self.S0s[0, 0] + self.S0s[1, 1]),
+            0.5 * (self.S0s[1, 0] + self.S0s[0, 1]),
+            0.25 * self.S0s.sum(axis=(0, 1))
+        ]).reshape(3, 3, -1, self.rank, self.iter)
 
         return self._S1
 
-    @property
+    @lazy_property
+    def B(self):
+        self._B = np.exp(np.stack([
+            self.b0[0] + self.b0[1],
+            self.b0[0] - self.b0[1],
+            self.b0[0],
+            self.b0[1] - self.b0[0],
+            -self.b0[1] - self.b0[0],
+            -self.b0[0],
+            self.b0[1],
+            -self.b0[1], np.zeros(self.b0[0].shape)
+        ])).reshape(3, 3, 1, self.rank, self.iter)
+        return self._B
+
+    @lazy_property
+    def A(self):
+        a1 = np.concatenate(
+            [self.a, self.a, np.ones([2, self.rank, self.iter])],
+            axis=0).reshape(3, 2, self.rank, self.iter)
+
+        self._A = a1[:, 0, :, :][:, None, :, :] \
+            * a1[:, 1, :, :][None, :, :, :]
+
+        return self._A
+
+    @lazy_property
     def S(self):
-        if not hasattr(self, '_S'):
-            self.B = np.exp(np.stack([
-                self.b0[0, :] + self.b0[1, :],
-                self.b0[0, :] - self.b0[1, :],
-                self.b0[0, :],
-                self.b0[1, :] - self.b0[0, :],
-                -self.b0[1, :] - self.b0[0, :],
-                -self.b0[0, :],
-                self.b0[1, :],
-                -self.b0[1, :], np.zeros(self.b0[0, :].shape)
-            ])).reshape(3, 3, 1, self.rank)
-
-            a1 = np.concatenate(
-                [self.a, self.a, np.ones([2, self.rank])],
-                axis=0).reshape(3, 2, self.rank)
-
-            self.A = a1[:, 0, :][:, None, :] \
-                * a1[:, 1, :][None, :, :]
-            self._S = self.S1 \
-                * self.B \
-                * self.A.reshape(3, 3, 1, self.rank) \
-                * self.m.reshape(1, 1, 1, self.rank)
+        self._S = self.S1 \
+            * self.B \
+            * self.A.reshape(3, 3, 1, self.rank, self.iter) \
+            * self.m.reshape(1, 1, 1, self.rank, self.iter)
 
         return self._S
 
-    @property
+    @lazy_property
     def T1(self):
-        if not hasattr(self, '_T1'):
-            self._T1 = np.concatenate(
-                [self.T0, np.zeros((1, self.rank))], axis=0)
-            self._T1 = np.exp(self._T1) \
-                / np.sum(np.exp(self._T1), axis=0, keepdims=True)
+        self._T1 = np.concatenate(
+            [self.T0, np.zeros((1, self.rank, self.iter))], axis=0)
+        self._T1 = np.exp(self._T1) \
+            / np.sum(np.exp(self._T1), axis=0, keepdims=True)
 
         return self._T1
 
-    @property
+    @lazy_property
     def T(self):
-        if not hasattr(self, '_T'):
-            self._T = self.T1 * (1 - self.m)
+        return self.T1 * (1 - self.m)
 
-        return self._T
-
-    @property
+    @lazy_property
     def a(self):
-        if not hasattr(self, '_a'):
-            self._a = np.exp(self.a0)
+        return np.exp(self.a0)
 
-        return self._a
-
-    @property
+    @lazy_property
     def b(self):
-        if not hasattr(self, '_b'):
-            self._b = np.exp(self.b0)
+        return np.exp(self.b0)
 
-        return self._b
-
-    @property
+    @lazy_property
     def m(self):
-        if not hasattr(self, '_m'):
-            self._m = 1 / (1 + np.exp(-self.m0))
-
-        return self._m
+        return 1 / (1 + np.exp(-self.m0))
 
     def to_dic(self):
         data = {}
         for var in DUMP:
-            data[var] = getattr(self, var)
-
-        for k, v in self._k0.items():
-            data['k' + str(k)] = v
+            if var in VARS or var in LOGS:
+                if var == k0:
+                    for k, v in self._k0.items():
+                        data['k' + str(k)] = v[..., 0]
+                else:
+                    data[var] = getattr(self, var)[..., 0]
+            else:
+                data[var] = getattr(self, var)
 
         return data
 
@@ -235,7 +243,13 @@ class TensorSignatureInit(object):
         save_dict(data, path)
 
 
-class Cluster(object):
+class BootstrapInitialization(Initialization):
+    def __init__(self, sub, **kwargs):
+        self.sub = sub
+        super().__init__(**kwargs)
+
+
+class Cluster(Initialization):
     """
     Base cluster class takes
 
@@ -256,16 +270,19 @@ class Cluster(object):
         self.rank = self.S0.shape[-2]
         self.samples = self.E0.shape[-2]
 
-        self.S
-        self.T
-
-        self.a
-        self.b
-        self.m
+        # initialize variables
+        self.a0 = self[a0]
+        self.b0 = self[b0]
 
         for key in [var for var in list(self.dset) if var.startswith('k')]:
             setattr(self, key, np.exp(self[key]))
             self.memo[key] = getattr(self, key)
+
+        self.m0 = self[m0]
+
+        # compute composite variables
+        self.S
+        self.T
 
     def __len__(self):
         return self.iter
@@ -315,122 +332,6 @@ class Cluster(object):
         self.memo[var] = np.stack(var_list, axis=array.ndim - 1)
 
         return self.memo[var]
-
-    @property
-    def a(self):
-        if not hasattr(self, '_a'):
-            self._a = np.exp(self[a0])
-            self.memo['a'] = self._a
-
-        return self._a
-
-    @property
-    def b(self):
-        if not hasattr(self, '_b'):
-            self._b = np.exp(self[b0])
-            self.memo['b'] = self._b
-
-        return self._b
-
-    @property
-    def m(self):
-        if not hasattr(self, '_m'):
-            self._m = 1 / (1 + np.exp(-self[m0]))
-            self.memo['m'] = self._m
-
-        return self._m
-
-    @property
-    def S0s(self):
-        # with
-        if not hasattr(self, '_S0s'):
-            self._S0s = np.exp(
-                np.concatenate(
-                    [self.S0, np.zeros((2, 2, 1, self.rank, self.iter))],
-                    axis=2))
-            self._S0s = self._S0s \
-                / np.sum(self._S0s, axis=(2), keepdims=True)
-
-        return self._S0s
-
-    @property
-    def S1(self):
-        if not hasattr(self, '_S1'):
-            self._S1 = np.stack([
-                self.S0s[0, 0],
-                self.S0s[1, 0],
-                0.5 * self.S0s[:, 0].sum(axis=0),
-                self.S0s[1, 1],
-                self.S0s[0, 1],
-                0.5 * self.S0s[:, 1].sum(axis=0),
-                0.5 * (self.S0s[0, 0] + self.S0s[1, 1]),
-                0.5 * (self.S0s[1, 0] + self.S0s[0, 1]),
-                0.25 * self.S0s.sum(axis=(0, 1))
-            ]).reshape(3, 3, -1, self.rank, self.iter)
-
-        return self._S1
-
-    @property
-    def S(self):
-        if not hasattr(self, '_S'):
-            self.B = np.exp(np.stack([
-                self[b0][0] + self[b0][1],
-                self[b0][0] - self[b0][1],
-                self[b0][0],
-                self[b0][1] - self[b0][0],
-                -self[b0][1] - self[b0][0],
-                -self[b0][0],
-                self[b0][1],
-                -self[b0][1], np.zeros(self[b0][0].shape)
-            ])).reshape(3, 3, 1, self.rank, self.iter)
-
-            a1 = np.concatenate(
-                [self.a, self.a, np.ones([2, self.rank, self.iter])],
-                axis=0).reshape(3, 2, self.rank, self.iter)
-
-            self.A = a1[:, 0, :, :][:, None, :, :] \
-                * a1[:, 1, :, :][None, :, :, :]
-
-            self._S = self.S1 \
-                * self.B \
-                * self.A.reshape(3, 3, 1, self.rank, self.iter) \
-                * self.m.reshape(1, 1, 1, self.rank, self.iter)
-
-            self.memo['S'] = self._S
-
-        return self._S
-
-    @property
-    def T1(self):
-        if not hasattr(self, '_T1'):
-            self._T1 = np.exp(
-                np.concatenate(
-                    [self.T0, np.zeros((1, self.rank, self.iter))], axis=0))
-            self._T1 = self._T1 \
-                / np.sum(self._T1, axis=0, keepdims=True)
-
-        return self._T1
-
-    @property
-    def T(self):
-        if not hasattr(self, '_T'):
-            self._T = self.T1 * (1 - self.m.reshape(1, self.rank, self.iter))
-            self.memo['T'] = self._T
-
-        return self._T
-
-    @property
-    def E(self):
-        if not hasattr(self, '_E'):
-            self._E = np.exp(self.E0)
-            self.memo['E'] = self._E
-
-        return self._E
-
-    @staticmethod
-    def pre_cluster_signatures(p, S, T, E, I):
-        S_clu, T_clu, E_clu, i_col = Cluster.cluster_signatures(S, T, E, I)
-        return (p, S_clu, T_clu, E_clu, i_col, None)
 
     @staticmethod
     def cluster_signatures(S, T, E, seed=None):
@@ -498,27 +399,24 @@ class Cluster(object):
 
         return (S_clu, T_clu, E_clu, i_col)
 
-    @property
+    @lazy_property
     def parameters(self):
-        if not hasattr(self, '_params'):
-            p = 4 * 95
-            p += self[a0].shape[0] if a0 in self else 0
-            p += self[b0].shape[0] if b0 in self else 0
+        p = 4 * 95
+        p += self[a0].shape[0] if a0 in self else 0
+        p += self[b0].shape[0] if b0 in self else 0
 
-            p += self['k0'].shape[0] if 'k0' in self else 0
-            p += self['k1'].shape[0] if 'k1' in self else 0
-            p += self['k2'].shape[0] if 'k2' in self else 0
-            p += self['k3'].shape[0] if 'k3' in self else 0
+        p += self['k0'].shape[0] if 'k0' in self else 0
+        p += self['k1'].shape[0] if 'k1' in self else 0
+        p += self['k2'].shape[0] if 'k2' in self else 0
+        p += self['k3'].shape[0] if 'k3' in self else 0
 
-            p += 1 if m0 in self else 0
-            p += self[T0].shape[0] if T0 in self else 0
+        p += 1 if m0 in self else 0
+        p += self[T0].shape[0] if T0 in self else 0
 
-            p = p * self.rank
-            p += self.samples * self.rank
+        p = p * self.rank
+        p += self.samples * self.rank
 
-            self._params = p
-
-        return self._params
+        return p
 
     @property
     def observations(self):
@@ -535,12 +433,52 @@ class Cluster(object):
 
         return self._size
 
-    @property
+    @lazy_property
     def init(self):
-        """
-        Returns the maximum likelihood initialisation.
+        """Returns the maximum likelihood initialisation.
         """
         return np.argmax(self.likelihood)
+
+    def get_init(self, init=None):
+        """Returns initialization, if None :code:`get_init` returns the
+        initialization with the largest log likelihood.
+        """
+        if init is None:
+            init = self.init
+
+        k = {}
+        for key in [var for var in list(self.dset) if var.startswith('k')]:
+            k[int(key[1])] = self.dset[key][..., init]
+
+        initialization = Initialization(
+            S0=self.dset[S0][..., init],
+            a0=self.dset[a0][..., init],
+            b0=self.dset[b0][..., init],
+            k0=k,
+            m0=self.dset[m0][..., init],
+            T0=self.dset[T0][..., init],
+            E0=self.dset[E0][..., init],
+            rank=self[RANK],
+            size=self[SIZE],
+            objective=self[OBJECTIVE],
+            epochs=self[EPOCHS],
+            starter_learning_rate=self[STARTER_LEARNING_RATE],
+            decay_learning_rate=self[DECAY_LEARNING_RATE],
+            optimizer=self[OPTIMIZER],
+            log_step=self[LOG_STEP],
+            display_step=self[DISPLAY_STEP],
+            observations=self[OBSERVATIONS],
+            id=self[ID],
+            init=init,
+            seed=self[SEED],
+            log_epochs=self[LOG_EPOCHS][..., init],
+            log_learning_rate=self[LOG_LEARNING_RATE][..., init],
+            log_L=self[LOG_L][..., init],
+            log_L1=self[LOG_L1][..., init],
+            log_L2=self[LOG_L2][..., init],
+        )
+
+        return initialization
 
     @property
     def summary_table(self):
@@ -578,14 +516,19 @@ class Cluster(object):
             'sig': np.array(
                 [[i] * self[cdim].shape[0] for i in range(self.rank)]
             ).reshape(-1).tolist() * self.iter,
-            'dim': np.arange(self[cdim].shape[0]).tolist() * \
-                self[cdim].shape[1] * self[cdim].shape[2],
-            'init': np.array([[i] * self.rank * self[cdim].shape[0] for i in range(self.iter)]).reshape(-1).tolist(),
+            'dim': np.arange(
+                self[cdim].shape[0]
+            ).tolist() * self[cdim].shape[1] * self[cdim].shape[2],
+            'init': np.array([
+                [i] * self.rank * self[cdim].shape[0] for i in range(self.iter)
+            ]).reshape(-1).tolist(),
             'val': self[cdim].T.reshape(-1).tolist()})
 
         if avg:
-            coeff_table = coeff_table.groupby(['sig', 'dim']).agg({'val':[np.mean, np.std]}).reset_index()
-            coeff_table.columns = [ ' '.join(col).strip() for col in coeff_table.columns ]
+            coeff_table = coeff_table.groupby(
+                ['sig', 'dim']).agg({'val': [np.mean, np.std]}).reset_index()
+            coeff_table.columns = [
+                ' '.join(col).strip() for col in coeff_table.columns]
 
         return coeff_table
 
@@ -595,7 +538,7 @@ class Cluster(object):
 
         normed_mutations = []
         if collapse:
-            N = TensorSignature.collapse_data(N).reshape(3,3,-1,96,1)
+            N = TensorSignature.collapse_data(N).reshape(3, 3, -1, 96, 1)
         for s in range(self.rank):
             snv_counts = (self.S[..., s, init].reshape(-1, 1) @ self.E[s, ..., init].reshape(1,-1)).reshape([*self.S.shape[:-2], self.E.shape[-2]]) * N
             snv_counts = snv_counts.sum(axis=(0,1,2,3))
@@ -685,7 +628,14 @@ class Bootstrap(object):
     Params:
     """
 
-    def __init__(self, clu, bootstrap, cutoff=0.1, lower=5, cores=8, upper=95, init=None):
+    def __init__(self,
+                 clu,
+                 bootstrap,
+                 cutoff=0.1,
+                 lower=5,
+                 cores=8,
+                 upper=95,
+                 init=None):
         self.clu = clu
         self.bootstrap = bootstrap
         self.cutoff = cutoff
@@ -741,16 +691,17 @@ class Bootstrap(object):
 
     def boundaries(self, var, sig=None):
         if sig is not None:
-            if (var=='E') or (var=='E0'):
-                return np.stack([np.nanpercentile(self._filter(var, sig), self.lower, axis=-1),
-                                 np.nanpercentile(self._filter(var, sig), self.upper, axis=-1)], axis=-1)
+            if (var == 'E' or var == 'E0'):
+                return np.stack([
+                    np.nanpercentile(self._filter(var, sig), self.lower, axis=-1),
+                    np.nanpercentile(self._filter(var, sig), self.upper, axis=-1)], axis=-1)
 
             return np.stack([np.percentile(self._filter(var, sig), self.lower, axis=-1),
                              np.percentile(self._filter(var, sig), self.upper, axis=-1)], axis=-1)
         else:
             if var not in self.intervals:
                 for i in range(self.clu.rank):
-                    if (var=='E') or (var=='E0'):
+                    if (var == 'E' or var == 'E0'):
                         self.intervals[var].append(
                             np.stack([
                                 np.nanpercentile(self._filter(var, i), self.lower, axis=-1),
@@ -766,19 +717,18 @@ class Bootstrap(object):
 
     def yerr(self, var, func=lambda x: x):
         yerr = np.zeros([*self.clu[var][..., self.init].shape, 2])
-        #print(yerr.shape)
+
         for i in range(self.clu.rank):
             # to make it more readable
-            if (var=='E') or (var=='E0'):
-                lower = self.boundaries(var)[...,i, 0]
-                upper = self.boundaries(var)[...,i, 1]
-                mle = self.clu[var][i,..., self.init]
+            if (var == 'E' or var == 'E0'):
+                lower = self.boundaries(var)[..., i, 0]
+                upper = self.boundaries(var)[..., i, 1]
+                mle = self.clu[var][i, ..., self.init]
             else:
-                lower = self.boundaries(var)[...,i,0]
-                upper = self.boundaries(var)[...,i,1]
+                lower = self.boundaries(var)[..., i, 0]
+                upper = self.boundaries(var)[..., i, 1]
                 mle = self.clu[var][..., i, self.init]
 
-            #print(lower.shape,upper.shape,mle.shape)
             # select indices
             bounded = (lower <= mle) & (mle <= upper)
             positive = mle > 0
@@ -832,9 +782,11 @@ def compute_left_tails(C, Chat, k, inv_norm=False):
 
     return left_tail
 
+
 def save_dict(data, out_path):
     with open(out_path, 'wb') as fh:
         pickle.dump(data, fh, pickle.HIGHEST_PROTOCOL)
+
 
 def load_dict(data):
     with open(data, 'rb') as fh:
@@ -842,16 +794,17 @@ def load_dict(data):
 
     return (data.split('/')[-1], params)
 
+
 def load_dump(path):
     fname, data = load_dict(path)
-    init = TensorSignatureInit(
-        S0=data['S0'],
-        a0=data['a0'],
-        b0=data['b0'],
+    init = Initialization(
+        S0=data[S0],
+        a0=data[a0],
+        b0=data[b0],
         k0={ int(key[1:]): data[key] for key in [key for key in list(data.keys()) if key.startswith('k')]},
-        m0=data['m0'],
-        T0=data['T0'],
-        E0=data['E0'],
+        m0=data[m0],
+        T0=data[T0],
+        E0=data[E0],
         rank=data[RANK],
         size=data[SIZE],
         objective=data[OBJECTIVE],
@@ -871,74 +824,6 @@ def load_dump(path):
         log_L1=data[LOG_L1],
         log_L2=data[LOG_L2])
     return init
-
-
-def generate_correlation_map(x, y):
-    """Correlate each n with each m.
-
-    Parameters
-    ----------
-    x : np.array
-      Shape N X T.
-
-    y : np.array
-      Shape M X T.
-
-    Returns
-    -------
-    np.array
-      N X M array in which each element is a correlation coefficient.
-
-    """
-    mu_x = x.mean(1)
-    mu_y = y.mean(1)
-    n = x.shape[1]
-    if n != y.shape[1]:
-        raise ValueError('x and y must ' +
-                         'have the same number of timepoints.')
-    s_x = x.std(1, ddof=n - 1)
-    s_y = y.std(1, ddof=n - 1)
-    cov = np.dot(x,
-                 y.T) - n * np.dot(mu_x[:, np.newaxis],
-                                  mu_y[np.newaxis, :])
-    return cov / np.dot(s_x[:, np.newaxis], s_y[np.newaxis, :])
-
-
-def progress(iteration, total, log_string):
-    """
-    Gives information about the how far the process has progressed.
-    -----
-    arguments
-    """
-    sys.stdout.write('\rProgress {iter}/{total} {percent} % {log_string}'.format(
-                iter=iteration,
-                total=total,
-                percent=int(iteration / total * 100),
-                log_string=log_string
-                ),)
-    sys.stdout.flush()
-
-    return 0
-
-def create_file_name(params):
-    assert params[FILENAME][0] == 'J', 'A filename has to start with the job name'
-    PARSER = dict(
-        R=RANK,
-        LR=STARTER_LEARNING_RATE,
-        I=ITERATION,
-        L=LAMBDA,
-        J=JOB_NAME,
-        K=DISPERSION,
-    )
-
-    fname = ''
-    for exp in params[FILENAME].split('_'):
-        if exp == 'J':
-            fname += params[PARSER[exp]]
-        else:
-            fname += '_' + exp + '=' + str(params[PARSER[exp]])
-
-    return fname
 
 def collapse_data(snv):
     col1 = snv[[slice(None)]*(snv.ndim-3)+[0]+[slice(None)]*2]

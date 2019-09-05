@@ -10,7 +10,7 @@ import sys
 import pickle
 import re
 from tensorsignatures.config import *
-from tensorsignatures.util import load_dict, progress
+from tensorsignatures.util import load_dict
 
 
 def link_datasets(merged, path, verbose=True):

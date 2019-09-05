@@ -5,6 +5,7 @@ from tensorsignatures.config import *
 from tensorsignatures.util import *
 from tensorsignatures.plot import *
 from tensorsignatures.writer import *
+from tensorsignatures.bootstrap import *
 
 """Top-level package for tensorsignatures."""
 

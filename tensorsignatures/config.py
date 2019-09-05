@@ -114,6 +114,11 @@ DOF = 'dof'
 ROW = 'row'
 COL = 'col'
 
+# contstants for bootstrap
+SAMPLE_FRACTION = 2 / 3
+DISTORTION = 0.1
+
+
 ORI = ['+', '-', '*']
 NUC = ['A', 'C', 'G', 'T']
 PYR = ['C'] * 3 + ['T'] * 3

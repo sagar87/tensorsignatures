@@ -393,23 +393,23 @@ def plot_signatures(signature_tensor, width=0.3, fig=None):
             axr = fig.add_subplot(inner_rep[:, i:i + 1])
 
             axt.bar(np.arange(dx),
-                    signature_tensor[0, 2, 0, j:j + dx, s].reshape(-1),
+                    signature_tensor[0, 2, j:j + dx, s].reshape(-1),
                     color=COLORPAIRS[i][1],
                     width=width,
                     edgecolor="none")
             axt.bar(np.arange(dx) + width,
-                    signature_tensor[1, 2, 0, j:j + dx, s].reshape(-1),
+                    signature_tensor[1, 2, j:j + dx, s].reshape(-1),
                     color=COLORPAIRS[i][0],
                     width=width,
                     edgecolor="none")
 
             axr.bar(np.arange(dx),
-                    signature_tensor[2, 0, 0, j:j + dx, s].reshape(-1),
+                    signature_tensor[2, 0, j:j + dx, s].reshape(-1),
                     color=COLORPAIRS[i][1],
                     width=width,
                     edgecolor="none")
             axr.bar(np.arange(dx) + width,
-                    signature_tensor[2, 1, 0, j:j + dx, s].reshape(-1),
+                    signature_tensor[2, 1, j:j + dx, s].reshape(-1),
                     color=COLORPAIRS[i][0],
                     width=width,
                     edgecolor="none")

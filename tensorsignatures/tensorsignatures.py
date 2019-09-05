@@ -12,7 +12,7 @@ import tensorflow as tf
 import numpy as np
 import h5py as h5
 from tensorsignatures.config import *
-from tensorsignatures.util import TensorSignatureInit
+from tensorsignatures.util import Initialization
 from tqdm import trange
 import functools
 
@@ -577,7 +577,7 @@ class TensorSignature(object):
         self.log_L1[-1] = sess.run(self.L1)
         self.log_L2[-1] = sess.run(self.L2)
 
-        self.result = TensorSignatureInit(
+        self.result = Initialization(
             S0=sess.run(self.S0),
             a0=sess.run(self.a0),
             b0=sess.run(self.b0),
