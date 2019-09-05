@@ -80,9 +80,11 @@ def save_hdf(data, fname, mode='w', verbose=False):
             for var in VARS:
                 if var == k0:
                     for key, value in getattr(init, var).items():
-                        add_array(group, 'k' + str(key), value, init.init)
+                        add_array(
+                            group, 'k' + str(key), value[..., 0], init.init)
                 else:
-                    add_array(group, var, getattr(init, var), init.init)
+                    add_array(
+                        group, var, getattr(init, var)[..., 0], init.init)
             for param in PARAMS:
                 val = getattr(init, param)
                 if val is None:
@@ -90,7 +92,7 @@ def save_hdf(data, fname, mode='w', verbose=False):
                 else:
                     group.attrs[param] = val
             for log in LOGS:
-                add_array(group, log, getattr(init, log), init.init)
+                add_array(group, log, getattr(init, log)[..., 0], init.init)
     return 0
 
 

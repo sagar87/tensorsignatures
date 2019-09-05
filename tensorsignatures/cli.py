@@ -12,7 +12,6 @@ from multiprocessing import cpu_count
 
 from tensorsignatures.util import load_dict
 from tensorsignatures.util import load_dump
-from tensorsignatures.util import progress
 
 from tensorsignatures.writer import link_datasets
 from tensorsignatures.writer import save_hdf
