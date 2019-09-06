@@ -264,14 +264,15 @@ class Cluster(Initialization):
         self.samples = self._E0.shape[-2]
 
         # initialize variables
-        self._a0 = self[a0]
-        self._b0 = self[b0]
+        self._a0 = self._sort_array(self.dset[a0][()])
+        self._b0 = self._sort_array(self.dset[b0][()])
 
         for key in [var for var in list(self.dset) if var.startswith('_k')]:
-            setattr(self, key[1:], np.exp(self[key]))
-            #self.memo[key] = getattr(self, key)
+            setattr(self,
+                    key[1:],
+                    np.exp(self._sort_array(self.dset[key][()])))
 
-        self._m0 = self[m0]
+        self._m0 = self._sort_array(self.dset[m0][()])
 
         # compute composite variables
         self.S
@@ -289,9 +290,9 @@ class Cluster(Initialization):
             return self.memo[item]
         elif item in list(self.dset):
             if item in VARS:
-                return self.sort_array(item, self.dset[item][()])
+                return self._sort_array(item, self.dset[item][()])
             elif item.startswith('k'):
-                return self.sort_array(item, self.dset[item][()])
+                return self._sort_array(item, self.dset[item][()])
             elif item in LOGS:
                 return self.dset[item][()][..., list(self.icol.keys())]
             else:
@@ -315,16 +316,14 @@ class Cluster(Initialization):
 
         return [np.nan] * self.iter
 
-    def sort_array(self, var, array):
+    def _sort_array(self, array):
         # sort array
         var_list = []
 
         for k, v in self.icol.items():
             var_list.append(array[..., v, k])
 
-        self.memo[var] = np.stack(var_list, axis=array.ndim - 1)
-
-        return self.memo[var]
+        return np.stack(var_list, axis=array.ndim - 1)
 
     @staticmethod
     def cluster_signatures(S, T, E, seed=None):
