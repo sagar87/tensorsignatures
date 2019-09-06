@@ -141,8 +141,8 @@ class Initialization(object):
         # computes the SNV signature tensor
         S0 = np.concatenate(
             [self._S0, np.zeros((2, 2, 1, self.rank, self.iter))], axis=2)
-        S0 = np.exp(self._S0) \
-            / np.sum(np.exp(self._S0), axis=2, keepdims=True)
+        S0 = np.exp(S0) \
+            / np.sum(np.exp(S0), axis=2, keepdims=True)
 
         S1 = np.stack([
             S0[0, 0],
