@@ -182,7 +182,7 @@ class TensorSignatureBootstrap(TensorSignature):
 
     @define_scope
     def A(self):
-        self.a0 = tf.Variable(self.initialization.a0, name='a0')
+        self.a0 = tf.Variable(self.initialization.a0[..., 0], name='a0')
         a1 = tf.exp(tf.reshape(
             tf.concat([self.a0, self.a0, tf.zeros([2, self.rank])], axis=0),
             (3, 2, self.rank)))
@@ -196,7 +196,7 @@ class TensorSignatureBootstrap(TensorSignature):
 
     @define_scope
     def B(self):
-        self.b0 = tf.Variable(self.initialization.b0, name='b0')
+        self.b0 = tf.Variable(self.initialization.b0[..., 0], name='b0')
         self._B = tf.exp(tf.reshape(
             tf.stack([
                 self.b0[0] + self.b0[1],
@@ -216,7 +216,7 @@ class TensorSignatureBootstrap(TensorSignature):
 
     @define_scope
     def S1(self):
-        S0 = self.initialization.S0
+        S0 = self.initialization.S0[..., 0]
         # print(S0)
         indices = np.random.choice(
             np.arange(np.prod(S0.shape)),
@@ -231,8 +231,6 @@ class TensorSignatureBootstrap(TensorSignature):
             size=int(np.floor(np.prod(S0.shape) * self.frac)))
 
         S0[np.unravel_index(indices, S0.shape)] = S0_mut
-        # print('after')
-        # print(S0)
 
         self.S0 = tf.Variable(S0, name='S0')
         S1 = tf.nn.softmax(
@@ -255,7 +253,8 @@ class TensorSignatureBootstrap(TensorSignature):
 
     @define_scope
     def E(self):
-        self.E0 = tf.Variable(self.initialization.E0[..., self.sub], name='E0')
+        self.E0 = tf.Variable(
+            self.initialization.E0[..., self.sub, 0], name='E0')
         self._E = tf.exp(self.E0, name='E')
 
         if self.verbose:
@@ -271,9 +270,10 @@ class TensorSignatureBootstrap(TensorSignature):
         for key, value in self.initialization._k0.items():
             v = tf.Variable(value, name='k{}'.format(key))
 
-            self._clu_var[key] = v
+            self._clu_var[key] = v[..., 0]
             self._cbiases[key] = tf.concat(
-                [tf.zeros([1, self.rank], dtype=self.dtype), v], axis=0)
+                [tf.zeros([1, self.rank], dtype=self.dtype), v[..., 0]],
+                axis=0)
 
             if self.verbose:
                 print('k{}:'.format(key), self._cbiases[key].shape)
@@ -297,7 +297,7 @@ class TensorSignatureBootstrap(TensorSignature):
 
     @define_scope
     def M(self):
-        self.m0 = tf.Variable(self.initialization.m0, name='m0')
+        self.m0 = tf.Variable(self.initialization.m0[..., 0], name='m0')
         self.m1 = tf.sigmoid(self.m0, name='m1')
         self._M = tf.reshape(self.m1, (1, 1, 1, 1, self.rank))
         if self.verbose:
@@ -326,7 +326,7 @@ class TensorSignatureBootstrap(TensorSignature):
 
     @define_scope
     def T(self):
-        T0 = self.initialization.T0
+        T0 = self.initialization.T0[..., 0]
         # print(T0)
         indices = np.random.choice(
             np.arange(np.prod(T0.shape)),
