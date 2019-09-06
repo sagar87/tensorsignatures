@@ -47,13 +47,13 @@ PARAMS = [
 
 # Parameters of tensor signatures
 
-S0 = 'S0'
-a0 = 'a0'
-b0 = 'b0'
-k0 = '_k0'
-m0 = 'm0'
-E0 = 'E0'
-T0 = 'T0'
+S0 = '_S0'
+a0 = '_a0'
+b0 = '_b0'
+k0 = '_ki'
+m0 = '_m0'
+E0 = '_E0'
+T0 = '_T0'
 
 
 VARS = [

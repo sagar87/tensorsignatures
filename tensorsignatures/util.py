@@ -101,17 +101,17 @@ class Initialization(object):
         self.iter = 1
 
         # make data accessible
-        self.S0 = self._add_iterdim(S0)
-        self.a0 = self._add_iterdim(a0)
-        self.b0 = self._add_iterdim(b0)
-        self._k0 = {k: self._add_iterdim(v) for k, v in k0.items()}
+        self._S0 = self._add_iterdim(S0)
+        self._a0 = self._add_iterdim(a0)
+        self._b0 = self._add_iterdim(b0)
+        self._ki = {k: self._add_iterdim(v) for k, v in k0.items()}
 
-        for key, value in self._k0.items():
-            setattr(self, 'k' + str(key), np.exp(value))
+        for key, value in self._ki.items():
+            setattr(self, '_k' + str(key), np.exp(value))
 
-        self.m0 = self._add_iterdim(m0)
-        self.T0 = self._add_iterdim(T0)
-        self.E0 = self._add_iterdim(E0)
+        self._m0 = self._add_iterdim(m0)
+        self._T0 = self._add_iterdim(T0)
+        self._E0 = self._add_iterdim(E0)
 
         self.log_epochs = self._add_iterdim(log_epochs)
         self.log_learning_rate = self._add_iterdim(log_learning_rate)
@@ -137,88 +137,87 @@ class Initialization(object):
         return array.reshape(*array.shape, self.iter)
 
     @lazy_property
-    def S0s(self):
-        self._S0s = np.concatenate(
-            [self.S0, np.zeros((2, 2, 1, self.rank, self.iter))], axis=2)
-        self._S0s = np.exp(self._S0s) \
+    def _S1(self):
+        # computes the SNV signature tensor
+        S0 = np.concatenate(
+            [self._S0, np.zeros((2, 2, 1, self.rank, self.iter))], axis=2)
+        S0 = np.exp(self._S0s) \
             / np.sum(np.exp(self._S0s), axis=2, keepdims=True)
 
-        return self._S0s
-
-    @lazy_property
-    def S1(self):
-        self._S1 = np.stack([
-            self.S0s[0, 0],
-            self.S0s[1, 0],
-            0.5 * self.S0s[:, 0].sum(axis=0),
-            self.S0s[1, 1],
-            self.S0s[0, 1],
-            0.5 * self.S0s[:, 1].sum(axis=0),
-            0.5 * (self.S0s[0, 0] + self.S0s[1, 1]),
-            0.5 * (self.S0s[1, 0] + self.S0s[0, 1]),
-            0.25 * self.S0s.sum(axis=(0, 1))
+        S1 = np.stack([
+            S0[0, 0],
+            S0[1, 0],
+            0.5 * S0[:, 0].sum(axis=0),
+            S0[1, 1],
+            S0[0, 1],
+            0.5 * S0[:, 1].sum(axis=0),
+            0.5 * (S0[0, 0] + S0[1, 1]),
+            0.5 * (S0[1, 0] + S0[0, 1]),
+            0.25 * S0.sum(axis=(0, 1))
         ]).reshape(3, 3, -1, self.rank, self.iter)
 
-        return self._S1
+        return S1
 
     @lazy_property
-    def B(self):
-        self._B = np.exp(np.stack([
-            self.b0[0] + self.b0[1],
-            self.b0[0] - self.b0[1],
-            self.b0[0],
-            self.b0[1] - self.b0[0],
-            -self.b0[1] - self.b0[0],
-            -self.b0[0],
-            self.b0[1],
-            -self.b0[1], np.zeros(self.b0[0].shape)
+    def _B(self):
+        # computes the bias tensor
+        B = np.exp(np.stack([
+            self._b0[0] + self._b0[1],
+            self._b0[0] - self._b0[1],
+            self._b0[0],
+            self._b0[1] - self._b0[0],
+            -self._b0[1] - self._b0[0],
+            -self._b0[0],
+            self._b0[1],
+            -self._b0[1], np.zeros(self._b0[0].shape)
         ])).reshape(3, 3, 1, self.rank, self.iter)
-        return self._B
+
+        return B
 
     @lazy_property
-    def A(self):
+    def _A(self):
         a1 = np.concatenate(
             [self.a, self.a, np.ones([2, self.rank, self.iter])],
             axis=0).reshape(3, 2, self.rank, self.iter)
 
-        self._A = a1[:, 0, :, :][:, None, :, :] \
+        A = a1[:, 0, :, :][:, None, :, :] \
             * a1[:, 1, :, :][None, :, :, :]
 
-        return self._A
+        return A
 
     @lazy_property
-    def S(self):
-        self._S = self.S1 \
-            * self.B \
-            * self.A.reshape(3, 3, 1, self.rank, self.iter) \
-            * self.m.reshape(1, 1, 1, self.rank, self.iter)
+    def _S(self):
+        S = self._S1 \
+            * self._B \
+            * self._A.reshape(3, 3, 1, self.rank, self.iter) \
+            * self._m.reshape(1, 1, 1, self.rank, self.iter)
 
-        return self._S
+        return S
 
     @lazy_property
-    def T1(self):
-        self._T1 = np.concatenate(
-            [self.T0, np.zeros((1, self.rank, self.iter))], axis=0)
-        self._T1 = np.exp(self._T1) \
+    def _T1(self):
+        T1 = np.concatenate(
+            [self._T0, np.zeros((1, self.rank, self.iter))], axis=0)
+        T1 = np.exp(self._T1) \
             / np.sum(np.exp(self._T1), axis=0, keepdims=True)
 
-        return self._T1
+        return T1
 
     @lazy_property
-    def T(self):
-        return self.T1 * (1 - self.m)
+    def _T(self):
+        return self._T1 * (1 - self._m)
 
     @lazy_property
-    def a(self):
-        return np.exp(self.a0)
+    def _a(self):
+        return np.exp(self._a0)
 
     @lazy_property
-    def b(self):
-        return np.exp(self.b0)
+    def _b(self):
+        return np.exp(self._b0)
 
     @lazy_property
-    def m(self):
-        return 1 / (1 + np.exp(-self.m0))
+    def _m(self):
+        return 1 / (1 + np.exp(-self._m0))
 
     def to_dic(self):
         data = {}
@@ -253,7 +252,7 @@ class Cluster(Initialization):
                 mask=self.dset[LOG_L][()][-1, :] >= 0))
 
         # cluster init
-        self.S0, self.T0, self.E0, self.icol = Cluster.cluster_signatures(
+        self.S0, self.T0, self._E0, self.icol = Cluster.cluster_signatures(
             dset[S0], dset[T0], dset[E0], self.seed)
 
         self.iter = self.S0.shape[-1]
