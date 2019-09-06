@@ -107,7 +107,7 @@ class Initialization(object):
         self._ki = {k: self._add_iterdim(v) for k, v in ki.items()}
 
         for key, value in self._ki.items():
-            setattr(self, '_k' + str(key), np.exp(value))
+            setattr(self, 'k' + str(key), np.exp(value))
 
         self._m0 = self._add_iterdim(m0)
         self._T0 = self._add_iterdim(T0)
@@ -792,7 +792,7 @@ def load_dump(path):
     ki = {int(key[2:]): data[key] for key in dims}
 
     init = Initialization(S0=data[S0], a0=data[a0], b0=data[b0],
-        ki=kdim, m0=data[m0], T0=data[T0], E0=data[E0], rank=data[RANK],
+        ki=ki, m0=data[m0], T0=data[T0], E0=data[E0], rank=data[RANK],
         size=data[SIZE], objective=data[OBJECTIVE],
         starter_learning_rate=data[STARTER_LEARNING_RATE],
         decay_learning_rate=data[DECAY_LEARNING_RATE],
