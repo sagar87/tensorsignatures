@@ -782,7 +782,7 @@ def load_dump(path):
     fname, data = load_dict(path)
     dims = [key for key in list(data.keys()) if key.startswith('k')]
     kdim = {int(key[1:]): data[key] for key in dims}
-    if sub in data:
+    if 'sub' in data:
         init = BootstrapInitialization(S0=data[S0], a0=data[a0], b0=data[b0],
             k0=kdim, m0=data[m0], T0=data[T0], E0=data[E0], rank=data[RANK],
             size=data[SIZE], objective=data[OBJECTIVE],
