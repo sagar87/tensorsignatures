@@ -186,15 +186,6 @@ class Initialization(object):
         return A
 
     @lazy_property
-    def _S(self):
-        S = self._S1 \
-            * self._B \
-            * self._A.reshape(3, 3, 1, self.rank, self.iter) \
-            * self._m.reshape(1, 1, 1, self.rank, self.iter)
-
-        return S
-
-    @lazy_property
     def _T1(self):
         T1 = np.concatenate(
             [self._T0, np.zeros((1, self.rank, self.iter))], axis=0)
@@ -204,19 +195,28 @@ class Initialization(object):
         return T1
 
     @lazy_property
-    def _T(self):
+    def S(self):
+        S = self._S1 \
+            * self._B \
+            * self._A.reshape(3, 3, 1, self.rank, self.iter) \
+            * self._m.reshape(1, 1, 1, self.rank, self.iter)
+
+        return S
+
+    @lazy_property
+    def T(self):
         return self._T1 * (1 - self._m)
 
     @lazy_property
-    def _a(self):
+    def a(self):
         return np.exp(self._a0)
 
     @lazy_property
-    def _b(self):
+    def b(self):
         return np.exp(self._b0)
 
     @lazy_property
-    def _m(self):
+    def m(self):
         return 1 / (1 + np.exp(-self._m0))
 
     def to_dic(self):
@@ -225,7 +225,7 @@ class Initialization(object):
             if var in VARS or var in LOGS:
                 if var == k0:
                     for k, v in self._ki.items():
-                        data['k' + str(k)] = self._remove_iterdim(v)
+                        data['_k' + str(k)] = self._remove_iterdim(v)
                 else:
                     data[var] = self._remove_iterdim(getattr(self, var))
             else:
@@ -788,11 +788,11 @@ def load_dict(data):
 
 def load_dump(path):
     fname, data = load_dict(path)
-    dims = [key for key in list(data.keys()) if key.startswith('k')]
-    kdim = {int(key[1:]): data[key] for key in dims}
+    dims = [key for key in list(data.keys()) if key.startswith('_k')]
+    ki = {int(key[1:]): data[key] for key in dims}
 
     init = Initialization(S0=data[S0], a0=data[a0], b0=data[b0],
-        k0=kdim, m0=data[m0], T0=data[T0], E0=data[E0], rank=data[RANK],
+        ki=kdim, m0=data[m0], T0=data[T0], E0=data[E0], rank=data[RANK],
         size=data[SIZE], objective=data[OBJECTIVE],
         starter_learning_rate=data[STARTER_LEARNING_RATE],
         decay_learning_rate=data[DECAY_LEARNING_RATE],
