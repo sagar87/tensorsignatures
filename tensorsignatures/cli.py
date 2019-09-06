@@ -222,7 +222,7 @@ def train(config, input, output, rank, objective, size, init, id,
               default=None,
               help='initialize TensorSignatures variables with a seed')
 @pass_config
-def boot(config, input, dump, init, id, norm, collapse, epochs, optimizer,
+def boot(config, input, dump, max_init, id, norm, collapse, epochs, optimizer,
          starter_learning_rate, decay_learning_rate, display_step,
          log_step, seed):
     snv = h5.File(input, 'r')['SNV'][()]
