@@ -176,7 +176,7 @@ def train(config, input, output, rank, objective, size, init, id,
 @main.command()
 @click.argument(INPUT, type=str)
 @click.argument('dump', type=str)
-@click.argument('max_init', type=init)
+@click.argument('max_init', type=int)
 @click.option('--' + ID, '-j',
               metavar='<str>',
               type=str,
