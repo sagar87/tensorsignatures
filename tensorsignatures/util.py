@@ -104,7 +104,7 @@ class Initialization(object):
         self._S0 = self._add_iterdim(S0)
         self._a0 = self._add_iterdim(a0)
         self._b0 = self._add_iterdim(b0)
-        self._ki = {k: self._add_iterdim(v) for k, v in k0.items()}
+        self._ki = {k: self._add_iterdim(v) for k, v in ki.items()}
 
         for key, value in self._ki.items():
             setattr(self, '_k' + str(key), np.exp(value))
