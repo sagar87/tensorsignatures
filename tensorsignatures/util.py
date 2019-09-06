@@ -126,7 +126,7 @@ class Initialization(object):
 
     def add_iterdim(self, array):
         # adds the iter dimension to all arrays
-        return array.reshape(*array, self.iter)
+        return array.reshape(*array.shape, self.iter)
 
     @lazy_property
     def S0s(self):
