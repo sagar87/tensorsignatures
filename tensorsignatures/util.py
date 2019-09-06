@@ -190,8 +190,7 @@ class Initialization(object):
     def _T1(self):
         T1 = np.concatenate(
             [self._T0, np.zeros((1, self.rank, self.iter))], axis=0)
-        T1 = np.exp(self._T1) \
-            / np.sum(np.exp(self._T1), axis=0, keepdims=True)
+        T1 = np.exp(T1) / np.sum(np.exp(T1), axis=0, keepdims=True)
 
         return T1
 
