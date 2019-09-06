@@ -141,7 +141,7 @@ class Initialization(object):
         # computes the SNV signature tensor
         S0 = np.concatenate(
             [self._S0, np.zeros((2, 2, 1, self.rank, self.iter))], axis=2)
-        S0 = np.exp(self._S0s) \
+        S0 = np.exp(self._S0) \
             / np.sum(np.exp(self._S0), axis=2, keepdims=True)
 
         S1 = np.stack([
@@ -264,9 +264,9 @@ class Cluster(Initialization):
         self._a0 = self[a0]
         self._b0 = self[b0]
 
-        for key in [var for var in list(self.dset) if var.startswith('k')]:
-            setattr(self, key, np.exp(self[key]))
-            self.memo[key] = getattr(self, key)
+        for key in [var for var in list(self.dset) if var.startswith('_k')]:
+            setattr(self, key[1:], np.exp(self[key]))
+            #self.memo[key] = getattr(self, key)
 
         self._m0 = self[m0]
 
