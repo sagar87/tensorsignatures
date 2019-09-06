@@ -144,7 +144,7 @@ def data(seed, rank, output, init, samples, mutations, dimensions):
 @pass_config
 def train(config, input, output, rank, objective, size, init, id,
           norm, collapse, epochs, optimizer, decay_learning_rate,
-          starter_learning_rate, display_step, seed):
+          starter_learning_rate, display_step, log_step, seed):
     """Deciphers tensorsignatures on a dataset.
     """
     snv = h5.File(input, 'r')['SNV'][()]
