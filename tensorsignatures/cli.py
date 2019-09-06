@@ -231,7 +231,7 @@ def boot(config, input, dump, max_init, id, norm, collapse, epochs, optimizer,
     if norm:
         N = h5.File(input, 'r')['N'][()]
 
-    initialization = load_dump(input)
+    initialization = load_dump(dump)
 
     for i in range(max_init):
         model = TenosrSignatureBootstrap(snv, other, initialization, N,
