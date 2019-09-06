@@ -120,14 +120,6 @@ class Initialization(object):
         self.log_L2 = self._add_iterdim(log_L2)
         self.sample_indices = self._add_iterdim(sample_indices)
 
-    def __getitem__(self, item):
-        if hasattr(self, str(item)):
-            return getattr(self, str(item))
-        if hasattr(self, '_' + str(item)):
-            return getattr(self, '_' + str(item))
-
-        raise KeyError('key not found')
-
     def _remove_iterdim(self, array):
         # removes the iter dimension
         return array[..., 0]
@@ -249,13 +241,26 @@ class Cluster(Initialization):
     """
     def __init__(self, dset, **kwargs):
         self.dset = dset
-        self.memo = {}
+
+        # set all parameters
+        self.objective = self.dset.attrs[OBJECTIVE]
+        self.epochs = self.dset.attrs[EPOCHS]
+        self.log_step = self.dset.attrs[LOG_STEP]
+        self.display_step = self.dset.attrs[DISPLAY_STEP]
+        self.starter_learning_rate = self.dset.attrs[STARTER_LEARNING_RATE]
+        self.decay_learning_rate = self.dset.attrs[DECAY_LEARNING_RATE]
+        self.optimizer = self.dset.attrs[OPTIMIZER]
+        self.observations = self.dset.attrs[OBSERVATIONS]
+        self.size = self.dset.attrs[SIZE]
+        self.id = self.dset.attrs[ID]
+        self.init = self.dset.attrs[INIT]
+
+        # cluster init
         self.seed = np.argmax(
             np.ma.array(
                 self.dset[LOG_L][()][-1, :],
                 mask=self.dset[LOG_L][()][-1, :] >= 0))
 
-        # cluster init
         self._S0, self._T0, self._E0, self.icol = Cluster.cluster_signatures(
             dset[S0], dset[T0], dset[E0], self.seed)
 
@@ -277,6 +282,16 @@ class Cluster(Initialization):
         # compute composite variables
         self.S
         self.T
+        self.E
+
+        self.log_epochs = self.dset[LOG_EPOCHS][..., list(self.icol.keys())]
+        self.log_learning_rate = \
+            self.dset[LOG_LEARNING_RATE][..., list(self.icol.keys())]
+        self.log_L = self.dset[log_L][LOG_L][..., list(self.icol.keys())]
+        self.log_L1 = self.dset[LOG_L1][..., list(self.icol.keys())]
+        self.log_L2 = self.dset[LOG_L2][..., list(self.icol.keys())]
+        self.sample_indices = \
+            self.dset[SAMPLE_INDICES][..., list(self.icol.keys())]
 
     def __len__(self):
         return self.iter
@@ -286,22 +301,41 @@ class Cluster(Initialization):
             yield i
 
     def __getitem__(self, item):
-        if item in self.memo:
-            return self.memo[item]
-        elif item in list(self.dset):
-            if item in VARS:
-                return self._sort_array(item, self.dset[item][()])
-            elif item.startswith('k'):
-                return self._sort_array(item, self.dset[item][()])
-            elif item in LOGS:
-                return self.dset[item][()][..., list(self.icol.keys())]
-            else:
-                return self.dset[item][()]
+        if not 0 <= item < self.iter:
+            raise KeyError('Init out of bound')
 
-        if item in list(self.dset.attrs):
-            return self.dset.attrs[item]
+        ki = {}
+        for key in [var for var in list(self.dset) if var.startswith('_k')]:
+            ki[int(key[2:])] = self.dset[key][..., init]
 
-        raise KeyError('Could not find item.')
+        initialization = Initialization(
+            S0=self.dset[S0][..., init],
+            a0=self.dset[a0][..., init],
+            b0=self.dset[b0][..., init],
+            ki=ki,
+            m0=self.dset[m0][..., init],
+            T0=self.dset[T0][..., init],
+            E0=self.dset[E0][..., init],
+            rank=self.dset.attrs[RANK],
+            size=self.dset.attrs[SIZE],
+            objective=self.dset.attrs[OBJECTIVE],
+            epochs=self.dset.attrs[EPOCHS],
+            starter_learning_rate=self.dset.attrs[STARTER_LEARNING_RATE],
+            decay_learning_rate=self.dset.attrs[DECAY_LEARNING_RATE],
+            optimizer=self.dset.attrs[OPTIMIZER],
+            log_step=self.dset.attrs[LOG_STEP],
+            display_step=self.dset.attrs[DISPLAY_STEP],
+            observations=self.dset.attrs[OBSERVATIONS],
+            id=self.dset.attrs[ID],
+            init=init,
+            seed=self.dset.attrs[SEED],
+            log_epochs=self.dset[LOG_EPOCHS][..., init],
+            log_learning_rate=self.dset[LOG_LEARNING_RATE][..., init],
+            log_L=self.dset[LOG_L][..., init],
+            log_L1=self.dset[LOG_L1][..., init],
+            log_L2=self.dset[LOG_L2][..., init],
+            sample_indices=self.dset[SAMPLE_INDICES][..., init]
+        )
 
     def __contains__(self, item):
         if (item in list(self.dset)) or (item in list(self.dset.attrs)):
@@ -410,68 +444,15 @@ class Cluster(Initialization):
 
         return p
 
-    @property
-    def observations(self):
-        return self[OBSERVATIONS]
-
-    @property
+    @lazy_property
     def likelihood(self):
-        return self[LOG_L][-1, :]
-
-    @property
-    def size(self):
-        if not hasattr(self, '_size'):
-            self._size = self[SIZE]
-
-        return self._size
+        return self.log_L[-1, :]
 
     @lazy_property
     def init(self):
         """Returns the maximum likelihood initialisation.
         """
         return np.argmax(self.likelihood)
-
-    def get_init(self, init=None):
-        """Returns initialization, if None :code:`get_init` returns the
-        initialization with the largest log likelihood.
-        """
-        if init is None:
-            init = self.init
-
-        k = {}
-        for key in [var for var in list(self.dset) if var.startswith('k')]:
-            k[int(key[1])] = self.dset[key][..., init]
-
-        initialization = Initialization(
-            S0=self.dset[S0][..., init],
-            a0=self.dset[a0][..., init],
-            b0=self.dset[b0][..., init],
-            ki=k,
-            m0=self.dset[m0][..., init],
-            T0=self.dset[T0][..., init],
-            E0=self.dset[E0][..., init],
-            rank=self[RANK],
-            size=self[SIZE],
-            objective=self[OBJECTIVE],
-            epochs=self[EPOCHS],
-            starter_learning_rate=self[STARTER_LEARNING_RATE],
-            decay_learning_rate=self[DECAY_LEARNING_RATE],
-            optimizer=self[OPTIMIZER],
-            log_step=self[LOG_STEP],
-            display_step=self[DISPLAY_STEP],
-            observations=self[OBSERVATIONS],
-            id=self[ID],
-            init=init,
-            seed=self[SEED],
-            log_epochs=self.dset[LOG_EPOCHS][..., init],
-            log_learning_rate=self.dset[LOG_LEARNING_RATE][..., init],
-            log_L=self.dset[LOG_L][..., init],
-            log_L1=self.dset[LOG_L1][..., init],
-            log_L2=self.dset[LOG_L2][..., init],
-            sample_indices=self.dset[SAMPLE_INDICES][..., init]
-        )
-
-        return initialization
 
     @property
     def summary_table(self):
@@ -557,10 +538,10 @@ class Experiment(object):
         self.memo = dict()
 
         # walk through all experiment params
-        self.dset.visititems(self.__visitor_func)
+        self.dset.visititems(self._visitor_func)
 
         if len(self.data) == 0:
-            self.dset.visititems(self.__visitor_func_merged)
+            self.dset.visititems(self._visitor_func_merged)
 
         if pre_cluster:
             for clu in tqdm(self):
@@ -581,12 +562,12 @@ class Experiment(object):
             self.memo[path] = Cluster(self.dset[path])
             return self.memo[path]
 
-    def __visitor_func(self, name, node):
+    def _visitor_func(self, name, node):
         if isinstance(node, h5.Dataset):
             path = '/'.join(node.name.split('/')[:-1])
             self.data.add(path)
 
-    def __visitor_func_merged(self, name, node):
+    def _visitor_func_merged(self, name, node):
         if isinstance(node, h5.Group):
             if len(node.attrs) != 0:
                 self.data.add(name)
