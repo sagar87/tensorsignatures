@@ -286,7 +286,7 @@ class Cluster(Initialization):
         self.log_epochs = self.dset[LOG_EPOCHS][..., list(self.icol.keys())]
         self.log_learning_rate = \
             self.dset[LOG_LEARNING_RATE][..., list(self.icol.keys())]
-        self.log_L = self.dset[log_L][LOG_L][..., list(self.icol.keys())]
+        self.log_L = self.dset[LOG_L][..., list(self.icol.keys())]
         self.log_L1 = self.dset[LOG_L1][..., list(self.icol.keys())]
         self.log_L2 = self.dset[LOG_L2][..., list(self.icol.keys())]
         self.sample_indices = \
