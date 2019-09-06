@@ -579,7 +579,7 @@ class TensorSignature(object):
 
         self.result = Initialization(S0=sess.run(self.S0),
             a0=sess.run(self.a0), b0=sess.run(self.b0),
-            k0=sess.run(self._clu_var), m0=sess.run(self.m0),
+            ki=sess.run(self._clu_var), m0=sess.run(self.m0),
             T0=sess.run(self.T0), E0=sess.run(self.E0), rank=self.rank,
             size=self.size, objective=self.objective,
             starter_learning_rate=self.starter_learning_rate,

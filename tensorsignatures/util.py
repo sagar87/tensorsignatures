@@ -79,7 +79,7 @@ class Initialization(object):
     Returns:
         A :obj:`TensorSingatureInit` object.
     """
-    def __init__(self, S0, a0, b0, k0, m0, T0, E0, rank, size, objective,
+    def __init__(self, S0, a0, b0, ki, m0, T0, E0, rank, size, objective,
                  starter_learning_rate, decay_learning_rate, optimizer,
                  epochs, log_step, display_step, observations, id, init,
                  seed, log_epochs, log_learning_rate, log_L, log_L1, log_L2,
@@ -224,7 +224,7 @@ class Initialization(object):
         for var in DUMP:
             if var in VARS or var in LOGS:
                 if var == k0:
-                    for k, v in self._k0.items():
+                    for k, v in self._ki.items():
                         data['k' + str(k)] = self._remove_iterdim(v)
                 else:
                     data[var] = self._remove_iterdim(getattr(self, var))
@@ -443,7 +443,7 @@ class Cluster(Initialization):
             S0=self.dset[S0][..., init],
             a0=self.dset[a0][..., init],
             b0=self.dset[b0][..., init],
-            k0=k,
+            ki=k,
             m0=self.dset[m0][..., init],
             T0=self.dset[T0][..., init],
             E0=self.dset[E0][..., init],
