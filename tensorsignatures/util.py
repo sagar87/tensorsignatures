@@ -783,31 +783,19 @@ def load_dump(path):
     fname, data = load_dict(path)
     dims = [key for key in list(data.keys()) if key.startswith('k')]
     kdim = {int(key[1:]): data[key] for key in dims}
-    if 'sub' in data:
-        init = BootstrapInitialization(S0=data[S0], a0=data[a0], b0=data[b0],
-            k0=kdim, m0=data[m0], T0=data[T0], E0=data[E0], rank=data[RANK],
-            size=data[SIZE], objective=data[OBJECTIVE],
-            starter_learning_rate=data[STARTER_LEARNING_RATE],
-            decay_learning_rate=data[DECAY_LEARNING_RATE],
-            optimizer=data[OPTIMIZER], epochs=data[EPOCHS],
-            log_step=data[LOG_STEP], display_step=data[DISPLAY_STEP],
-            observations=data[OBSERVATIONS], id=data[ID], init=data[INIT],
-            seed=data[SEED], log_epochs=data[LOG_EPOCHS],
-            log_learning_rate=data[LOG_LEARNING_RATE], log_L=data[LOG_L],
-            log_L1=data[LOG_L1], log_L2=data[LOG_L2], sub=data['sub'])
-    else:
-        init = Initialization(S0=data[S0], a0=data[a0], b0=data[b0],
-            k0=kdim, m0=data[m0], T0=data[T0], E0=data[E0], rank=data[RANK],
-            size=data[SIZE], objective=data[OBJECTIVE],
-            starter_learning_rate=data[STARTER_LEARNING_RATE],
-            decay_learning_rate=data[DECAY_LEARNING_RATE],
-            optimizer=data[OPTIMIZER], epochs=data[EPOCHS],
-            log_step=data[LOG_STEP], display_step=data[DISPLAY_STEP],
-            observations=data[OBSERVATIONS], id=data[ID], init=data[INIT],
-            seed=data[SEED], log_epochs=data[LOG_EPOCHS],
-            log_learning_rate=data[LOG_LEARNING_RATE], log_L=data[LOG_L],
-            log_L1=data[LOG_L1], log_L2=data[LOG_L2])
 
+    init = Initialization(S0=data[S0], a0=data[a0], b0=data[b0],
+        k0=kdim, m0=data[m0], T0=data[T0], E0=data[E0], rank=data[RANK],
+        size=data[SIZE], objective=data[OBJECTIVE],
+        starter_learning_rate=data[STARTER_LEARNING_RATE],
+        decay_learning_rate=data[DECAY_LEARNING_RATE],
+        optimizer=data[OPTIMIZER], epochs=data[EPOCHS],
+        log_step=data[LOG_STEP], display_step=data[DISPLAY_STEP],
+        observations=data[OBSERVATIONS], id=data[ID], init=data[INIT],
+        seed=data[SEED], log_epochs=data[LOG_EPOCHS],
+        log_learning_rate=data[LOG_LEARNING_RATE], log_L=data[LOG_L],
+        log_L1=data[LOG_L1], log_L2=data[LOG_L2],
+        sample_indices=data[SAMPLE_INDICES])
 
     return init
 
