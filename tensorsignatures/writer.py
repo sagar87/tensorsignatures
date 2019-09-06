@@ -78,10 +78,10 @@ def save_hdf(data, fname, mode='w', verbose=False):
             else:
                 group = fh[group_name]
             for var in VARS:
-                if var == k0:
+                if var == ki:
                     for key, value in getattr(init, var).items():
                         add_array(
-                            group, 'k' + str(key), value[..., 0], init.init)
+                            group, '_k' + str(key), value[..., 0], init.init)
                 else:
                     add_array(
                         group, var, getattr(init, var)[..., 0], init.init)

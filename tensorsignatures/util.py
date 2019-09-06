@@ -142,7 +142,7 @@ class Initialization(object):
         S0 = np.concatenate(
             [self._S0, np.zeros((2, 2, 1, self.rank, self.iter))], axis=2)
         S0 = np.exp(self._S0s) \
-            / np.sum(np.exp(self._S0s), axis=2, keepdims=True)
+            / np.sum(np.exp(self._S0), axis=2, keepdims=True)
 
         S1 = np.stack([
             S0[0, 0],
@@ -176,6 +176,7 @@ class Initialization(object):
 
     @lazy_property
     def _A(self):
+        # computes the amplitude tensor
         a1 = np.concatenate(
             [self.a, self.a, np.ones([2, self.rank, self.iter])],
             axis=0).reshape(3, 2, self.rank, self.iter)
@@ -223,7 +224,7 @@ class Initialization(object):
         data = {}
         for var in DUMP:
             if var in VARS or var in LOGS:
-                if var == k0:
+                if var == ki:
                     for k, v in self._ki.items():
                         data['_k' + str(k)] = self._remove_iterdim(v)
                 else:
@@ -252,22 +253,22 @@ class Cluster(Initialization):
                 mask=self.dset[LOG_L][()][-1, :] >= 0))
 
         # cluster init
-        self.S0, self.T0, self._E0, self.icol = Cluster.cluster_signatures(
+        self._S0, self._T0, self._E0, self.icol = Cluster.cluster_signatures(
             dset[S0], dset[T0], dset[E0], self.seed)
 
-        self.iter = self.S0.shape[-1]
-        self.rank = self.S0.shape[-2]
-        self.samples = self.E0.shape[-2]
+        self.iter = self._S0.shape[-1]
+        self.rank = self._S0.shape[-2]
+        self.samples = self._E0.shape[-2]
 
         # initialize variables
-        self.a0 = self[a0]
-        self.b0 = self[b0]
+        self._a0 = self[a0]
+        self._b0 = self[b0]
 
         for key in [var for var in list(self.dset) if var.startswith('k')]:
             setattr(self, key, np.exp(self[key]))
             self.memo[key] = getattr(self, key)
 
-        self.m0 = self[m0]
+        self._m0 = self[m0]
 
         # compute composite variables
         self.S
