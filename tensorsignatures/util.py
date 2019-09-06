@@ -253,7 +253,6 @@ class Cluster(Initialization):
         self.observations = self.dset.attrs[OBSERVATIONS]
         self.size = self.dset.attrs[SIZE]
         self.id = self.dset.attrs[ID]
-        self.init = self.dset.attrs[INIT]
 
         # cluster init
         self.seed = np.argmax(
