@@ -226,6 +226,11 @@ class BootstrapInitialization(Initialization):
         self.sub = sub
         super().__init__(**kwargs)
 
+    def to_dic(self):
+        data = super().to_dic()
+        data['sub'] = self.sub
+        return data
+
 
 class Cluster(Initialization):
     """

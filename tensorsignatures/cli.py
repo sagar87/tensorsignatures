@@ -17,6 +17,7 @@ from tensorsignatures.writer import link_datasets
 from tensorsignatures.writer import save_hdf
 
 from tensorsignatures.tensorsignatures import TensorSignature
+from tensorsignatures.bootstrap import TensorSignatureBootstrap
 from tensorsignatures.data import TensorSignatureData
 from tensorsignatures.config import *
 
@@ -130,6 +131,11 @@ def data(seed, rank, output, init, samples, mutations, dimensions):
               type=int,
               default=100,
               help='progress updates / log step (default = 100)')
+@click.option('--' + LOG_STEP, '-ls',
+              metavar='<int>',
+              type=int,
+              default=100,
+              help='epoch inteval to make logging steps (default = 100)')
 @click.option('--' + SEED, '-se',
               metavar='<int>',
               type=int,
@@ -168,8 +174,75 @@ def train(config, input, output, rank, objective, size, init, id,
 
 
 @main.command()
-def boot():
-    print('Run bootstrapping with an itertion of tensor signature output.')
+@click.argument(INPUT, type=str)
+@click.argument('dump', type=str)
+@click.argument('max_init', type=init)
+@click.option('--' + ID, '-j',
+              metavar='<str>',
+              type=str,
+              default='tsTrain',
+              help='job id (default = 0)')
+@click.option('--' + NORMALIZE, '-n',
+              is_flag=True,
+              help='multiply Chat1 with supplied normalisation constant N')
+@click.option('--' + COLLAPSE, '-c',
+              is_flag=True,
+              help='collapse pyrimindine/purine dimension (SNV.shape[-2])')
+@click.option('--' + EPOCHS, '-ep',
+              metavar='<int>',
+              type=int,
+              default=10000,
+              help='number of epochs / training steps')
+@click.option('--' + OPTIMIZER, '-op',
+              type=OPTIMIZER_CHOICE,
+              default='ADAM',
+              help='choose optimizer (default ADAM)')
+@click.option('--' + STARTER_LEARNING_RATE, '-lr',
+              metavar='<float>',
+              type=float,
+              default=0.1,
+              help='starter learning rate (default = 0.1)')
+@click.option('--' + DECAY_LEARNING_RATE, '-ld',
+              type=DECAY_LEARNING_RATE_CHOICE,
+              default='exponential',
+              help='learning rate decay (default exponential)')
+@click.option('--' + DISPLAY_STEP, '-ds',
+              metavar='<int>',
+              type=int,
+              default=100,
+              help='progress updates / log step (default = 100)')
+@click.option('--' + LOG_STEP, '-ls',
+              metavar='<int>',
+              type=int,
+              default=100,
+              help='epoch inteval to make logging steps (default = 100)')
+@click.option('--' + SEED, '-se',
+              metavar='<int>',
+              type=int,
+              default=None,
+              help='initialize TensorSignatures variables with a seed')
+@pass_config
+def boot(config, input, dump, init, id, norm, collapse, epochs, optimizer,
+         starter_learning_rate, decay_learning_rate, display_step,
+         log_step, seed):
+    snv = h5.File(input, 'r')['SNV'][()]
+    other = h5.File(input, 'r')['OTHER'][()]
+    N = None
+    if norm:
+        N = h5.File(input, 'r')['N'][()]
+
+    initialization = ts.load_dump(input)
+
+    for i in range(max_init):
+        model = TenosrSignatureBootstrap(snv, other, initialization, N,
+            collapse, epochs, starter_learning_rate, decay_learning_rate,
+            optimizer, log_step, display_step, id, init, seed)
+
+        result = model.fit()
+        result.dump(id + '_I=' + str(i) + '.plk')
+
+
+    #print('Run bootstrapping with an itertion of tensor signature output.')
 
 
 @main.command()
