@@ -120,7 +120,7 @@ class Initialization(object):
         self.log_L2 = self._add_iterdim(log_L2)
         self.sample_indices = self._add_iterdim(sample_indices)
 
-    def __get_item__(self, item):
+    def __getitem__(self, item):
         if hasattr(self, str(item)):
             return getattr(self, str(item))
         if hasattr(self, '_' + str(item)):
