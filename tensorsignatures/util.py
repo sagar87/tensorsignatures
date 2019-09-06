@@ -205,7 +205,11 @@ class Initialization(object):
 
     @lazy_property
     def T(self):
-        return self._T1 * (1 - self._m)
+        return self._T1 * (1 - self.m)
+
+    @lazy_property
+    def E(self):
+        return np.exp(self._E0)
 
     @lazy_property
     def a(self):
