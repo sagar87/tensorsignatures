@@ -101,30 +101,38 @@ class Initialization(object):
         self.iter = 1
 
         # make data accessible
-        self.S0 = self.add_iterdim(S0)
-        self.a0 = self.add_iterdim(a0)
-        self.b0 = self.add_iterdim(b0)
-        self._k0 = {k: self.add_iterdim(v) for k, v in k0.items()}
+        self.S0 = self._add_iterdim(S0)
+        self.a0 = self._add_iterdim(a0)
+        self.b0 = self._add_iterdim(b0)
+        self._k0 = {k: self._add_iterdim(v) for k, v in k0.items()}
 
         for key, value in self._k0.items():
             setattr(self, 'k' + str(key), np.exp(value))
 
-        self.m0 = self.add_iterdim(m0)
-        self.T0 = self.add_iterdim(T0)
-        self.E0 = self.add_iterdim(E0)
+        self.m0 = self._add_iterdim(m0)
+        self.T0 = self._add_iterdim(T0)
+        self.E0 = self._add_iterdim(E0)
 
-        self.log_epochs = self.add_iterdim(log_epochs)
-        self.log_learning_rate = self.add_iterdim(log_learning_rate)
-        self.log_L = self.add_iterdim(log_L)
-        self.log_L1 = self.add_iterdim(log_L1)
-        self.log_L2 = self.add_iterdim(log_L2)
-        self.sample_indices = self.add_iterdim(sample_indices)
+        self.log_epochs = self._add_iterdim(log_epochs)
+        self.log_learning_rate = self._add_iterdim(log_learning_rate)
+        self.log_L = self._add_iterdim(log_L)
+        self.log_L1 = self._add_iterdim(log_L1)
+        self.log_L2 = self._add_iterdim(log_L2)
+        self.sample_indices = self._add_iterdim(sample_indices)
 
-    def remove_iterdim(self, array):
+    def __get_item__(self, item):
+        if hasattr(self, str(item)):
+            return getattr(self, str(item))
+        if hasattr(self, '_' + str(item)):
+            return getattr(self, '_' + str(item))
+
+        raise KeyError('key not found')
+
+    def _remove_iterdim(self, array):
         # removes the iter dimension
         return array[..., 0]
 
-    def add_iterdim(self, array):
+    def _add_iterdim(self, array):
         # adds the iter dimension to all arrays
         return array.reshape(*array.shape, self.iter)
 
@@ -218,9 +226,9 @@ class Initialization(object):
             if var in VARS or var in LOGS:
                 if var == k0:
                     for k, v in self._k0.items():
-                        data['k' + str(k)] = self.remove_iterdim(v)
+                        data['k' + str(k)] = self._remove_iterdim(v)
                 else:
-                    data[var] = self.remove_iterdim(getattr(self, var))
+                    data[var] = self._remove_iterdim(getattr(self, var))
             else:
                 data[var] = getattr(self, var)
 
