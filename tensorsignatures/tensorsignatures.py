@@ -577,32 +577,20 @@ class TensorSignature(object):
         self.log_L1[-1] = sess.run(self.L1)
         self.log_L2[-1] = sess.run(self.L2)
 
-        self.result = Initialization(
-            S0=sess.run(self.S0),
-            a0=sess.run(self.a0),
-            b0=sess.run(self.b0),
-            k0=sess.run(self._clu_var),
-            m0=sess.run(self.m0),
-            T0=sess.run(self.T0),
-            E0=sess.run(self.E0),
-            rank=self.rank,
-            size=self.size,
-            objective=self.objective,
+        self.result = Initialization(S0=sess.run(self.S0),
+            a0=sess.run(self.a0), b0=sess.run(self.b0),
+            k0=sess.run(self._clu_var), m0=sess.run(self.m0),
+            T0=sess.run(self.T0), E0=sess.run(self.E0), rank=self.rank,
+            size=self.size, objective=self.objective,
             starter_learning_rate=self.starter_learning_rate,
             decay_learning_rate=self.decay_learning_rate,
-            optimizer=self.optimizer,
-            epochs=self.epochs,
-            log_step=self.log_step,
-            display_step=self.display_step,
-            observations=self.observations,
-            id=self.id,
-            init=self.init,
-            seed=self.seed,
-            log_epochs=self.log_epochs,
-            log_learning_rate=self.log_learning_rate,
-            log_L=self.log_L,
-            log_L1=self.log_L1,
-            log_L2=self.log_L2)
+            optimizer=self.optimizer, epochs=self.epochs,
+            log_step=self.log_step, display_step=self.display_step,
+            observations=self.observations, id=self.id, init=self.init,
+            seed=self.seed, log_epochs=self.log_epochs,
+            log_learning_rate=self.log_learning_rate, log_L=self.log_L,
+            log_L1=self.log_L1, log_L2=self.log_L2,
+            sample_indices=np.arange(self.samples))
 
         if sess is None:
             sess.close()

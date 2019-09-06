@@ -73,18 +73,21 @@ LOG_LEARNING_RATE = 'log_learning_rate'
 LOG_L = 'log_L'
 LOG_L1 = 'log_L1'
 LOG_L2 = 'log_L2'
-LOG_STRING = 'Likelihood {lh:.2f} delta {delta:.2f} snv {snv:.2f} other {other:.2f} lr {lr:.4f}'
+SAMPLE_INDICES = 'sample_indices'
 
 LOGS = [
     LOG_EPOCHS,
     LOG_LEARNING_RATE,
     LOG_L,
     LOG_L1,
-    LOG_L2
+    LOG_L2,
+    SAMPLE_INDICES
 ]
 
+LOG_STRING = 'Likelihood {lh:.2f} delta {delta:.2f} snv {snv:.2f} other {other:.2f} lr {lr:.4f}'
 DUMP = PARAMS + VARS + LOGS
 
+PARAMETERS = 'params'
 
 # For CLI.py
 

@@ -45,7 +45,7 @@ class TensorSignatureBootstrap(TensorSignature):
         self.id = id
         self.init = init
         self.seed = seed
-        self.sub = np.random.choice(
+        self.sample_indices = np.random.choice(
             np.arange(self.initialization.E0.shape[1]),
             int(np.floor(self.initialization.E0.shape[1] * SAMPLE_FRACTION)),
             replace=False)
@@ -147,7 +147,7 @@ class TensorSignatureBootstrap(TensorSignature):
         self.log_L1[-1] = sess.run(self.L1)
         self.log_L2[-1] = sess.run(self.L2)
 
-        self.result = BootstrapInitialization(
+        self.result = Initialization(
             S0=sess.run(self.S0),
             a0=sess.run(self.a0),
             b0=sess.run(self.b0),
@@ -173,7 +173,7 @@ class TensorSignatureBootstrap(TensorSignature):
             log_L=self.log_L,
             log_L1=self.log_L1,
             log_L2=self.log_L2,
-            sub=self.sub)
+            sample_indices=self.sample_indices)
 
         if sess is None:
             sess.close()

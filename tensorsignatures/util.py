@@ -82,7 +82,8 @@ class Initialization(object):
     def __init__(self, S0, a0, b0, k0, m0, T0, E0, rank, size, objective,
                  starter_learning_rate, decay_learning_rate, optimizer,
                  epochs, log_step, display_step, observations, id, init,
-                 seed, log_epochs, log_learning_rate, log_L, log_L1, log_L2):
+                 seed, log_epochs, log_learning_rate, log_L, log_L1, log_L2,
+                 sample_indices):
         # store hyperparameters
         self.seed = seed
         self.objective = objective
@@ -99,24 +100,33 @@ class Initialization(object):
         self.init = init
         self.iter = 1
 
-        self.S0 = S0.reshape(*S0.shape, self.iter)
-        self.a0 = a0.reshape(*a0.shape, self.iter)
-        self.b0 = b0.reshape(*b0.shape, self.iter)
-        self._k0 = {k: v.reshape(*v.shape, self.iter) for k, v in k0.items()}
+        # make data accessible
+        self.S0 = self.add_iterdim(S0)
+        self.a0 = self.add_iterdim(a0)
+        self.b0 = self.add_iterdim(b0)
+        self._k0 = {k: self.add_iterdim(v) for k, v in k0.items()}
 
         for key, value in self._k0.items():
             setattr(self, 'k' + str(key), np.exp(value))
 
-        self.m0 = m0.reshape(*m0.shape, self.iter)
-        self.T0 = T0.reshape(*T0.shape, self.iter)
-        self.E0 = E0.reshape(*E0.shape, self.iter)
+        self.m0 = self.add_iterdim(m0)
+        self.T0 = self.add_iterdim(T0)
+        self.E0 = self.add_iterdim(E0)
 
-        self.log_epochs = log_epochs.reshape(*log_epochs.shape, self.iter)
-        self.log_learning_rate = log_learning_rate.reshape(
-            *log_learning_rate.shape, self.iter)
-        self.log_L = log_L.reshape(*log_L.shape, self.iter)
-        self.log_L1 = log_L1.reshape(*log_L1.shape, self.iter)
-        self.log_L2 = log_L2.reshape(*log_L2.shape, self.iter)
+        self.log_epochs = self.add_iterdim(log_epochs)
+        self.log_learning_rate = self.add_iterdim(log_learning_rate)
+        self.log_L = self.add_iterdim(log_L)
+        self.log_L1 = self.add_iterdim(log_L1)
+        self.log_L2 = self.add_iterdim(log_L2)
+        self.sample_indices = self.add_iterdim(sample_indices)
+
+    def remove_iterdim(self, array):
+        # removes the iter dimension
+        return array[..., 0]
+
+    def add_iterdim(self, array):
+        # adds the iter dimension to all arrays
+        return array.reshape(*array, self.iter)
 
     @lazy_property
     def S0s(self):
@@ -208,9 +218,9 @@ class Initialization(object):
             if var in VARS or var in LOGS:
                 if var == k0:
                     for k, v in self._k0.items():
-                        data['k' + str(k)] = v[..., 0]
+                        data['k' + str(k)] = self.remove_iterdim(v)
                 else:
-                    data[var] = getattr(self, var)[..., 0]
+                    data[var] = self.remove_iterdim(getattr(self, var))
             else:
                 data[var] = getattr(self, var)
 
@@ -219,17 +229,6 @@ class Initialization(object):
     def dump(self, path):
         data = self.to_dic()
         save_dict(data, path)
-
-
-class BootstrapInitialization(Initialization):
-    def __init__(self, sub, **kwargs):
-        self.sub = sub
-        super().__init__(**kwargs)
-
-    def to_dic(self):
-        data = super().to_dic()
-        data['sub'] = self.sub
-        return data
 
 
 class Cluster(Initialization):
@@ -454,11 +453,12 @@ class Cluster(Initialization):
             id=self[ID],
             init=init,
             seed=self[SEED],
-            log_epochs=self[LOG_EPOCHS][..., init],
-            log_learning_rate=self[LOG_LEARNING_RATE][..., init],
-            log_L=self[LOG_L][..., init],
-            log_L1=self[LOG_L1][..., init],
-            log_L2=self[LOG_L2][..., init],
+            log_epochs=self.dset[LOG_EPOCHS][..., init],
+            log_learning_rate=self.dset[LOG_LEARNING_RATE][..., init],
+            log_L=self.dset[LOG_L][..., init],
+            log_L1=self.dset[LOG_L1][..., init],
+            log_L2=self.dset[LOG_L2][..., init],
+            sample_indices=self.dset[SAMPLE_INDICES][..., init]
         )
 
         return initialization
@@ -473,14 +473,15 @@ class Cluster(Initialization):
                 SIZE: [self.size] * self.iter,
                 RANK: [self.rank] * self.iter,
                 INIT: np.arange(0, self.iter),
-                'k': [self.parameters] * self.iter,
+                PARAMETERS: [self.parameters] * self.iter,
                 OBSERVATIONS: [self.observations] * self.iter,
             })
 
-            df[AIC] = 2 * df['k'] - 2 * df[LOG_L]
-            df[AIC_C] = df[AIC] + (2 * df['k']**2 + 2 * df['k']) \
-                / (df[OBSERVATIONS] - df['k'] - 1)
-            df[BIC] = np.log(df[OBSERVATIONS]) * df['k'] - 2 * df[LOG_L]
+            df[AIC] = 2 * df[PARAMETERS] - 2 * df[LOG_L]
+            df[AIC_C] = df[AIC] + \
+                (2 * df[PARAMETERS]**2 + 2 * df[PARAMETERS]) \
+                / (df[OBSERVATIONS] - df[PARAMETERS] - 1)
+            df[BIC] = np.log(df[OBSERVATIONS]) * df[PARAMETERS] - 2 * df[LOG_L]
 
             self._summary = df
 
