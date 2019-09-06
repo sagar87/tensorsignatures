@@ -234,7 +234,7 @@ def boot(config, input, dump, max_init, id, norm, collapse, epochs, optimizer,
     initialization = load_dump(dump)
 
     for i in range(max_init):
-        model = TenosrSignatureBootstrap(snv, other, initialization, N,
+        model = TensorSignatureBootstrap(snv, other, initialization, N,
             collapse, epochs, starter_learning_rate, decay_learning_rate,
             optimizer, log_step, display_step, id, i, seed)
 
