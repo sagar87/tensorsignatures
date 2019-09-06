@@ -200,7 +200,7 @@ class Initialization(object):
         S = self._S1 \
             * self._B \
             * self._A.reshape(3, 3, 1, self.rank, self.iter) \
-            * self._m.reshape(1, 1, 1, self.rank, self.iter)
+            * self.m.reshape(1, 1, 1, self.rank, self.iter)
 
         return S
 
