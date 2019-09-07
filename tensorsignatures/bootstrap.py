@@ -46,8 +46,8 @@ class TensorSignatureBootstrap(TensorSignature):
         self.init = init
         self.seed = seed
         self.sample_indices = np.random.choice(
-            np.arange(self.initialization.E0.shape[1]),
-            int(np.floor(self.initialization.E0.shape[1] * SAMPLE_FRACTION)),
+            np.arange(self.initialization._E0.shape[1]),
+            int(np.floor(self.initialization._E0.shape[1] * SAMPLE_FRACTION)),
             replace=False)
         self.samples = self.sample_indices.shape[0]
         self.dtype = tf.float32
