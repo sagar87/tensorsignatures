@@ -49,7 +49,7 @@ class TensorSignatureBootstrap(TensorSignature):
             np.arange(self.initialization.E0.shape[1]),
             int(np.floor(self.initialization.E0.shape[1] * SAMPLE_FRACTION)),
             replace=False)
-        self.samples = self.sub.shape[0]
+        self.samples = self.sample_indices.shape[0]
         self.dtype = tf.float32
         self.verbose = kwargs.get('verbose', True)
         self.frac = DISTORTION
@@ -58,9 +58,9 @@ class TensorSignatureBootstrap(TensorSignature):
         if self.collapse:
             self.snv = TensorSignature.collapse_data(snv[..., sub])
         else:
-            self.snv = snv[..., self.sub]
+            self.snv = snv[..., self.sample_indices]
 
-        self.other = other[..., self.sub]
+        self.other = other[..., self.sample_indices]
         self.observations = np.sum(
             ~np.isnan(self.snv)) + np.sum(~np.isnan(self.other))
 
@@ -254,7 +254,7 @@ class TensorSignatureBootstrap(TensorSignature):
     @define_scope
     def E(self):
         self.E0 = tf.Variable(
-            self.initialization._E0[..., self.sub, 0], name='E0')
+            self.initialization._E0[..., self.sample_indices, 0], name='E0')
         self._E = tf.exp(self.E0, name='E')
 
         if self.verbose:
@@ -472,7 +472,7 @@ class TensorSignatureBootstrapSubsample(TensorSignatureBootstrap):
         self.rank = clu.rank
 
         self.samples = int(np.floor(clu.samples * sub))
-        self.sub = np.random.choice(np.arange(clu.samples), self.samples, replace=False)
+        self.sample_indices = np.random.choice(np.arange(clu.samples), self.samples, replace=False)
 
         self.verbose = kwargs.get('verbose', True)
         self.size = self.clu.dset['tau'][()][..., self.init]

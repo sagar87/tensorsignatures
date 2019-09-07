@@ -105,9 +105,14 @@ class Initialization(object):
         self._a0 = self._add_iterdim(a0)
         self._b0 = self._add_iterdim(b0)
         self._ki = {k: self._add_iterdim(v) for k, v in ki.items()}
+        self._kdim = []
 
         for key, value in self._ki.items():
-            setattr(self, 'k' + str(key), np.exp(value))
+            ki = np.exp(value)
+            _ki = np.concatenate([np.ones((1, *ki.shape[1:])), ki])
+            setattr(self, 'k' + str(key), ki)
+            setattr(self, '_k' + str(key), _ki)
+            self._kdim.append(ki.shape[0])
 
         self._m0 = self._add_iterdim(m0)
         self._T0 = self._add_iterdim(T0)
@@ -193,6 +198,14 @@ class Initialization(object):
             * self._A.reshape(3, 3, 1, self.rank, self.iter) \
             * self.m.reshape(1, 1, 1, self.rank, self.iter)
 
+        S = S.reshape(3, 3, *([1] * len(self._kdim)), -1, self.rank, self.iter)
+
+        for i, j in enumerate(self._kdim):
+            dim = [1] * len(self._kdim)
+            dim[i] = j + 1
+            dim = [1, 1] + dim + [1, self.rank, self.iter]
+            S = S * getattr(self, '_k' + str(i)).reshape(*dim)
+
         return S
 
     @lazy_property
@@ -270,11 +283,14 @@ class Cluster(Initialization):
         # initialize variables
         self._a0 = self._sort_array(self.dset[a0][()])
         self._b0 = self._sort_array(self.dset[b0][()])
+        self._kdim = []
 
         for key in [var for var in list(self.dset) if var.startswith('_k')]:
-            setattr(self,
-                    key[1:],
-                    np.exp(self._sort_array(self.dset[key][()])))
+            ki = np.exp(self._sort_array(self.dset[key][()]))
+            _ki = np.concatenate([np.ones((1, *ki.shape[1:])), ki])
+            setattr(self, key[1:], ki)
+            setattr(self, key, _ki)
+            self._kdim.append(ki.shape[0])
 
         self._m0 = self._sort_array(self.dset[m0][()])
 
@@ -299,8 +315,8 @@ class Cluster(Initialization):
         for i in range(self.iter):
             yield i
 
-    def __getitem__(self, item):
-        if not 0 <= item < self.iter:
+    def __getitem__(self, init):
+        if not 0 <= init < self.iter:
             raise KeyError('Init out of bound')
 
         ki = {}
@@ -308,15 +324,10 @@ class Cluster(Initialization):
             ki[int(key[2:])] = self.dset[key][..., init]
 
         initialization = Initialization(
-            S0=self.dset[S0][..., init],
-            a0=self.dset[a0][..., init],
-            b0=self.dset[b0][..., init],
-            ki=ki,
-            m0=self.dset[m0][..., init],
-            T0=self.dset[T0][..., init],
-            E0=self.dset[E0][..., init],
-            rank=self.dset.attrs[RANK],
-            size=self.dset.attrs[SIZE],
+            S0=self.dset[S0][..., init], a0=self.dset[a0][..., init],
+            b0=self.dset[b0][..., init], ki=ki, m0=self.dset[m0][..., init],
+            T0=self.dset[T0][..., init], E0=self.dset[E0][..., init],
+            rank=self.dset.attrs[RANK], size=self.dset.attrs[SIZE],
             objective=self.dset.attrs[OBJECTIVE],
             epochs=self.dset.attrs[EPOCHS],
             starter_learning_rate=self.dset.attrs[STARTER_LEARNING_RATE],
@@ -325,9 +336,7 @@ class Cluster(Initialization):
             log_step=self.dset.attrs[LOG_STEP],
             display_step=self.dset.attrs[DISPLAY_STEP],
             observations=self.dset.attrs[OBSERVATIONS],
-            id=self.dset.attrs[ID],
-            init=init,
-            seed=self.dset.attrs[SEED],
+            id=self.dset.attrs[ID], init=init, seed=self.dset.attrs[SEED],
             log_epochs=self.dset[LOG_EPOCHS][..., init],
             log_learning_rate=self.dset[LOG_LEARNING_RATE][..., init],
             log_L=self.dset[LOG_L][..., init],
@@ -336,11 +345,13 @@ class Cluster(Initialization):
             sample_indices=self.dset[SAMPLE_INDICES][..., init]
         )
 
+        return initialization
+
     def __contains__(self, item):
-        if (item in list(self.dset)) or (item in list(self.dset.attrs)):
+        if 0 <= item < self.iter:
             return True
-        else:
-            False
+
+        return False
 
     def as_list(self, key, sign=1):
         if key in self:
@@ -427,16 +438,14 @@ class Cluster(Initialization):
     @lazy_property
     def parameters(self):
         p = 4 * 95
-        p += self[a0].shape[0] if a0 in self else 0
-        p += self[b0].shape[0] if b0 in self else 0
+        p += self._a0.shape[0]
+        p += self._b0.shape[0]
 
-        p += self['k0'].shape[0] if 'k0' in self else 0
-        p += self['k1'].shape[0] if 'k1' in self else 0
-        p += self['k2'].shape[0] if 'k2' in self else 0
-        p += self['k3'].shape[0] if 'k3' in self else 0
+        for dim in self._kdim:
+            p += dim
 
-        p += 1 if m0 in self else 0
-        p += self[T0].shape[0] if T0 in self else 0
+        p += self._m0.shape[0]
+        p += self._T0.shape[0]
 
         p = p * self.rank
         p += self.samples * self.rank
@@ -444,38 +453,35 @@ class Cluster(Initialization):
         return p
 
     @lazy_property
-    def likelihood(self):
+    def log_likelihood(self):
         return self.log_L[-1, :]
 
     @lazy_property
     def init(self):
         """Returns the maximum likelihood initialisation.
         """
-        return np.argmax(self.likelihood)
+        return np.argmax(self.log_likelihood)
 
-    @property
+    @lazy_property
     def summary_table(self):
-        if not hasattr(self, '_summary'):
-            df = pd.DataFrame({
-                LOG_L1: self[LOG_L1][-1, list(self.icol.keys())].tolist(),
-                LOG_L2: self[LOG_L2][-1, list(self.icol.keys())].tolist(),
-                LOG_L: self.likelihood.tolist(),
-                SIZE: [self.size] * self.iter,
-                RANK: [self.rank] * self.iter,
-                INIT: np.arange(0, self.iter),
-                PARAMETERS: [self.parameters] * self.iter,
-                OBSERVATIONS: [self.observations] * self.iter,
-            })
+        df = pd.DataFrame({
+            LOG_L1: self.log_L1[-1, :].tolist(),
+            LOG_L2: self.log_L2[-1, :].tolist(),
+            LOG_L: self.log_likelihood.tolist(),
+            SIZE: [self.size] * self.iter,
+            RANK: [self.rank] * self.iter,
+            INIT: np.arange(0, self.iter),
+            PARAMETERS: [self.parameters] * self.iter,
+            OBSERVATIONS: [self.observations] * self.iter,
+        })
 
-            df[AIC] = 2 * df[PARAMETERS] - 2 * df[LOG_L]
-            df[AIC_C] = df[AIC] + \
-                (2 * df[PARAMETERS]**2 + 2 * df[PARAMETERS]) \
-                / (df[OBSERVATIONS] - df[PARAMETERS] - 1)
-            df[BIC] = np.log(df[OBSERVATIONS]) * df[PARAMETERS] - 2 * df[LOG_L]
+        df[AIC] = 2 * df[PARAMETERS] - 2 * df[LOG_L]
+        df[AIC_C] = df[AIC] + \
+            (2 * df[PARAMETERS]**2 + 2 * df[PARAMETERS]) \
+            / (df[OBSERVATIONS] - df[PARAMETERS] - 1)
+        df[BIC] = np.log(df[OBSERVATIONS]) * df[PARAMETERS] - 2 * df[LOG_L]
 
-            self._summary = df
-
-        return self._summary
+        return df
 
     def coefficient_table(self, cdim='b0', avg=False):
         """
