@@ -6,6 +6,7 @@ import click
 import glob
 import os
 import h5py as h5
+from tdqm import trange
 
 from multiprocessing import Pool
 from multiprocessing import cpu_count
@@ -296,7 +297,13 @@ def write(config, input, output, cores, block_size, remove, link):
         if cores > 1:
             data = pool.map(load_dump, files)
         else:
-            data = [load_dump(f) for f in files]
+            data = []
+            t = trange(files, desc='Progress', leave=True)
+            for f in t:
+                data.append(load_dump(f))
+                t.set_description('Loading: {}'.format(f))
+                t.refresh()
+            # data = [load_dump(f) for f in files]
 
         mode = 'a' if os.path.exists(output) else 'w'
         save_hdf(data, output, mode, config.verbose)
