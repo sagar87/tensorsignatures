@@ -6,7 +6,7 @@ import click
 import glob
 import os
 import h5py as h5
-from tdqm import trange
+from tqdm import trange
 
 from multiprocessing import Pool
 from multiprocessing import cpu_count
