@@ -280,6 +280,7 @@ def write(config, input, output, cores, block_size, remove, link):
     """
 
     files = glob.glob(input)
+    print(files)
     total_files = len(files)
 
     if config.verbose:
