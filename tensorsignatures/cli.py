@@ -298,9 +298,9 @@ def write(config, input, output, cores, block_size, remove, link):
             data = pool.map(load_dump, files)
         else:
             data = []
-            t = trange(files, desc='Progress', leave=True)
-            for f in t:
-                data.append(load_dump(f))
+            t = trange(len(files), desc='Progress', leave=True)
+            for i in t:
+                data.append(load_dump(files[i]))
                 t.set_description('Loading: {}'.format(f))
                 t.refresh()
             # data = [load_dump(f) for f in files]
