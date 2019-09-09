@@ -298,10 +298,10 @@ def write(config, input, output, cores, block_size, remove, link):
             data = pool.map(load_dump, files)
         else:
             data = []
-            t = trange(len(files), desc='Progress', leave=True)
+            t = trange(total_files, desc='Progress', leave=True)
             for i in t:
                 data.append(load_dump(files[i]))
-                t.set_description('Loading: {}'.format(f))
+                t.set_description('Loading: {}'.format(files[i]))
                 t.refresh()
             # data = [load_dump(f) for f in files]
 
