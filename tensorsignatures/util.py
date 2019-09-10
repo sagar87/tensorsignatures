@@ -44,9 +44,10 @@ def assign_signatures(reference, signature):
     based on their cosine similarity.
 
     Args:
-        reference (:obj:`array`, shape :math:`(p,s)`): Reference signature
-        matrix (mutation types :math:`\times` signatures).
-        signature (:obj:`array`, shape :math:`(p,s)`): Second signature matrix.
+        reference (:obj:`array`, :code`shape` :math:`(p,s)`): Reference
+            signature matrix (mutation types :math:`\times` signatures).
+        signature (:obj:`array`, :code:`shape` :math:`(p,s)`): Second signature
+            matrix.
     Returs:
         A tuple of three arrays containing the signature indices of the
             reference signatures array, corresponding signatures indices
@@ -252,15 +253,15 @@ class Initialization(object):
 
     @lazy_property
     def a(self):
-        """Returns signature activities in transcribed/non-transcribed (a[0,:]),
-        and early/late replicating regions a[1,:].
+        """Returns signature activities in transcribed/non-transcribed (
+        :code:`a[0]`), and early/late replicating regions :code:`a[1]`.
         """
         return np.exp(self._a0)
 
     @lazy_property
     def b(self):
-        r"""Returns transcriptional (b[0]) and replicational strand (b[1])
-        biases.
+        """Returns transcriptional (:code:`b[0]`) and replicational strand
+        (:code:`b[1]`) biases.
         """
         return np.exp(self._b0)
 
