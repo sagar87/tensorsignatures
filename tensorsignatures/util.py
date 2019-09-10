@@ -40,9 +40,26 @@ def lazy_property(function):
 
 
 def assign_signatures(reference, signature):
-    """
-    Compute the distance to a reference signature and assigns signatures
+    r"""Compute the distance to reference signatures and assigns signatures
     based on their cosine similarity.
+
+    Args:
+        reference (:obj:`array`, shape :math:`(p,s)`): Reference signature
+        matrix (mutation types :math:`\times` signatures).
+        signature (:obj:`array`, shape :math:`(p,s)`): Second signature matrix.
+    Returs:
+        A tuple of three arrays containing the signature indices of the
+            reference signatures array, corresponding signatures indices
+            of the second signature matrix and underlying cosine distances.
+
+    Examples:
+
+    Consider signature matrices S1 and S2.
+
+    >>> S1.shape, S2.shape
+    (96, 5), (96, 5)
+    >>> ridx, sidx, dist = assign_signatures(S1, S2)
+    >>> S2[:, sidx] # sorts signatures from S2 to match S1
     """
     with np.errstate(divide='raise', invalid='raise'):
         dist = cdist(reference.T, signature.T, 'cosine')
@@ -187,6 +204,7 @@ class Initialization(object):
 
     @lazy_property
     def _T1(self):
+        # computes softmax on the other signature matrix
         T1 = np.concatenate(
             [self._T0, np.zeros((1, self.rank, self.iter))], axis=0)
         T1 = np.exp(T1) / np.sum(np.exp(T1), axis=0, keepdims=True)
@@ -241,24 +259,14 @@ class Initialization(object):
 
     @lazy_property
     def b(self):
-        r"""Returns transcriptional (b[0]) and replicational strand (a[0])
+        r"""Returns transcriptional (b[0]) and replicational strand (b[1])
         biases.
-
-        Returns:
-            b (:obj:`array`, shape :math:`(2, s, i)`): A three dimensional
-                array, in which the dimensions represent (transcription /
-                replication, signature, initialization).
         """
         return np.exp(self._b0)
 
     @lazy_property
     def m(self):
         """Returns the proportion of SNVs for each signature.
-
-        Returns:
-            m (:obj:`array`, shape :math:`(1, s, i)`): A three dimensional
-                array, in which the dimensions represent (mixing,
-                signature, initialization).
         """
         return 1 / (1 + np.exp(-self._m0))
 
@@ -279,11 +287,14 @@ class Initialization(object):
         return data
 
     def dump(self, path):
-
+        """Saves the dictionary returned by the to_dic method to disk
+        (pickleable)."""
         data = self.to_dic()
         save_dict(data, path)
 
     def plot_signatures(self, bootstrap=None):
+        """Plots SNV signatures in transcriptional and replicational context.
+        """
         plot_signatures(
             self.S.reshape(3, 3, -1, self.S.shape[-3], self.rank),
             bootstrap)
