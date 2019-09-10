@@ -354,7 +354,7 @@ def plot_signature(signature_tensor,
         plt.close()
 
 
-def plot_signatures(signature_tensor, width=0.3, fig=None):
+def plot_signatures(signature_tensor, bootstrap=None, width=0.3, fig=None):
     """Convinience function to plot all singate.
 
     Args:
@@ -392,24 +392,42 @@ def plot_signatures(signature_tensor, width=0.3, fig=None):
             axt = fig.add_subplot(inner_trx[:, i:i + 1])
             axr = fig.add_subplot(inner_rep[:, i:i + 1])
 
+            if bootstrap is not None:
+                yerr = bootstrap.yerr('S').reshape(
+                    3, 3, -1, signature_tensor.shape[-2],
+                    signature_tensor.shape[-1], 2)
+                yerr_tc = yerr[0, 2, 0, j:j + dx, s, :].T
+                yerr_tt = yerr[1, 2, 0, j:j + dx, s, :].T
+                yerr_rl = yerr[2, 0, 0, j:j + dx, s, :].T
+                yerr_rg = yerr[2, 1, 0, j:j + dx, s, :].T
+            else:
+                yerr_tc = None
+                yerr_tt = None
+                yerr_rl = None
+                yerr_rg = None
+
             axt.bar(np.arange(dx),
-                    signature_tensor[0, 2, j:j + dx, s].reshape(-1),
+                    signature_tensor[0, 2, 0, j:j + dx, s].reshape(-1),
+                    yerr=yerr_tc,
                     color=COLORPAIRS[i][1],
                     width=width,
                     edgecolor="none")
             axt.bar(np.arange(dx) + width,
-                    signature_tensor[1, 2, j:j + dx, s].reshape(-1),
+                    signature_tensor[1, 2, 0, j:j + dx, s].reshape(-1),
+                    yerr=yerr_tt,
                     color=COLORPAIRS[i][0],
                     width=width,
                     edgecolor="none")
 
             axr.bar(np.arange(dx),
-                    signature_tensor[2, 0, j:j + dx, s].reshape(-1),
+                    signature_tensor[2, 0, 0, j:j + dx, s].reshape(-1),
+                    yerr=yerr_rl,
                     color=COLORPAIRS[i][1],
                     width=width,
                     edgecolor="none")
             axr.bar(np.arange(dx) + width,
-                    signature_tensor[2, 1, j:j + dx, s].reshape(-1),
+                    signature_tensor[2, 1, 0, j:j + dx, s].reshape(-1),
+                    yerr=yerr_rg,
                     color=COLORPAIRS[i][0],
                     width=width,
                     edgecolor="none")

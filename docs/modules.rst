@@ -9,10 +9,8 @@ Modules
 
 The util module contains classes and functions to run tensorsignatures.
 
-
-.. code-block:: python
-
-    import tensorsignatures as ts
+.. automodule:: tensorsignatures.util
+   :members:
 
 
 

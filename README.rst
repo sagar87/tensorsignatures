@@ -14,10 +14,21 @@ Tensorsignatures
         :alt: Documentation Status
 
 
+TensorSignatures is a tensor factorization framework for mutational signature
+analysis, which in contrast to other methods, deciphers mutational processes
+not only in terms of mutational spectra, but also assess their properties with
+respect to various genomic variables.
 
+Quick install
+-------------
 
-Tensorframework for mutational signature analysis.
+To install :code:`tensorsignatures` simply type
 
+.. code-block:: console
+    $ pip install
+
+into your shell. To get started with tensorsignatures please refer to the
+documentation.
 
 * Free software: MIT license
 * Documentation: https://tensorsignatures.readthedocs.io.
@@ -26,7 +37,12 @@ Tensorframework for mutational signature analysis.
 Features
 --------
 
-* TODO
+* Run :code:`tensorsignatures` on your dataset using the :code:`TensorSignature`
+class provided by thepackage or via the command line tool.
+* Compute percentile based bootstrap confidence intervals for inferred paramters.
+* Basic plotting tools to visualize tensor signatures and inferred parameters
 
 Credits
 -------
+
+* Harald Vöhringer and Moritz Gerstung

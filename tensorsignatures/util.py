@@ -20,7 +20,9 @@ import sys
 import re
 
 from tensorsignatures.config import *
+from tensorsignatures.plot import plot_signatures
 from tqdm import tqdm
+from tqdm import trange
 
 
 def lazy_property(function):
@@ -109,7 +111,7 @@ class Initialization(object):
 
         for key, value in self._ki.items():
             ki = np.exp(value)
-            _ki = np.concatenate([np.ones((1, *ki.shape[1:])), ki])
+            _ki = value
             setattr(self, 'k' + str(key), ki)
             setattr(self, '_k' + str(key), _ki)
             self._kdim.append(ki.shape[0])
@@ -192,6 +194,15 @@ class Initialization(object):
         return T1
 
     @lazy_property
+    def _Sc(self):
+        # concatenates signature profiles to cluster them
+        Sc = np.concatenate([
+            self.S.reshape(3, 3, -1, self.S.shape[-3], self.rank)[2, 2, 0],
+            self.T[..., 0]])
+
+        return Sc
+
+    @lazy_property
     def S(self):
         S = self._S1 \
             * self._B \
@@ -204,7 +215,9 @@ class Initialization(object):
             dim = [1] * len(self._kdim)
             dim[i] = j + 1
             dim = [1, 1] + dim + [1, self.rank, self.iter]
-            S = S * getattr(self, '_k' + str(i)).reshape(*dim)
+            ki = getattr(self, 'k' + str(i))
+            S = S * np.concatenate(
+                [np.ones((1, *ki.shape[1:])), ki]).reshape(*dim)
 
         return S
 
@@ -246,6 +259,11 @@ class Initialization(object):
         data = self.to_dic()
         save_dict(data, path)
 
+    def plot_signatures(self, bootstrap=None):
+        plot_signatures(
+            self.S.reshape(3, 3, -1, self.S.shape[-3], self.rank),
+            bootstrap)
+
 
 class Cluster(Initialization):
     """
@@ -273,8 +291,9 @@ class Cluster(Initialization):
                 self.dset[LOG_L][()][-1, :],
                 mask=self.dset[LOG_L][()][-1, :] >= 0))
 
-        self._S0, self._T0, self._E0, self.icol = Cluster.cluster_signatures(
-            dset[S0], dset[T0], dset[E0], self.seed)
+        self._cluster()
+        # self._S0, self._T0, self._E0, self.icol = Cluster.cluster_signatures(
+        #     dset[S0], dset[T0], dset[E0], self.seed)
 
         self.iter = self._S0.shape[-1]
         self.rank = self._S0.shape[-2]
@@ -316,9 +335,6 @@ class Cluster(Initialization):
             yield i
 
     def __getitem__(self, init):
-        if not 0 <= init < self.iter:
-            raise KeyError('Init out of bound')
-
         ki = {}
         for key in [var for var in list(self.dset) if var.startswith('_k')]:
             ki[int(key[2:])] = self.dset[key][..., init]
@@ -368,6 +384,40 @@ class Cluster(Initialization):
             var_list.append(array[..., v, k])
 
         return np.stack(var_list, axis=array.ndim - 1)
+
+    def _cluster(self):
+        # performs the clustering
+        S_seed = self[self.seed]._Sc
+
+        if (np.any(np.isnan(S_seed)) or
+                np.any(np.isinf(S_seed)) or
+                np.all(S_seed == 0)):
+
+            print("Warning: seed {} corrupted.".format(seed))
+            return (None, None, None, None)
+
+        S_list, T_list, E_list = [], [], []
+        self.icol = {}
+
+        for i in range(self.dset[S0].shape[-1]):
+            init = self[i]
+            S_i = init._Sc
+
+            if (np.any(np.isnan(S_i)) or
+                    np.any(np.isinf(S_i)) or
+                    np.all(S_i == 0)):
+                continue
+
+            ridx, cidx, _ = assign_signatures(S_seed, S_i)
+
+            S_list.append(init._S0[..., cidx, 0])
+            T_list.append(init._T0[..., cidx, 0])
+            E_list.append(init._E0[cidx, :, 0])
+            self.icol[i] = cidx
+
+        self._S0 = np.stack(S_list, axis=-1)
+        self._T0 = np.stack(T_list, axis=-1)
+        self._E0 = np.stack(E_list, axis=-1)
 
     @staticmethod
     def cluster_signatures(S, T, E, seed=None):
@@ -533,7 +583,7 @@ class Cluster(Initialization):
 
 class Experiment(object):
 
-    def __init__(self, path, pre_cluster=True):
+    def __init__(self, path, cluster=True):
         """
         Experiment class
         Experiment loads datasets dynamically.
@@ -548,8 +598,8 @@ class Experiment(object):
         if len(self.data) == 0:
             self.dset.visititems(self._visitor_func_merged)
 
-        if pre_cluster:
-            for clu in tqdm(self):
+        if cluster:
+            for clu in tqdm(self, desc='Clustering initializations'):
                 _ = self[clu]
 
     def __len__(self):
@@ -609,36 +659,34 @@ class Bootstrap(object):
     """
 
     def __init__(self,
-                 clu,
+                 initialization,
                  bootstrap,
                  cutoff=0.1,
                  lower=5,
                  cores=8,
                  upper=95,
                  init=None):
-        self.clu = clu
+        self.initialization = initialization
         self.bootstrap = bootstrap
         self.cutoff = cutoff
         self.lower = lower
         self.upper = upper
         self.cores = cores
-        if init is None:
-            self.init = self.clu.init
-        else:
-            self.init = init
 
         # compute distances from each bootstrap sample to seed cluster
+        Sref = self.initialization._Sc
         boot_dic = defaultdict(list)
-        for i in range(self.bootstrap['S'].shape[-1]):
-            progress(i, self.bootstrap['S'].shape[-1], 'Iteration {}'.format(i))
-            Sref = np.concatenate([self.clu.S[2, 2, 0, ..., self.init].reshape(-1, self.clu.rank), self.clu.T[..., self.init]])
-            Sbot = np.concatenate([self.bootstrap['S'][2,2,0,...,i].reshape(-1, self.clu.rank), self.bootstrap['T'][...,i]])
 
-            r, c, d = assign_signatures(Sref, Sbot)
+        for i in range(len(self.bootstrap)):
+            sample_i = self.bootstrap[i]
+            r, c, d = assign_signatures(Sref, sample_i._Sc)
+            # print(i,r,c)
             boot_dic['ref'].extend(r.tolist())
             boot_dic['boot'].extend(c.tolist())
-            boot_dic['init'].extend([i]*len(d))
-            boot_dic['tvd'].extend((1/2*np.linalg.norm(Sref-Sbot,ord=1,axis=0))[c])
+            boot_dic['init'].extend([i] * self.initialization.rank)
+            boot_dic['tvd'].extend(
+                1 / 2 * np.linalg.norm(
+                    Sref[..., r] - sample_i._Sc[..., c], ord=1, axis=0))
 
         # convert it to dataframe
         self.boot_df = pd.DataFrame(boot_dic)
@@ -650,22 +698,29 @@ class Bootstrap(object):
         if var not in self.valid_init[sig]:
             self.valid_init[sig][var] = list()
 
-            valid_init = self.boot_df[(self.boot_df.tvd < self.cutoff) & (self.boot_df.ref == sig)].init.tolist()
-            valid_sig = self.boot_df[(self.boot_df.tvd < self.cutoff) & (self.boot_df.ref == sig)].boot.tolist()
+            valid_init = self.boot_df[
+                (self.boot_df.tvd < self.cutoff) &
+                (self.boot_df.ref == sig)].init.tolist()
+            valid_sig = self.boot_df[
+                (self.boot_df.tvd < self.cutoff) &
+                (self.boot_df.ref == sig)].boot.tolist()
 
             for i, (idx, init) in enumerate(zip(valid_sig, valid_init)):
-                progress(i, len(valid_init), 'Sig {} ({})'.format(sig, init))
-                if (var=='E') or (var=='E0'):
+                # progress(i, len(valid_init), 'Sig {} ({})'.format(sig, init))
+                if (var == 'E' or var == 'E0'):
                     values = np.zeros(self.clu.samples)
                     values[:] = np.nan
-                    values[self.bootstrap['sub'][..., init].astype(int)] = self.bootstrap[var][idx, ..., init]
+                    values[self.bootstrap['sub'][..., init].astype(int)] = \
+                        self.bootstrap[var][idx, ..., init]
 
                     self.valid_init[sig][var].append(values)
                 else:
-                    self.valid_init[sig][var].append(self.bootstrap[var][..., idx, init])
+                    self.valid_init[sig][var].append(
+                        getattr(self.bootstrap[init], var)[..., idx, 0])
 
             # stack
-            self.valid_init[sig][var] = np.stack(self.valid_init[sig][var], axis=-1)
+            self.valid_init[sig][var] = np.stack(
+                self.valid_init[sig][var], axis=-1)
 
         return self.valid_init[sig][var]
 
@@ -673,41 +728,60 @@ class Bootstrap(object):
         if sig is not None:
             if (var == 'E' or var == 'E0'):
                 return np.stack([
-                    np.nanpercentile(self._filter(var, sig), self.lower, axis=-1),
-                    np.nanpercentile(self._filter(var, sig), self.upper, axis=-1)], axis=-1)
+                    np.nanpercentile(
+                        self._filter(var, sig), self.lower, axis=-1),
+                    np.nanpercentile(
+                        self._filter(var, sig), self.upper, axis=-1)], axis=-1)
 
-            return np.stack([np.percentile(self._filter(var, sig), self.lower, axis=-1),
-                             np.percentile(self._filter(var, sig), self.upper, axis=-1)], axis=-1)
+            return np.stack([
+                np.percentile(self._filter(var, sig), self.lower, axis=-1),
+                np.percentile(self._filter(var, sig), self.upper, axis=-1)],
+                axis=-1)
         else:
             if var not in self.intervals:
-                for i in range(self.clu.rank):
+                for i in range(self.initialization.rank):
                     if (var == 'E' or var == 'E0'):
                         self.intervals[var].append(
                             np.stack([
-                                np.nanpercentile(self._filter(var, i), self.lower, axis=-1),
-                                np.nanpercentile(self._filter(var, i), self.upper, axis=-1)], axis=-1))
+                                np.nanpercentile(
+                                    self._filter(var, i),
+                                    self.lower,
+                                    axis=-1),
+                                np.nanpercentile(
+                                    self._filter(var, i),
+                                    self.upper,
+                                    axis=-1)],
+                                axis=-1))
                     else:
                         self.intervals[var].append(
                             np.stack([
-                                np.percentile(self._filter(var, i), self.lower, axis=-1),
-                                np.percentile(self._filter(var, i), self.upper, axis=-1)], axis=-1))
+                                np.percentile(
+                                    self._filter(var, i),
+                                    self.lower,
+                                    axis=-1),
+                                np.percentile(
+                                    self._filter(var, i),
+                                    self.upper,
+                                    axis=-1)],
+                                axis=-1))
+
                 self.intervals[var] = np.stack(self.intervals[var], axis=-2)
 
         return self.intervals[var]
 
     def yerr(self, var, func=lambda x: x):
-        yerr = np.zeros([*self.clu[var][..., self.init].shape, 2])
+        yerr = np.zeros([*getattr(self.initialization, var)[..., 0].shape, 2])
 
-        for i in range(self.clu.rank):
+        for i in range(self.initialization.rank):
             # to make it more readable
             if (var == 'E' or var == 'E0'):
                 lower = self.boundaries(var)[..., i, 0]
                 upper = self.boundaries(var)[..., i, 1]
-                mle = self.clu[var][i, ..., self.init]
+                mle = getattr(self.initialization, var)[i, ..., 0]
             else:
                 lower = self.boundaries(var)[..., i, 0]
                 upper = self.boundaries(var)[..., i, 1]
-                mle = self.clu[var][..., i, self.init]
+                mle = getattr(self.initialization, var)[..., i, 0]
 
             # select indices
             bounded = (lower <= mle) & (mle <= upper)
@@ -730,37 +804,6 @@ class Bootstrap(object):
                 yerr[..., i, 0][bn] = func(mle[bn]) - func(lower[bn])
 
         return yerr
-
-
-def create_df(arr):
-    d1, d2 = arr.shape
-    print (d1, d2)
-    df = pd.DataFrame({
-        'signature': np.arange(d2).tolist() * d1,
-        'val': arr.reshape(-1).tolist(),
-        'dim': np.array([ [i]*d2 for i in range(d1) ]).reshape(-1).tolist()
-    })
-
-    return df
-
-
-def ksstat(LT1, LT2):
-    """
-    computes the waterstein distance
-    """
-
-    left_tail = np.concatenate([LT1.reshape(-1), LT2.reshape(-1)])
-    left_tail = left_tail[~np.isnan(left_tail)]
-    return kstest(left_tail, 'uniform').statistic
-
-def compute_left_tails(C, Chat, k, inv_norm=False):
-    u = uniform.rvs(size=np.prod(C.shape)).reshape(C.shape)
-    left_tail = u * nbinom.cdf(C, k, k/(Chat + k)) + (1-u) * nbinom.cdf(C-1, k, k/(Chat + k))
-
-    if inv_norm:
-        left_tail = norm.ppf(left_tail)
-
-    return left_tail
 
 
 def save_dict(data, out_path):
