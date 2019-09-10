@@ -38,7 +38,7 @@ Features
 --------
 
 * Run :code:`tensorsignatures` on your dataset using the :code:`TensorSignature` class provided by thepackage or via the command line tool.
-* Compute percentile based bootstrap confidence intervals for inferred paramters.
+* Compute percentile based bootstrap confidence intervals for inferred parameters.
 * Basic plotting tools to visualize tensor signatures and inferred parameters
 
 Credits

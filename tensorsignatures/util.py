@@ -60,24 +60,24 @@ class Initialization(object):
     """Stores results of a TensorSignature run.
 
     Args:
-        S0 (obj:`array`): Fitted signature tensor.
-        a0 (obj:`array`): Fitted signature amplitudes.
-        b0 (obj:`array`): Fitted signature biases.
-        k0 (obj:`array`): Fitted signature activities.
-        m0 (obj:`array`): Fitted signature mixing factors.
-        T0 (obj:`array`): Fitted other mutation types signature matrix.
-        E0 (obj:`array`): Fitted exposures.
-        rank (obj:`int`): Rank of decomposition.
-        dispersion (obj:`int`): Dispersion
+        S0 (:obj:`array`): Fitted signature tensor.
+        a0 (:obj:`array`): Fitted signature amplitudes.
+        b0 (:obj:`array`): Fitted signature biases.
+        k0 (:obj:`array`): Fitted signature activities.
+        m0 (:obj:`array`): Fitted signature mixing factors.
+        T0 (:obj:`array`): Fitted other mutation types signature matrix.
+        E0 (:obj:`array`): Fitted exposures.
+        rank (:obj:`int`): Rank of decomposition.
+        dispersion (:obj:`int`): Dispersion
         objective (:obj:`str`): Used likelihood function.
         starter_learning_rate (:obj:`float`): Starter learning rate.
         decay_learning_rate (:obj:`float`): Decay of learning rate.
         optimizer (:obj:`str`): Used optimizer.
-        epochs (obj:`int`): Number of training epochs.
-        log_step (obj:`int`): Logging steps.
-        display_step (obj:`int`): Diplay steps.
-        observations (obj:`int`): Number of observations (non NA entries).
-        seed (obj:`int`): Used seed.
+        epochs (:obj:`int`): Number of training epochs.
+        log_step (:obj:`int`): Logging steps.
+        display_step (:obj:`int`): Diplay steps.
+        observations (:obj:`int`): Number of observations (non NA entries).
+        seed (:obj:`int`): Used seed.
     Returns:
         A :obj:`TensorSingatureInit` object.
     """
@@ -204,6 +204,7 @@ class Initialization(object):
 
     @lazy_property
     def S(self):
+        """Returns the SNV signature tensor."""
         S = self._S1 \
             * self._B \
             * self._A.reshape(3, 3, 1, self.rank, self.iter) \
@@ -223,25 +224,47 @@ class Initialization(object):
 
     @lazy_property
     def T(self):
+        """Returns the mutatonal spectrum for other mutation types."""
         return self._T1 * (1 - self.m)
 
     @lazy_property
     def E(self):
+        """Returns the exposure matrix."""
         return np.exp(self._E0)
 
     @lazy_property
     def a(self):
+        """Returns signature activities in transcribed/non-transcribed (a[0,:]),
+        and early/late replicating regions a[1,:].
+        """
         return np.exp(self._a0)
 
     @lazy_property
     def b(self):
+        r"""Returns transcriptional (b[0]) and replicational strand (a[0])
+        biases.
+
+        Returns:
+            b (:obj:`array`, shape :math:`(2, s, i)`): A three dimensional
+                array, in which the dimensions represent (transcription /
+                replication, signature, initialization).
+        """
         return np.exp(self._b0)
 
     @lazy_property
     def m(self):
+        """Returns the proportion of SNVs for each signature.
+
+        Returns:
+            m (:obj:`array`, shape :math:`(1, s, i)`): A three dimensional
+                array, in which the dimensions represent (mixing,
+                signature, initialization).
+        """
         return 1 / (1 + np.exp(-self._m0))
 
     def to_dic(self):
+        """Returns all parameters and settings for this initialization in form
+        of a dictionary."""
         data = {}
         for var in DUMP:
             if var in VARS or var in LOGS:
@@ -256,6 +279,7 @@ class Initialization(object):
         return data
 
     def dump(self, path):
+
         data = self.to_dic()
         save_dict(data, path)
 
