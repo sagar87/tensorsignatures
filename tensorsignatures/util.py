@@ -40,8 +40,7 @@ def lazy_property(function):
 
 
 def assign_signatures(reference, signature):
-    r"""Compute the distance to reference signatures and assigns signatures
-    based on their cosine similarity.
+    r"""Assigns signatures to reference a set of reference signatures.
 
     Args:
         reference (:obj:`array`, :code`shape` :math:`(p,s)`): Reference
