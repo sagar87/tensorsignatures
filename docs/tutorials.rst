@@ -35,16 +35,67 @@ object
 
 which will create a dataset comprising 100 cancer genomes (:code:`samples`)
 exposed to three signatures (:code:`rank`) each with 1000 mutations. By passing
-the list :code:`[3, 5]` to the :code:`dimension` argument, we create to additional
-genomic dimensions with size 3 and 5 respectively. To obtain the corresponding
-SNV count tensor, we invoke the :code:`snv` method of :code:`data_set`.
+the list :code:`[3, 5]` to the :code:`dimension` argument, we create two additional
+genomic dimensions with size 3 and 5 respectively. To obtain the SNV count tensor,
+we invoke the :code:`snv` method of :code:`data_set`, which returns a
+multidimensional array.
 
 >>> snv = data_set.snv()
 >>> snv.shape
-(3, 3, 2, 96, 100)
+(3, 3, 3, 5, 96, 100)
 
-The shape attribute of the :code:`snv` object is tuple of integeres indicating
-size of the array in each dimension. To decipher tensor signatures from a
+The shape attribute of the :code:`snv` object is tuple of :code:`int`s indicating
+size of the array in each dimension. TensorSignatures expects input data to follow
+a specific structure which is explained in the following table.
+
++-------------------------+-----------+-----------+---------------------------+
+| Dimension               | Size      | Index     | Data                      |
++-------------------------+-----------+-----------+---------------------------+
+| Transcription           | 3         | :code:`0` | Coding strand mutations   |
+| (:code:`snv.shape[0]`)  |           +-----------+---------------------------+
+|                         |           | :code:`1` | Template strand mutations |
+|                         |           +-----------+---------------------------+
+|                         |           | :code:`2` | Unassigned mutations      |
++-------------------------+-----------+-----------+---------------------------+
+| Replication             | 3         | :code:`0` | Leading strand mutations  |
+| (:code:`snv.shape[1]`)  |           +-----------+---------------------------+
+|                         |           | :code:`1` | Lagging strand mutations  |
+|                         |           +-----------+---------------------------+
+|                         |           | :code:`2` | Unassigned mutations      |
++-------------------------+-----------+-----------+---------------------------+
+| First genomic state     | arbitrary | :code:`0` | Unassigned mutations      |
+|                         |           +-----------+---------------------------+
+| (:code:`snv.shape[2]`)  |           | :code:`1` | Genomic state 1 mutations |
+|                         |           +-----------+---------------------------+
+|                         |           | ...       |                           |
+|                         |           +-----------+---------------------------+
+|                         |           | :code:`t` | Genomic state t mutations |
++-------------------------+-----------+-----------+---------------------------+
+| Last genomic state      | arbitrary | :code:`0` | Unassigned mutations      |
+| (:code:`snv.shape[-3]`) |           +-----------+---------------------------+
+|                         |           | :code:`1` | Genomic state 1 mutations |
+|                         |           +-----------+---------------------------+
+|                         |           | ...       |                           |
+|                         |           +-----------+---------------------------+
+|                         |           | :code:`r` | Genomic state r mutations |
++-------------------------+-----------+-----------+---------------------------+
+| Base substitution types | p=96      | :code:`0` | A[C>A]A                   |
+| (:code:`snv.shape[-2]`) |           +-----------+---------------------------+
+|                         |           | :code:`1` | A[C>A]C                   |
+|                         |           +-----------+---------------------------+
+|                         |           | ...       |                           |
+|                         |           +-----------+---------------------------+
+|                         |           | :code:`p` | T[T>C]T                   |
++-------------------------+-----------+-----------+---------------------------+
+| Samples                 | n         | :code:`0` | Sample 1                  |
+| (:code:`snv.shape[-1])  |           +-----------+---------------------------+
+|                         |           | ...       |                           |
+|                         |           +-----------+---------------------------+
+|                         |           | :code:`n` | Sample n                  |
++-------------------------+-----------+-----------+---------------------------+
+
+
+To decipher tensor signatures from a
 SNV count tensor it must have the following structure:
 
 * :code:`snv.shape[0] == 3` Transcription (coding strand, template strand,
