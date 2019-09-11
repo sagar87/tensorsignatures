@@ -8,7 +8,7 @@ Welcome to tensorsignatures's documentation!
    readme
    installation
    tutorials
-   modules
+   reference
    cli
    contributing
    authors

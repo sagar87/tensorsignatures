@@ -328,14 +328,15 @@ class TensorSignatureData(object):
         ax = sns.factorplot(x='variable', y='value', hue='sig',data=pd.DataFrame(coefficients).melt('sig'), kind='bar')
         return ax
 
-    def coefficient_table(self, clu, cdim, as_df=True, unscaled=False, only_init=False):
+    def coefficient_table(self, clu, cdim, as_df=True, unscaled=False,
+                          only_init=False):
         dic = {
             'sig': [],
             'dim': [],
             'init': [],
-            'true':[],
-            'pred':[],
-            'var':[]
+            'true': [],
+            'pred': [],
+            'var': []
         }
 
         if only_init:

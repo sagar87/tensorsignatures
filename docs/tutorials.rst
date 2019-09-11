@@ -2,10 +2,6 @@
 Tutorials
 =========
 
-
-Creating sample data with :code:`TensorSignatureData`
-=====================================================
-
 TensorSignatures deciphers mutational signatures in context transcription,
 replication and arbitrary genomic environments, which is achieved by partitioning
 single nucleotide variants (SNVs) to meaningful states dependent on their
@@ -13,6 +9,8 @@ genomic location. In transcribed genomic regions, for example, mutations may
 arise on coding or template strand DNA. In TensorSignatures, we represent each
 genomic feature in a separate dimension with a discrete number of states.
 
+Creating sample data with :code:`TensorSignatureData`
+=====================================================
 
 The :code:`tensorsignatures.data` module provides :obj:`TensorSignatureData`
 class allowing us to create simulated data, which we will explore in the

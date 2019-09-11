@@ -937,7 +937,7 @@ def load_dict(path):
     Args:
         path (:obj:`str`): Path to the pickle file.
     Returns:
-        A :obj:`tuple` containing the filename and a the pickled object.
+        A :obj:`tuple` containing the filename and the pickled object.
     """
 
     with open(path, 'rb') as fh:

@@ -1,8 +1,8 @@
 .. highlight:: shell
 
-=======
-Modules
-=======
+=========
+Reference
+=========
 
 :code:`tensorsignatures.util`
 ----------------------------
@@ -21,6 +21,7 @@ The train module contains the train function used to train a model.
 
 .. automodule:: tensorsignatures.tensorsignatures
    :members:
+
 
 :code:`tensorsignatures.data`
 -----------------------------
