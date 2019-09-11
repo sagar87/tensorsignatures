@@ -51,13 +51,13 @@ a specific structure which is explained in the following table.
 +-------------------------+-----------+-----------+---------------------------+
 | Dimension               | Size      | Index     | Data                      |
 +-------------------------+-----------+-----------+---------------------------+
-| Transcription           | 3         | :code:`0` | Coding strand mutations   |
+| Transcription           | :code:`3` | :code:`0` | Coding strand mutations   |
 | (:code:`snv.shape[0]`)  |           +-----------+---------------------------+
 |                         |           | :code:`1` | Template strand mutations |
 |                         |           +-----------+---------------------------+
 |                         |           | :code:`2` | Unassigned mutations      |
 +-------------------------+-----------+-----------+---------------------------+
-| Replication             | 3         | :code:`0` | Leading strand mutations  |
+| Replication             | :code:`3` | :code:`0` | Leading strand mutations  |
 | (:code:`snv.shape[1]`)  |           +-----------+---------------------------+
 |                         |           | :code:`1` | Lagging strand mutations  |
 |                         |           +-----------+---------------------------+
@@ -79,17 +79,17 @@ a specific structure which is explained in the following table.
 |                         |           +-----------+---------------------------+
 |                         |           | :code:`r` | Genomic state r mutations |
 +-------------------------+-----------+-----------+---------------------------+
-| Base substitution types | p=96      | :code:`0` | A[C>A]A                   |
-|                         |           +-----------+---------------------------+
+| Base substitution types | p=        | :code:`0` | A[C>A]A                   |
+|                         | :code:`96`+-----------+---------------------------+
 | (:code:`snv.shape[-2]`) |           | :code:`1` | A[C>A]C                   |
 |                         |           +-----------+---------------------------+
 |                         |           | ...       |                           |
 |                         |           +-----------+---------------------------+
 |                         |           | :code:`p` | T[T>C]T                   |
 +-------------------------+-----------+-----------+---------------------------+
-| Samples                 | n         | :code:`0` | Sample 1                  |
+| Samples                 | :code:`n` | :code:`0` | Sample 1                  |
 |                         |           +-----------+---------------------------+
-| (:code:`snv.shape[-1])  |           | ...       |                           |
+| (:code:`snv.shape[-1]`) |           | ...       |                           |
 |                         |           +-----------+---------------------------+
 |                         |           | :code:`n` | Sample n                  |
 +-------------------------+-----------+-----------+---------------------------+
