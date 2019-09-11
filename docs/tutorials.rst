@@ -139,6 +139,11 @@ and then inspect both spectra by
 which reveals that especially C>A (blue), C>T (red) and T>A (grey) mutations
 are more prevalent on coding strand DNA.
 
+By indexing the the SNV tensor appropriately we can also recover mutational
+spectra from different state combinations, eg, :code:`snv[0,:,2].sum(axis=(0,1))`
+would return a :math:`p\times n` matrix representing the coding strand
+mutations in genomic state 2 in the first additional genomic dimension.
+
 Plotting the trinucleotide profile of the first samples reveals that samples
 are dominated by C>A (blue) and T>C (green). To understand this, we can plot
 the underlying signatures for the dataset by executing
