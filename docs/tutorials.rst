@@ -48,51 +48,51 @@ The shape attribute of the :code:`snv` object is tuple of :code:`int` s indicati
 the size of the array in each dimension. TensorSignatures expects input data to follow
 a specific structure which is explained in the following table.
 
-+-------------------------+-----------+-----------+---------------------------+
-| Dimension               | Size      | Index     | Data                      |
-+-------------------------+-----------+-----------+---------------------------+
-| Transcription           | :code:`3` | :code:`0` | Coding strand mutations   |
-| (:code:`snv.shape[0]`)  |           +-----------+---------------------------+
-|                         |           | :code:`1` | Template strand mutations |
-|                         |           +-----------+---------------------------+
-|                         |           | :code:`2` | Unassigned mutations      |
-+-------------------------+-----------+-----------+---------------------------+
-| Replication             | :code:`3` | :code:`0` | Leading strand mutations  |
-| (:code:`snv.shape[1]`)  |           +-----------+---------------------------+
-|                         |           | :code:`1` | Lagging strand mutations  |
-|                         |           +-----------+---------------------------+
-|                         |           | :code:`2` | Unassigned mutations      |
-+-------------------------+-----------+-----------+---------------------------+
-| First genomic aribtrary |:code:`t+1`| :code:`0` | Unassigned mutations      |
-| dimension (eg. epigenetic|           +-----------+---------------------------+
-| environments)           |           | :code:`1` | Genomic state 1 mutations |
-|                         |           +-----------+---------------------------+
-| (:code:`snv.shape[2]`)  |           | ...       |                           |
-|                         |           +-----------+---------------------------+
-|                         |           | :code:`t` | Genomic state t mutations |
-+-------------------------+-----------+-----------+---------------------------+
-| Last arbitrary genomic  |:code:`r+1`| :code:`0` | Unassigned mutations      |
-| dimension (eg. nucleosomal|           +-----------+---------------------------+
-| states)                 |           | :code:`1` | Genomic state 1 mutations |
-|                         |           +-----------+---------------------------+
-| (:code:`snv.shape[-3]`) |           | ...       |                           |
-|                         |           +-----------+---------------------------+
-|                         |           | :code:`r` | Genomic state r mutations |
-+-------------------------+-----------+-----------+---------------------------+
-| Base substitution types | p=        | :code:`0` | A[C>A]A                   |
-|                         | :code:`96`+-----------+---------------------------+
-| (:code:`snv.shape[-2]`) |           | :code:`1` | A[C>A]C                   |
-|                         |           +-----------+---------------------------+
-|                         |           | ...       |                           |
-|                         |           +-----------+---------------------------+
-|                         |           | :code:`p` | T[T>C]T                   |
-+-------------------------+-----------+-----------+---------------------------+
-| Samples                 | :code:`n` | :code:`0` | Sample 1                  |
-|                         |           +-----------+---------------------------+
-| (:code:`snv.shape[-1]`) |           | ...       |                           |
-|                         |           +-----------+---------------------------+
-|                         |           | :code:`n` | Sample n                  |
-+-------------------------+-----------+-----------+---------------------------+
++----------------------------+-----------+-----------+---------------------------+
+| Dimension                  | Size      | Index     | Data                      |
++----------------------------+-----------+-----------+---------------------------+
+| Transcription              | :code:`3` | :code:`0` | Coding strand mutations   |
+|                            |           +-----------+---------------------------+
+| (:code:`snv.shape[0]`)     |           | :code:`1` | Template strand mutations |
+|                            |           +-----------+---------------------------+
+|                            |           | :code:`2` | Unassigned mutations      |
++----------------------------+-----------+-----------+---------------------------+
+| Replication                | :code:`3` | :code:`0` | Leading strand mutations  |
+|                            |           +-----------+---------------------------+
+| (:code:`snv.shape[1]`)     |           | :code:`1` | Lagging strand mutations  |
+|                            |           +-----------+---------------------------+
+|                            |           | :code:`2` | Unassigned mutations      |
++----------------------------+-----------+-----------+---------------------------+
+| First genomic aribtrary    |:code:`t+1`| :code:`0` | Unassigned mutations      |
+| dimension (eg. epigenetic  |           +-----------+---------------------------+
+| environments)              |           | :code:`1` | Genomic state 1 mutations |
+|                            |           +-----------+---------------------------+
+| (:code:`snv.shape[2]`)     |           | ...       |                           |
+|                            |           +-----------+---------------------------+
+|                            |           | :code:`t` | Genomic state t mutations |
++----------------------------+-----------+-----------+---------------------------+
+| Last arbitrary genomic     |:code:`r+1`| :code:`0` | Unassigned mutations      |
+| dimension (eg. nucleosomal |           +-----------+---------------------------+
+| states)                    |           | :code:`1` | Genomic state 1 mutations |
+|                            |           +-----------+---------------------------+
+| (:code:`snv.shape[-3]`)    |           | ...       |                           |
+|                            |           +-----------+---------------------------+
+|                            |           | :code:`r` | Genomic state r mutations |
++----------------------------+-----------+-----------+---------------------------+
+| Base substitution types    | p=        | :code:`0` | A[C>A]A                   |
+|                            | :code:`96`+-----------+---------------------------+
+| (:code:`snv.shape[-2]`)    |           | :code:`1` | A[C>A]C                   |
+|                            |           +-----------+---------------------------+
+|                            |           | ...       |                           |
+|                            |           +-----------+---------------------------+
+|                            |           | :code:`p` | T[T>C]T                   |
++----------------------------+-----------+-----------+---------------------------+
+| Samples                    | :code:`n` | :code:`0` | Sample 1                  |
+|                            |           +-----------+---------------------------+
+| (:code:`snv.shape[-1]`)    |           | ...       |                           |
+|                            |           +-----------+---------------------------+
+|                            |           | :code:`n` | Sample n                  |
++----------------------------+-----------+-----------+---------------------------+
 
 From this we can see that our simulated :code:`data_set` contains two additional
 genomic dimensions with size 3 and 5 respectively. Note, that we can reconstruct
