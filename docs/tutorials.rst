@@ -2,15 +2,27 @@
 Tutorials
 =========
 
+
+Getting started
+===============
+
 TensorSignatures deciphers mutational signatures in context transcription,
 replication and arbitrary genomic environments, which is achieved by partitioning
-single nucleotide variants (SNVs) to meaningful states dependent on their
-genomic location. In transcribed genomic regions, for example, mutations may
-arise on coding or template strand DNA. In TensorSignatures, we represent each
-genomic feature in a separate dimension with a discrete number of states.
+single nucleotide variants (SNVs) to different states dependent on their
+genomic location, and representing this data in a multidimensional array (tensor).
+Additionally, the algorithm takes a secondary mutation matrix as input to link
+other variant types to these signatures by sharing their exposure. In the following
+tutorial, we want to convey an intutition for working with such highdimensional
+data and explain the usage of the :code:`tensorsignatures` API and command line
+interface by
 
-Creating sample data with :code:`TensorSignatureData`
-=====================================================
+1. simulating data set
+2. running Tensorsignatures
+3. exploring inferred parameters.
+
+
+Creating sample data with :code:`TensorSignatureData` using the API
+*****************************************************************+*
 
 The :code:`tensorsignatures.data` module provides :obj:`TensorSignatureData`
 class allowing us to create simulated data, which we will explore in the
