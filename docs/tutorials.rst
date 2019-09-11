@@ -136,6 +136,8 @@ and then inspect both spectra by
 .. figure::  images/transcription.png
    :align:   center
 
+which reveals that especially C>A (blue), C>T (red) and T>A (grey) mutations
+are more prevalent on coding strand DNA.
 
 Plotting the trinucleotide profile of the first samples reveals that samples
 are dominated by C>A (blue) and T>C (green). To understand this, we can plot
