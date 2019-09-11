@@ -97,25 +97,44 @@ a specific structure which is explained in the following table.
 From this we can see that our simulated :code:`data_set` contains two additional
 genomic dimensions with size 3 and 5 respectively.
 
-Note, that we can reconstruct the :math:`p\times n` mutation count matrix, usually
-serving as an input for conventional mutational signature analysis, by summing
-over all dimensions except the last two (which represent base substitution types
+Note, that we can reconstruct the :math:`p\times n` mutation count matrix, which
+usually serves as an input for conventional mutational signature analysis, by summing
+over all dimensions except the last two (representint base substitution types
 and samples respectively). The following code illustrates this operation.
 
->>> snv_collapsed = snv.sum(axis=(0, 1, 2,)) # snv_collapsed.shape == (96, 100)
+>>> snv_collapsed = snv.sum(axis=(0,1,2,3,))
+
+To inspect the mutational spectra of the first 9 samples we excecute.
+
+>>> import matplotlib.pyplot as plt
 >>> fig, axes = plt.subplots(3, 3, sharey=True, sharex=True)
 >>> for i, ax in enumerate(np.ravel(axes)):
->>>     ax.bar(np.arange(96), snv_collapsed[:, i], color=ts.DARK_PALETTE, edgecolor="None")
->>>     ax.set_title('Sample {}'.format(i))
->>> plt.tight_layout()
+>>>    ax.bar(np.arange(96), snv_collapsed[:, i], color=ts.DARK_PALETTE)
+>>>    ax.set_title('Sample {}'.format(i))
+>>>    if i%3==0: ax.set_ylabel('Counts')
+>>>    if i>=6: ax.set_xlabel('Mutation type')
 
 .. figure::  images/samples.png
    :align:   center
 
-However, by first selecting a specific states and then summing over the
-remaining tensor, we can reveal changes across different genomic dimensions
-or states. Take transcription for example,
+However, by first selecting a specific states and then summing over all
+remaining dimensions, we can reveal changes across different genomic dimensions
+or states. For example, to get all coding and template strand mutations of the
+dataset we could compute
 
+>>> snv_coding = snv[0,].sum(axis=(0,1,2,4))
+>>> snv_template = snv[1,].sum(axis=(0,1,2,4))
+
+and then inspect both spectra by
+
+>>> fig, axes = plt.subplots(1, 2, sharey=True)
+>>> axes[0].bar(np.arange(96), snv_coding, color=ts.DARK_PALETTE)
+>>> axes[0].set_title('Coding strand mutations')
+>>> axes[1].bar(np.arange(96), snv_template, color=ts.DARK_PALETTE)
+>>> axes[1].set_title('Template strand mutations')
+
+.. figure::  images/transcription.png
+   :align:   center
 
 
 Plotting the trinucleotide profile of the first samples reveals that samples
