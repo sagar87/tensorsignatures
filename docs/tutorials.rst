@@ -22,7 +22,7 @@ interface by
 
 
 Creating sample data with :code:`TensorSignatureData` using the API
-*****************************************************************+*
+-------------------------------------------------------------------
 
 The :code:`tensorsignatures.data` module provides :obj:`TensorSignatureData`
 class allowing us to create simulated data, which we will explore in the
