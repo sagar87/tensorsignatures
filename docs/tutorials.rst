@@ -95,12 +95,12 @@ a specific structure which is explained in the following table.
 +----------------------------+-----------+-----------+---------------------------+
 
 From this we can see that our simulated :code:`data_set` contains two additional
-genomic dimensions with size 3 and 5 respectively. Note, that we can reconstruct
-the mutational spectra in each genomic dimension by summing over respective
-dimension. For example, to reconstruct the :math:`p\times n` mutation
-count matrix, which serves as an input for conventional mutational signature
-analysis, we could sum over all dimensions except the last two. The following
-code illustrates this operation.
+genomic dimensions with size 3 and 5 respectively.
+
+Note, that we can reconstruct the :math:`p\times n` mutation count matrix, usually
+serving as an input for conventional mutational signature analysis, by summing
+over all dimensions except the last two (which represent base substitution types
+and samples respectively). The following code illustrates this operation.
 
 >>> snv_collapsed = snv.sum(axis=(0, 1, 2,)) # snv_collapsed.shape == (96, 100)
 >>> fig, axes = plt.subplots(3, 3, sharey=True, sharex=True)
