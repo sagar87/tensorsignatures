@@ -44,8 +44,8 @@ multidimensional array.
 >>> snv.shape
 (3, 3, 3, 5, 96, 100)
 
-The shape attribute of the :code:`snv` object is tuple of :code:`int`s indicating
-size of the array in each dimension. TensorSignatures expects input data to follow
+The shape attribute of the :code:`snv` object is tuple of :code:`int` s indicating
+the size of the array in each dimension. TensorSignatures expects input data to follow
 a specific structure which is explained in the following table.
 
 +-------------------------+-----------+-----------+---------------------------+
@@ -63,19 +63,19 @@ a specific structure which is explained in the following table.
 |                         |           +-----------+---------------------------+
 |                         |           | :code:`2` | Unassigned mutations      |
 +-------------------------+-----------+-----------+---------------------------+
-| First genomic state     | arbitrary | :code:`0` | Unassigned mutations      |
+| First genomic aribtrary |:code:`t+1`| :code:`0` | Unassigned mutations      |
+| dimension (eg. epigenetic|           +-----------+---------------------------+
+| environments)           |           | :code:`1` | Genomic state 1 mutations |
 |                         |           +-----------+---------------------------+
-| (:code:`snv.shape[2]`)  |           | :code:`1` | Genomic state 1 mutations |
-|                         |           +-----------+---------------------------+
-|                         |           | ...       |                           |
+| (:code:`snv.shape[2]`)  |           | ...       |                           |
 |                         |           +-----------+---------------------------+
 |                         |           | :code:`t` | Genomic state t mutations |
 +-------------------------+-----------+-----------+---------------------------+
-| Last genomic state      | arbitrary | :code:`0` | Unassigned mutations      |
+| Last arbitrary genomic  |:code:`r+1`| :code:`0` | Unassigned mutations      |
+| dimension (eg. nucleosomal|           +-----------+---------------------------+
+| states)                 |           | :code:`1` | Genomic state 1 mutations |
 |                         |           +-----------+---------------------------+
-| (:code:`snv.shape[-3]`) |           | :code:`1` | Genomic state 1 mutations |
-|                         |           +-----------+---------------------------+
-|                         |           | ...       |                           |
+| (:code:`snv.shape[-3]`) |           | ...       |                           |
 |                         |           +-----------+---------------------------+
 |                         |           | :code:`r` | Genomic state r mutations |
 +-------------------------+-----------+-----------+---------------------------+
@@ -94,34 +94,29 @@ a specific structure which is explained in the following table.
 |                         |           | :code:`n` | Sample n                  |
 +-------------------------+-----------+-----------+---------------------------+
 
-
-
-
-To decipher tensor signatures from a
-SNV count tensor it must have the following structure:
-
-* :code:`snv.shape[0] == 3` Transcription (coding strand, template strand,
-    unknown)
-* :code:`snv.shape[1] == 3` Replication (leading strand, lagging strand,
-    unknown)
-* :code:`snv.shape[2:-3]` Arbitrary genomic dimension
-* :code:`snv.shape[-2] == 96` Trinucleotide dimension
-* :code:`snv.shape[-1] == n` Number of samples
-
-From this we can see that :code:`data_set` contains only a single additional
-genomic dimension of size 2 as :code:`snv.shape[2] == 2`. Note, that we can
-reconstruct well acquinted 96 trinucleotide profiles for each sample by summing
-over the first 3 dimensions.
+From this we can see that our simulated :code:`data_set` contains two additional
+genomic dimensions with size 3 and 5 respectively. Note, that we can reconstruct
+the mutational spectra in each genomic dimension by summing over respective
+dimension. For example, to reconstruct the :math:`p\times n` mutation
+count matrix, which serves as an input for conventional mutational signature
+analysis, we could sum over all dimensions except the last two. The following
+code illustrates this operation.
 
 >>> snv_collapsed = snv.sum(axis=(0, 1, 2,)) # snv_collapsed.shape == (96, 100)
 >>> fig, axes = plt.subplots(3, 3, sharey=True, sharex=True)
 >>> for i, ax in enumerate(np.ravel(axes)):
-        ax.bar(np.arange(96), snv_collapsed[:, i], color=ts.DARK_PALETTE, edgecolor="None")
-        ax.set_title('Sample {}'.format(i))
-        plt.tight_layout()
+>>>     ax.bar(np.arange(96), snv_collapsed[:, i], color=ts.DARK_PALETTE, edgecolor="None")
+>>>     ax.set_title('Sample {}'.format(i))
+>>> plt.tight_layout()
 
 .. figure::  images/samples.png
    :align:   center
+
+However, by first selecting a specific states and then summing over the
+remaining tensor, we can reveal changes across different genomic dimensions
+or states. Take transcription for example,
+
+
 
 Plotting the trinucleotide profile of the first samples reveals that samples
 are dominated by C>A (blue) and T>C (green). To understand this, we can plot
