@@ -96,7 +96,7 @@ class Initialization(object):
         observations (:obj:`int`): Number of observations (non NA entries).
         seed (:obj:`int`): Used seed.
     Returns:
-        A :obj:`TensorSingatureInit` object.
+        A :obj:`tensorsignatures.util.Initialization` object.
     """
     def __init__(self, S0, a0, b0, ki, m0, T0, E0, rank, size, objective,
                  starter_learning_rate, decay_learning_rate, optimizer,
@@ -301,9 +301,21 @@ class Initialization(object):
 
 
 class Cluster(Initialization):
-    """
-    Base cluster class takes
+    """Clusters tensorsignatures intializations.
 
+    Args:
+        dset (:obj:`HDF5`): HDF5 file handle to a tensor signatures experiment.
+    Returns:
+        A :obj:`tensorsignatures.util.Cluster` object.
+
+    Examples:
+
+    The :obj:`tensorsignatures.util.Cluster` object is meant to be used in
+    combination :obj:`tensorsignatures.util.Experiment`. The latter takes
+    the path of a hdf file containing several tensor signature intialization.
+
+    >>> E = Experiment('~/my_eperiment.h5')
+    >>> clu = E['/experiment/5'] # returns cluster object
     """
     def __init__(self, dset, **kwargs):
         self.dset = dset
@@ -456,10 +468,7 @@ class Cluster(Initialization):
 
     @staticmethod
     def cluster_signatures(S, T, E, seed=None):
-        """
-        Expects that iterations are found in the last axis, and signatures in
-        the penultimate axis.
-        """
+        """Deprecated."""
 
         if seed is None:
             seed = np.random.randint(S.shape[-1])
@@ -522,6 +531,7 @@ class Cluster(Initialization):
 
     @lazy_property
     def parameters(self):
+        """Returns the number of parameters in the model."""
         p = 4 * 95
         p += self._a0.shape[0]
         p += self._b0.shape[0]
@@ -539,16 +549,18 @@ class Cluster(Initialization):
 
     @lazy_property
     def log_likelihood(self):
+        """Returns the log likelihood of all initalizations in the cluster."""
         return self.log_L[-1, :]
 
     @lazy_property
     def init(self):
-        """Returns the maximum likelihood initialisation.
-        """
+        """Returns the maximum likelihood initialization."""
         return np.argmax(self.log_likelihood)
 
     @lazy_property
     def summary_table(self):
+        """Returns a pandas dataframe summarizing various statistics about the
+        initialziations of the cluster."""
         df = pd.DataFrame({
             LOG_L1: self.log_L1[-1, :].tolist(),
             LOG_L2: self.log_L2[-1, :].tolist(),
@@ -568,14 +580,20 @@ class Cluster(Initialization):
 
         return df
 
-    def coefficient_table(self, cdim='b0', avg=False):
-        """
-        Returns a panda data frame with inferred coefficients for each signature
-        and initialisation of the cluster.
+    def coefficient_table(self, cdim='_b0', avg=False):
+        """Returns a pandas data frame with extracted parameters for each
+        signature and initialisation of the cluster.
 
         Parameters:
-        cdim (string): name of the coefficient (eg. "b0", "a0" etc.)
-        avg (boolean): returns computes the average of fitted coefficient over initialisations
+            cdim (:obj:`str`): Name of the parameter (eg. "b", "a" etc.)
+            avg (:obj:`bool`): Computes the average of fitted coefficient over
+                initialisations.
+        Returns:
+            A :obj:`pandas.DataFrame` object.
+
+        Examples:
+
+        >>> a_table = clu.coefficient_table('a')
         """
         coeff_table = pd.DataFrame({
             'sig': np.array(
@@ -618,10 +636,24 @@ class Cluster(Initialization):
 
 class Experiment(object):
 
-    def __init__(self, path, cluster=True):
-        """
-        Experiment class
-        Experiment loads datasets dynamically.
+    def __init__(self, path):
+        """Loads a hdf file containing (several) tensorsignature experiments.
+
+        Args:
+            path (:obj:`str`): Path to the hdf file containing the experiments.
+        Returns:
+            A :obj:`tensorsignatures.util.Experiment` object.
+
+        Examples:
+
+        A :obj:`tensorsignatures.util.Experiment` is a container of
+        :obj:`tensorsignatures.util.Cluster` which can be accessed via its
+        :code:`__getitem__` method.
+
+        >>> E = Experiment('~/path/to/hdf.h5')
+        >>> E.data # returns a set containing all experiment
+        {'myexperiment/3', 'myexperiment/4', 'myexperiment/5'}
+        >>> clu = E['myexperiment/4'] # returns the rank 4 cluster
         """
         self.dset = h5.File(path)
         self.data = set([])
@@ -633,9 +665,8 @@ class Experiment(object):
         if len(self.data) == 0:
             self.dset.visititems(self._visitor_func_merged)
 
-        if cluster:
-            for clu in tqdm(self, desc='Clustering initializations'):
-                _ = self[clu]
+        for clu in tqdm(self, desc='Clustering initializations'):
+            _ = self[clu]
 
     def __len__(self):
         return len(self.data)
@@ -653,24 +684,33 @@ class Experiment(object):
             return self.memo[path]
 
     def _visitor_func(self, name, node):
+        # traverses the hdf file
         if isinstance(node, h5.Dataset):
             path = '/'.join(node.name.split('/')[:-1])
             self.data.add(path)
 
     def _visitor_func_merged(self, name, node):
+        # traverses the hdf file if the hdf file links several hdfs
         if isinstance(node, h5.Group):
             if len(node.attrs) != 0:
                 self.data.add(name)
 
     def close(self):
+        """Closes the hdf file handle."""
         self.dset.close()
 
     def items(self):
+        """Similiar to :code:`dict.items()`, iterator which returns the key
+        of the cluster and the cluster itself.
+        """
         for dset in self.data:
             yield dset, self[dset]
 
     @property
     def summary_table(self, **kwargs):
+        """Returns a :obj:`pandas.DataFrame` with summary statistics about all
+        clusters.
+        """
         if hasattr(self, '_summary'):
             return self._summary
 
@@ -842,11 +882,21 @@ class Bootstrap(object):
 
 
 def save_dict(data, out_path):
+    """Dumps a pickleable object to disk.
+
+    Args:
+        data (:obj:`dict`): A dictionary (containing pickleable values only).
+        out_path (:obj:`str`): Path to the destination file.
+
+    Returns:
+        None
+    """
     with open(out_path, 'wb') as fh:
         pickle.dump(data, fh, pickle.HIGHEST_PROTOCOL)
 
 
 def load_dict(data):
+
     with open(data, 'rb') as fh:
         params = pickle.load(fh)
 
