@@ -779,6 +779,7 @@ class Bootstrap(object):
         self.intervals = defaultdict(list)
 
     def _filter(self, var, sig):
+        # filters signatures
         if var not in self.valid_init[sig]:
             self.valid_init[sig][var] = list()
 
@@ -809,6 +810,15 @@ class Bootstrap(object):
         return self.valid_init[sig][var]
 
     def boundaries(self, var, sig=None):
+        """Computes CI boundaries.
+
+        Args:
+            var (:obj:`str`): Parameter of interest (eg. 'S', '_b0')
+            sig (:obj:`int`): Signature of interest, if :code:`None` boundaries
+                yields an array containing the boundary values for signatures.
+        Returns:
+            An :obj:`array` containing the estimates for the CIs.
+        """
         if sig is not None:
             if (var == 'E' or var == 'E0'):
                 return np.stack([
@@ -921,15 +931,29 @@ def save_dict(data, out_path):
         pickle.dump(data, fh, pickle.HIGHEST_PROTOCOL)
 
 
-def load_dict(data):
+def load_dict(path):
+    """Loads pickle dump.
 
-    with open(data, 'rb') as fh:
+    Args:
+        path (:obj:`str`): Path to the pickle file.
+    Returns:
+        A :obj:`tuple` containing the filename and a the pickled object.
+    """
+
+    with open(path, 'rb') as fh:
         params = pickle.load(fh)
 
-    return (data.split('/')[-1], params)
+    return (path.split('/')[-1], params)
 
 
 def load_dump(path):
+    """Loads a pickled tensorsignature initalization and returns it.
+
+    Args:
+        path (:obj:`str`): Path to the pickle file.
+    Returns:
+        A :obj:`tensorsignature.util.Initialization`.
+    """
     fname, data = load_dict(path)
     dims = [key for key in list(data.keys()) if key.startswith('_k')]
     ki = {int(key[2:]): data[key] for key in dims}
@@ -948,11 +972,3 @@ def load_dump(path):
         sample_indices=data[SAMPLE_INDICES])
 
     return init
-
-def collapse_data(snv):
-    col1 = snv[[slice(None)]*(snv.ndim-3)+[0]+[slice(None)]*2]
-    col2 = []
-    for i, j in [(1, 1), (1, 0), (1, 2), (0, 1), (0, 0), (0, 2), (2, 1), (2, 0), (2, 2)]:
-        col2.append(snv[[i, j]+[slice(None)]*(snv.ndim-5)+[1]+[slice(None)]*2])
-    col2 = np.stack(col2).reshape(col1.shape)
-    return col1 + col2
