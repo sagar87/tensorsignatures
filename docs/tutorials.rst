@@ -63,21 +63,21 @@ a specific structure which is explained in the following table.
 |                            |           +-----------+---------------------------+
 |                            |           | :code:`2` | Unassigned mutations      |
 +----------------------------+-----------+-----------+---------------------------+
-| First genomic aribtrary    |:code:`t+1`| :code:`0` | Unassigned mutations      |
-| dimension (eg. epigenetic  |           +-----------+---------------------------+
-| environments)              |           | :code:`1` | Genomic state 1 mutations |
+| First aribtrary genomic    |:code:`t+1`| :code:`0` | Unassigned mutations      |
+| dimension                  |           +-----------+---------------------------+
+|                            |           | :code:`1` | Genomic state 1 mutations |
+| (eg. epigenetic states)    |           +-----------+---------------------------+
+|                            |           | ...       |                           |
 |                            |           +-----------+---------------------------+
-| (:code:`snv.shape[2]`)     |           | ...       |                           |
-|                            |           +-----------+---------------------------+
-|                            |           | :code:`t` | Genomic state t mutations |
+| (:code:`snv.shape[2]`)     |           | :code:`t` | Genomic state t mutations |
 +----------------------------+-----------+-----------+---------------------------+
 | Last arbitrary genomic     |:code:`r+1`| :code:`0` | Unassigned mutations      |
-| dimension (eg. nucleosomal |           +-----------+---------------------------+
-| states)                    |           | :code:`1` | Genomic state 1 mutations |
+| dimension                  |           +-----------+---------------------------+
+|                            |           | :code:`1` | Genomic state 1 mutations |
+| (eg. nucleosomal states)   |           +-----------+---------------------------+
+|                            |           | ...       |                           |
 |                            |           +-----------+---------------------------+
-| (:code:`snv.shape[-3]`)    |           | ...       |                           |
-|                            |           +-----------+---------------------------+
-|                            |           | :code:`r` | Genomic state r mutations |
+| (:code:`snv.shape[-3]`)    |           | :code:`r` | Genomic state r mutations |
 +----------------------------+-----------+-----------+---------------------------+
 | Base substitution types    | p=        | :code:`0` | A[C>A]A                   |
 |                            | :code:`96`+-----------+---------------------------+
