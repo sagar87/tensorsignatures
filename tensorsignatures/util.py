@@ -43,7 +43,7 @@ def assign_signatures(reference, signature):
     r"""Assigns signatures to reference a set of reference signatures.
 
     Args:
-        reference (:obj:`array`, :code`shape` :math:`(p,s)`): Reference
+        reference (:obj:`array`, :code:`shape` :math:`(p,s)`): Reference
             signature matrix (mutation types :math:`\times` signatures).
         signature (:obj:`array`, :code:`shape` :math:`(p,s)`): Second signature
             matrix.
@@ -54,7 +54,7 @@ def assign_signatures(reference, signature):
 
     Examples:
 
-    Consider signature matrices S1 and S2.
+    Consider signature matrices :code:`S1` and :code:`S2`.
 
     >>> S1.shape, S2.shape
     (96, 5), (96, 5)
@@ -314,7 +314,7 @@ class Cluster(Initialization):
     combination :obj:`tensorsignatures.util.Experiment`. The latter takes
     the path of a hdf file containing several tensor signature intialization.
 
-    >>> E = Experiment('~/my_eperiment.h5')
+    >>> E = Experiment('~/my_experiment.h5')
     >>> clu = E['/experiment/5'] # returns cluster object
     """
     def __init__(self, dset, **kwargs):
@@ -727,10 +727,21 @@ class Experiment(object):
 
 
 class Bootstrap(object):
-    """
-    Filter TensorSignature bootstrap samples and compute percentile based CIs.
+    """Filter TensorSignature bootstrap samples and compute percentile based
+    CIs.
 
-    Params:
+    Args:
+        initialization (:obj:`tensorsignatures.util.Initialization`): The
+            initialization for which bootstrap samples were created.
+        bootstrap (:obj:`tensorsignatures.util.Cluster`): The bootstrap
+            cluster.
+        cutoff (:obj:`float`, :math:`0<c<1`): Cutoff :math:`c` for the total
+            variation distance that is used to filter bootstrap samples. CI is
+            are based on the bootstrap samples passing the cutoff.
+        lower (:obj:`int`): Lower percentile for CIs.
+        upper (:obj:`int`): Upper percentile for CIs.
+    Return:
+        A :obj:`tensorsignatures.util.Bootstrap` object.
     """
 
     def __init__(self,
@@ -738,7 +749,6 @@ class Bootstrap(object):
                  bootstrap,
                  cutoff=0.1,
                  lower=5,
-                 cores=8,
                  upper=95,
                  init=None):
         self.initialization = initialization
@@ -746,7 +756,6 @@ class Bootstrap(object):
         self.cutoff = cutoff
         self.lower = lower
         self.upper = upper
-        self.cores = cores
 
         # compute distances from each bootstrap sample to seed cluster
         Sref = self.initialization._Sc
@@ -845,6 +854,23 @@ class Bootstrap(object):
         return self.intervals[var]
 
     def yerr(self, var, func=lambda x: x):
+        """Returns the yerrors (difference between the 5th and 95th percentile)
+        and the inferred parameter of the intialization (MLE).
+
+        Args:
+            var (:obj:`var`): Parameter of interest (eg. 'S', '_b0')
+            func (:obj:`func`): Method accepts a function, for example
+                :code:`np.exp`, which transform CI before they are returned.
+                This is necessary for some of the inferred parameters.
+        Returns:
+            A :obj:`array` containing an array with the errors of inferred
+            parameters.
+
+        Examples:
+
+        Most importantly the :code:`yerr` method returns an array that can be
+        passed as :code:`yerr` argument of :code:`matplotlib.pyplot.bar`.
+        """
         yerr = np.zeros([*getattr(self.initialization, var)[..., 0].shape, 2])
 
         for i in range(self.initialization.rank):
