@@ -140,9 +140,17 @@ which reveals that especially C>A (blue), C>T (red) and T>A (grey) mutations
 are more prevalent on coding strand DNA.
 
 By indexing the the SNV tensor appropriately we can also recover mutational
-spectra from different state combinations, eg, :code:`snv[0,:,2].sum(axis=(0,1))`
+spectra from different state combinations, eg. :code:`snv[0,:,2].sum(axis=(0,1))`
 would return a :math:`p\times n` matrix representing the coding strand
-mutations in genomic state 2 in the first additional genomic dimension.
+mutations in state 2 of the first additional genomic dimension.
+
+To summarize, in this section we created a simulated SNV tensor using the
+:obj:`tensorsignatures.util.TensorSignatureData` class. TensorSignatures features
+the characterization of mutational processes across an arbitrary number of
+genomic dimensions and states, but requires the user specify transcription
+and replication as the first two dimension, and base substitutions and samples
+in the last two. Input data for TensorSignatures has to obey con
+
 
 Plotting the trinucleotide profile of the first samples reveals that samples
 are dominated by C>A (blue) and T>C (green). To understand this, we can plot
