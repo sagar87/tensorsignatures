@@ -153,7 +153,32 @@ replicational variants in the first two dimension, and specify base substitution
 as well as samples in the last two dimensions. To recover mutational spectra
 in specific contexts, the SNV count tensor has to be indexed and summed over
 all remaining dimensions (except the ones containing base substitutions and
-samples)
+samples).
+
+Understanding transcriptional and replicational biases :code:`b`
+----------------------------------------------------------------
+
+In the previous section we created a example dataset and found using the
+:code:`TensorSignaturesData` object and investigated the data by plotting
+mutational spectra in various genomic contexts. While doing this we discovered
+that some variant types seem to occur with higher frequency on conding strand
+DNA as compared to their equivalents on template DNA. Such phenomena have been
+observed in several mutational processes and are attributed DNA repair mechanisms
+such as transcription coupled repair (TCR), which actively depletes mutations
+gene encoding regions.
+
+TensorSignatures models variability in mutagenesis due to transcription and
+replication by
+
+1. extracting separate mutational spectra for coding and template
+strand DNA, nad lead and lagging strand DNA
+2. fitting a scalar for each signature that quantifies the overall shift of mutations
+in pyrimidine context (bias matrix :code:`b`)
+3. fitting a scalar for each signature that is interpreted as the relative
+signature activity of signature in transcribed vs untranscribed regions, and
+early and late replicating regions.
+
+
 
 
 Plotting the trinucleotide profile of the first samples reveals that samples
