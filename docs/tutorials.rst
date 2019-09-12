@@ -150,7 +150,10 @@ the characterization of mutational processes across an arbitrary number of
 genomic dimensions and states, but requires the user structure their input array in
 specified manner. The SNV count tensor must contain transcriptional and
 replicational variants in the first two dimension, and specify base substitutions
-as well as samples in the last two dimensions. W
+as well as samples in the last two dimensions. To recover mutational spectra
+in specific contexts, the SNV count tensor has to be indexed and summed over
+all remaining dimensions (except the ones containing base substitutions and
+samples)
 
 
 Plotting the trinucleotide profile of the first samples reveals that samples
