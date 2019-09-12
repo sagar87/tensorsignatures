@@ -147,9 +147,10 @@ mutations in state 2 of the first additional genomic dimension.
 To summarize, in this section we created a simulated SNV tensor using the
 :obj:`tensorsignatures.util.TensorSignatureData` class. TensorSignatures features
 the characterization of mutational processes across an arbitrary number of
-genomic dimensions and states, but requires the user specify transcription
-and replication as the first two dimension, and base substitutions and samples
-in the last two. Input data for TensorSignatures has to obey con
+genomic dimensions and states, but requires the user structure their input array in
+specified manner. The SNV count tensor must contain transcriptional and
+replicational variants in the first two dimension, and specify base substitutions
+as well as samples in the last two dimensions. W
 
 
 Plotting the trinucleotide profile of the first samples reveals that samples
