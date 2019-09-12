@@ -170,13 +170,9 @@ gene encoding regions.
 TensorSignatures models variability in mutagenesis due to transcription and
 replication by
 
-1. extracting separate mutational spectra for coding and template
-strand DNA, nad lead and lagging strand DNA
-2. fitting a scalar for each signature that quantifies the overall shift of mutations
-in pyrimidine context (bias matrix :code:`b`)
-3. fitting a scalar for each signature that is interpreted as the relative
-signature activity of signature in transcribed vs untranscribed regions, and
-early and late replicating regions.
+1. extracting separate mutational spectra for coding and template strand DNA, nad lead and lagging strand DNA
+2. fitting a scalar for each signature that quantifies the overall shift of mutations in pyrimidine context (bias matrix :code:`b`)
+3. fitting a scalar for each signature that is interpreted as the relative signature activity of signature in transcribed vs untranscribed regions, and early and late replicating regions.
 
 
 
