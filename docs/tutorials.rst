@@ -180,9 +180,13 @@ by
 >>> plt.figure(figsize=(16, 3))
 >>> ts.plot_signatures(data_set.S.reshape(3,3,-1,96,3))
 
+.. figure::  images/signatures.png
+   :align:   center
 
-
-
+which reveals the SNV spectra of three signatures (rows) for transcription and
+replication in the left and right column, respectively. In this representation
+darker bars indicate for mutation type probabilities for coding strand and leading
+strand DNA, while the lighter bars show them for template and lagging strand DNA.
 
 
 
@@ -191,8 +195,7 @@ are dominated by C>A (blue) and T>C (green).
 
 
 
-.. figure::  images/signatures.png
-   :align:   center
+
 
 which illustrates that shown samples above are a superposition of both signatures.
 
