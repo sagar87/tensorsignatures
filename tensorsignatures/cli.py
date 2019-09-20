@@ -150,12 +150,15 @@ def train(config, input, output, rank, objective, size, init, id,
     """
     snv = h5.File(input, 'r')['SNV'][()]
     other = h5.File(input, 'r')['OTHER'][()]
+    N = None
+    if norm:
+        N = h5.File(input, 'r')['N'][()]
 
     model = TensorSignature(
         snv=snv,
         other=other,
         rank=rank,
-        N=None,
+        N=N,
         size=size,
         objective=objective,
         collapse=collapse,
