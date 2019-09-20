@@ -636,24 +636,29 @@ class TensorSignature(object):
             snv (array, shape :math:`(3, 3, (t_1+1), \dots, (t_l), p, n)`):
                 Collapsed SNV array.
         """
-        col1 = snv[[slice(None)] * (snv.ndim - 3) + [0] + [slice(None)] * 2]
+        # col1 = snv[[slice(None)] * (snv.ndim - 3) + [0] + [slice(None)] * 2]
+        # col2 = []
+        # dims = [
+        #     (1, 1), (1, 0), (1, 2),
+        #     (0, 1), (0, 0), (0, 2),
+        #     (2, 1), (2, 0), (2, 2)]
+
+        # for i, j in dims:
+        #     idx = [i, j] \
+        #         + [slice(None)] \
+        #         * (snv.ndim - 5) \
+        #         + [1] \
+        #         + [slice(None)] \
+        #         * 2
+        #     col2.append(snv[idx])
+
+        # col2 = np.stack(col2).reshape(col1.shape)
+
+        col1 = snv[[slice(None)]*(snv.ndim-3)+[0]+[slice(None)]*2]
         col2 = []
-        dims = [
-            (1, 1), (1, 0), (1, 2),
-            (0, 1), (0, 0), (0, 2),
-            (2, 1), (2, 0), (2, 2)]
-
-        for i, j in dims:
-            idx = [i, j] \
-                + [slice(None)] \
-                * (snv.ndim - 5) \
-                + [1] \
-                + [slice(None)] \
-                * 2
-            col2.append(snv[idx])
-
+        for i, j in [(1, 1), (1, 0), (1, 2), (0, 1), (0, 0), (0, 2), (2, 1), (2, 0), (2, 2)]:
+            col2.append(snv[[i, j]+[slice(None)]*(snv.ndim-5)+[1]+[slice(None)]*2])
         col2 = np.stack(col2).reshape(col1.shape)
-
         return col1 + col2
 
 
