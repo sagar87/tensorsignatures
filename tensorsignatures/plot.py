@@ -439,7 +439,7 @@ def plot_signatures(signature_tensor, bootstrap=None, width=0.3, fig=None):
                                 width=1,
                                 axis='y',
                                 right=False)
-                axt.set_ylabel(i)
+                axt.set_ylabel(s)
                 axr.tick_params(which='both',
                                 direction='out',
                                 length=3,
