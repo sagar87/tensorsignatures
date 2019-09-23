@@ -163,7 +163,7 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
         threshold = im.norm(threshold)
     else:
         value_range = np.logspace(
-            np.log10(im.data.min()), np.log10(im.data.max()), 100)
+            np.log10(data.min()), np.log10(data.max()), 100)
         lower_threshold = np.percentile(value_range, 25)
         upper_threshold = np.percentile(value_range, 75)
 
