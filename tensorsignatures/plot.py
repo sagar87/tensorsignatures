@@ -162,10 +162,8 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
     if threshold is not None:
         threshold = im.norm(threshold)
     else:
-        value_range = np.logspace(
-            np.log10(data.min()), np.log10(data.max()), 100)
-        lower_threshold = np.percentile(value_range, 25)
-        upper_threshold = np.percentile(value_range, 75)
+        threshold = im.norm(data.max()) / 2.
+        print(threshold)
 
     # Set default alignment to center, but allow it to be
     # overwritten by textkw.
@@ -182,10 +180,7 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
     texts = []
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
-            idx = 0
-            if data[i, j] > upper_threshold or data[i, j] < lower_threshold:
-                idx = 1
-            kw.update(color=textcolors[idx])
+            kw.update(color=textcolors[int(im.norm(data[i, j]) > threshold)])
             text = im.axes.text(j, i, valfmt(data[i, j], None), **kw)
             texts.append(text)
 
