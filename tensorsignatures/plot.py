@@ -183,7 +183,7 @@ def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
     texts = []
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
-            print(im.norm(data[i, j]))
+            print(data[i, j])
             print(low_cut, up_cut)
             idx=0
             if data[i, j] > up_cut or data[i, j] < low_cut:
