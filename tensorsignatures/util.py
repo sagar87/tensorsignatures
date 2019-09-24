@@ -335,6 +335,7 @@ class Cluster(Initialization):
         self.id = self.dset.attrs[ID]
 
         # cluster init
+        self._valid = None
         self.seed = np.argmax(
             np.ma.array(
                 self.dset[LOG_L][()][-1, :],
@@ -367,14 +368,14 @@ class Cluster(Initialization):
         self.T
         self.E
 
-        self.log_epochs = self.dset[LOG_EPOCHS][..., list(self.icol.keys())]
+        self.log_epochs = self.dset[LOG_EPOCHS][..., self._valid]
         self.log_learning_rate = \
-            self.dset[LOG_LEARNING_RATE][..., list(self.icol.keys())]
-        self.log_L = self.dset[LOG_L][..., list(self.icol.keys())]
-        self.log_L1 = self.dset[LOG_L1][..., list(self.icol.keys())]
-        self.log_L2 = self.dset[LOG_L2][..., list(self.icol.keys())]
+            self.dset[LOG_LEARNING_RATE][..., self._valid]
+        self.log_L = self.dset[LOG_L][..., self._valid]
+        self.log_L1 = self.dset[LOG_L1][..., self._valid]
+        self.log_L2 = self.dset[LOG_L2][..., self._valid]
         self.sample_indices = \
-            self.dset[SAMPLE_INDICES][..., list(self.icol.keys())]
+            self.dset[SAMPLE_INDICES][..., self._valid]
 
     def __len__(self):
         return self.iter
@@ -384,6 +385,9 @@ class Cluster(Initialization):
             yield i
 
     def __getitem__(self, init):
+        if self._valid is not None:
+            init = self._valid[init]
+
         ki = {}
         for key in [var for var in list(self.dset) if var.startswith('_k')]:
             ki[int(key[2:])] = self.dset[key][..., init]
@@ -468,6 +472,7 @@ class Cluster(Initialization):
         self._S0 = np.stack(S_list, axis=-1)
         self._T0 = np.stack(T_list, axis=-1)
         self._E0 = np.stack(E_list, axis=-1)
+        self._valid = list(self.icol.keys())
 
     @staticmethod
     def cluster_signatures(S, T, E, seed=None):
