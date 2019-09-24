@@ -454,7 +454,8 @@ class Cluster(Initialization):
 
             if (np.any(np.isnan(S_i)) or
                     np.any(np.isinf(S_i)) or
-                    np.all(S_i == 0)):
+                    np.all(S_i == 0) or
+                    np.all(init._S0 == 0)):
                 continue
 
             ridx, cidx, _ = assign_signatures(S_seed, S_i)
