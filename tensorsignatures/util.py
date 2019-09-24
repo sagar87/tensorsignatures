@@ -384,6 +384,7 @@ class Cluster(Initialization):
             yield i
 
     def __getitem__(self, init):
+        init = list(self.icol.keys())[init]
         ki = {}
         for key in [var for var in list(self.dset) if var.startswith('_k')]:
             ki[int(key[2:])] = self.dset[key][..., init]
