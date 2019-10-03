@@ -6,11 +6,3 @@ tox==3.5.2
 coverage==4.5.1
 Sphinx==1.8.1
 twine==1.12.1
-scipy==1.1.0
-pandas==0.23.4
-h5py==2.8.0
-numpy==1.16.4
-scikit-learn==0.20.0
-matplotlib==3.0.2
-tensorflow-gpu==1.10.1
-tqdm==4.14.0
