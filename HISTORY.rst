@@ -2,12 +2,12 @@
 History
 =======
 
-0.2.0 (2019-10-03)
+0.1.3 (2019-10-03)
 ------------------
 
 * various fixes
 * design changes
-* fixed setup.py  
+* fixed setup.py
 
 
 
