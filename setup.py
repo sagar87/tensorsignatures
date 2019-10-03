@@ -2,24 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """The setup script."""
-
+from pkg_resources import DistributionNotFound, get_distribution
 from setuptools import setup, find_packages
-from subprocess import check_output, CalledProcessError
-
-# dity hack from: https://github.com/blei-lab/edward/pull/428
-
-try:
-    num_gpus = len(check_output(['nvidia-smi', '--query-gpu=gpu_name', '--format=csv']).decode().strip().split('\n'))
-    tf = 'tensorflow-gpu>=1.10' if num_gpus > 1 else 'tensorflow'
-except CalledProcessError:
-    tf = 'tensorflow>=1.10'
 
 
-with open('README.rst') as readme_file:
-    readme = readme_file.read()
-
-with open('HISTORY.rst') as history_file:
-    history = history_file.read()
+def get_dist(pkgname):
+    try:
+        return get_distribution(pkgname)
+    except DistributionNotFound:
+        return None
 
 requirements = [
     'Click>=6.0',
@@ -29,8 +20,18 @@ requirements = [
     'numpy>=1.14.5',
     'scikit-learn>=0.20.0',
     'matplotlib>=3.0.2',
-    tf,
+    'tensorflow==1.10.1',
     'tqdm>=4.11.0']
+
+if get_dist('tensorflow') is None and get_dist('tensorflow-gpu') is not None:
+    requirements.remove('tensorflow==1.10.1')
+
+
+with open('README.rst') as readme_file:
+    readme = readme_file.read()
+
+with open('HISTORY.rst') as history_file:
+    history = history_file.read()
 
 setup_requirements = [ ]
 
