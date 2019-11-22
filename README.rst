@@ -25,7 +25,8 @@ Quick install
 To install :code:`tensorsignatures` simply type
 
 .. code-block:: console
-    $ pip install
+
+    $ pip install tensorsignatures
 
 into your shell. To get started with tensorsignatures please refer to the
 documentation.
@@ -37,7 +38,7 @@ documentation.
 Features
 --------
 
-* Run :code:`tensorsignatures` on your dataset using the :code:`TensorSignature` class provided by thepackage or via the command line tool.
+* Run :code:`tensorsignatures` on your dataset using the :code:`TensorSignature` class provided by the package or via the command line tool.
 * Compute percentile based bootstrap confidence intervals for inferred parameters.
 * Basic plotting tools to visualize tensor signatures and inferred parameters
 
