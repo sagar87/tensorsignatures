@@ -52,11 +52,13 @@ the packages :code:`VariantAnnotation` and :code:`rhdf5` installed. You can
 install them, if necessary, by executing
 
 .. code-block:: console
+
     $ Rscript -e "source('https://bioconductor.org/biocLite.R'); biocLite('VariantAnnotation')"
 
 and
 
 .. code-block:: console
+
     $ Rscript -e "source('https://bioconductor.org/biocLite.R'); biocLite('rhdf5')"
 
 from your command line.
@@ -64,14 +66,18 @@ from your command line.
 To get started, download the following files and place them in the same directory:
 
 `Constants.RData <http://193.62.55.163/file/R/constants.RData>`_
+
 `mutations.R <http://193.62.55.163/file/R/mutations.R>`_
+
 `processVcf.R <http://193.62.55.163/file/R/processVcf.R>`_
+
 `genome.zip <http://193.62.55.163/file/R/genome.zip>`_ (optionally).
 
 To obtain the SNV count tensor and the matrices containing all other mutation
 types try to execute
 
 .. code-block:: console
+
     $ Rscript processVcf.R yourVcfFile1.vcf.gz yourVcfFile2.vcf.gz ... yourVcfFileN.vcf.gz outputHdf5File.h5
 
 which ideally outputs an hdf5 file that can be used as an input for the code:`tensorsignatures`
