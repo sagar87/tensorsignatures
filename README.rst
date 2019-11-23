@@ -46,9 +46,9 @@ count tensor. Similarly, multinucleotide variants (MNVs), deletions and indels
 (indels) have to be classified and represented in count matrix (currently we
 do not provide a automated way of generating a structural variant table yet).
 Despite the fact that TensorSignatures is written in Python, this part of the
-pipeline runs in R and and depends on the :code:`bioconductor` packages
-:code:`VariantAnnotation` and :code:`rhdf5`. Make sure you have :code:`R3.4.x`, and
-the packages :code:`VariantAnnotation` and :code:`rhdf5` installed. You can
+pipeline runs in :code:`R` and and depends on the :code:`bioconductor` packages
+:code:`VariantAnnotation` and :code:`rhdf5`. Make sure you have :code:`R3.4.x`
+installed, and the packages :code:`VariantAnnotation` and :code:`rhdf5`. You can
 install them, if necessary, by executing
 
 .. code-block:: console
@@ -65,11 +65,16 @@ from your command line.
 
 To get started, download the following files and place them in the same directory:
 
-`Constants.RData <http://193.62.55.163/file/R/constants.RData>`_
+`Constants.RData <http://193.62.55.163/file/R/constants.RData>`_ (contains
+:code:`GRanges` objects that annotate transcription/replication orientation,
+nucleosomal and epigenetic states)
 
-`mutations.R <http://193.62.55.163/file/R/mutations.R>`_
+`mutations.R <http://193.62.55.163/file/R/mutations.R>`_ (all required functions
+to partiton SNVs, MNVs and indels)
 
-`processVcf.R <http://193.62.55.163/file/R/processVcf.R>`_
+`processVcf.R <http://193.62.55.163/file/R/processVcf.R>`_ (loads :code:`vcf`
+files and creates the SNV count tensor, MNV and indel count matrix; eventually
+needs custom modification to make the script run on your vcfs.)
 
 `genome.zip <http://193.62.55.163/file/R/genome.zip>`_ (optionally).
 
@@ -80,9 +85,10 @@ types try to execute
 
     $ Rscript processVcf.R yourVcfFile1.vcf.gz yourVcfFile2.vcf.gz ... yourVcfFileN.vcf.gz outputHdf5File.h5
 
-which ideally outputs an hdf5 file that can be used as an input for the code:`tensorsignatures`
+which ideally outputs an hdf5 file that can be used as an input for the TensorSignatures
 software. In case of errors please check wether you have correctly specified paths
-in line 6-8. Also, take a look at the readVcfSave function and adjust it in case of errors.
+in line 6-8. Also, take a look at the :code:`readVcfSave` function and adjust it
+in case of errors.
 
 
 
