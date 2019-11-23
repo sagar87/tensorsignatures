@@ -11,10 +11,8 @@ from tqdm import trange
 from multiprocessing import Pool
 from multiprocessing import cpu_count
 
-from tensorsignatures.util import load_dict
 from tensorsignatures.util import load_dump
-
-from tensorsignatures.writer import link_datasets
+from tensorsignatures.util import prepare_data
 from tensorsignatures.writer import save_hdf
 
 from tensorsignatures.tensorsignatures import TensorSignature
@@ -342,6 +340,15 @@ def write(config, input, output, cores, block_size, remove, link):
 
         for fname in files:
             os.remove(fname)
+
+
+@main.command()
+@click.argument(INPUT, type=str)
+@click.argument(OUTPUT, type=str)
+@pass_config
+def prep(config, input, output):
+    prepare_data(input, output)
+    return 0
 
 
 if __name__ == "__main__":

@@ -40,6 +40,10 @@ documentation.
 Getting started
 ***************
 
+
+Step 1: Data preparation
+========================
+
 To apply TensorSignatures on your data single nucleotide variants (SNVs) need to
 be split according to their genomic context and represented in a highdimensional
 count tensor. Similarly, multinucleotide variants (MNVs), deletions and indels
@@ -89,12 +93,6 @@ which ideally outputs an hdf5 file that can be used as an input for the TensorSi
 software. In case of errors please check wether you have correctly specified paths
 in line 6-8. Also, take a look at the :code:`readVcfSave` function and adjust it
 in case of errors.
-
-
-
-
-
-
 
 
 ********

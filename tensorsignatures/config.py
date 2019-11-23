@@ -8,7 +8,7 @@ PATH = os.path.dirname(os.path.abspath(__file__))
 
 SIMULATION = resource_filename('tensorsignatures', 'data/sim_sig.txt')
 OTHER = resource_filename('tensorsignatures', 'data/other.txt')
-
+NORM = resource_filename('tensorsignatures', 'data/norm.h5')
 # Parameters for tesnsorsignatures
 
 RANK = 'rank'

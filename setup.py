@@ -53,6 +53,7 @@ setup(
             'tensorsignatures=tensorsignatures.cli:main'
         ],
     },
+    package_data={'tensorsignatures': ['data/*']},
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
