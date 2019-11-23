@@ -63,10 +63,10 @@ from your command line.
 
 To get started, download the following files and place them in the same directory:
 
-`Constants.RData <http://193.62.55.163/file/R/constants.RData>`
-`mutations.R <http://193.62.55.163/file/R/mutations.R>`
-`processVcf.R <http://193.62.55.163/file/R/processVcf.R>`
-`genome.zip <http://193.62.55.163/file/R/genome.zip>` (optionally).
+`Constants.RData <http://193.62.55.163/file/R/constants.RData>`_
+`mutations.R <http://193.62.55.163/file/R/mutations.R>`_
+`processVcf.R <http://193.62.55.163/file/R/processVcf.R>`_
+`genome.zip <http://193.62.55.163/file/R/genome.zip>`_ (optionally).
 
 To obtain the SNV count tensor and the matrices containing all other mutation
 types try to execute
@@ -85,15 +85,16 @@ in line 6-8. Also, take a look at the readVcfSave function and adjust it in case
 
 
 
-
+********
 Features
---------
+********
 
 * Run :code:`tensorsignatures` on your dataset using the :code:`TensorSignature` class provided by the package or via the command line tool.
 * Compute percentile based bootstrap confidence intervals for inferred parameters.
 * Basic plotting tools to visualize tensor signatures and inferred parameters
 
+*******
 Credits
--------
+*******
 
 * Harald Vöhringer and Moritz Gerstung
