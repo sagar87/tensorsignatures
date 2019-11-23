@@ -1,6 +1,6 @@
-================
-Tensorsignatures
-================
+################
+TensorSignatures
+################
 
 
 .. image:: https://img.shields.io/pypi/v/tensorsignatures.svg
@@ -19,8 +19,9 @@ analysis, which in contrast to other methods, deciphers mutational processes
 not only in terms of mutational spectra, but also assess their properties with
 respect to various genomic variables.
 
+*************
 Quick install
--------------
+*************
 
 To install :code:`tensorsignatures` simply type
 
@@ -33,6 +34,56 @@ documentation.
 
 * Free software: MIT license
 * Documentation: https://tensorsignatures.readthedocs.io.
+
+
+***************
+Getting started
+***************
+
+To apply TensorSignatures on your data single nucleotide variants (SNVs) need to
+be split according to their genomic context and represented in a highdimensional
+count tensor. Similarly, multinucleotide variants (MNVs), deletions and indels
+(indels) have to be classified and represented in count matrix (currently we
+do not provide a automated way of generating a structural variant table yet).
+Despite the fact that TensorSignatures is written in Python, this part of the
+pipeline runs in R and and depends on the :code:`bioconductor` packages
+:code:`VariantAnnotation` and :code:`rhdf5`. Make sure you have :code:`R3.4.x`, and
+the packages :code:`VariantAnnotation` and :code:`rhdf5` installed. You can
+install them, if necessary, by executing
+
+.. code-block:: console
+    $ Rscript -e "source('https://bioconductor.org/biocLite.R'); biocLite('VariantAnnotation')"
+
+and
+
+.. code-block:: console
+    $ Rscript -e "source('https://bioconductor.org/biocLite.R'); biocLite('rhdf5')"
+
+from your command line.
+
+To get started, download the following files and place them in the same directory:
+
+`Constants.RData <http://193.62.55.163/file/R/constants.RData>`
+`mutations.R <http://193.62.55.163/file/R/mutations.R>`
+`processVcf.R <http://193.62.55.163/file/R/processVcf.R>`
+`genome.zip <http://193.62.55.163/file/R/genome.zip>` (optionally).
+
+To obtain the SNV count tensor and the matrices containing all other mutation
+types try to execute
+
+.. code-block:: console
+    $ Rscript processVcf.R yourVcfFile1.vcf.gz yourVcfFile2.vcf.gz ... yourVcfFileN.vcf.gz outputHdf5File.h5
+
+which ideally outputs an hdf5 file that can be used as an input for the code:`tensorsignatures`
+software. In case of errors please check wether you have correctly specified paths
+in line 6-8. Also, take a look at the readVcfSave function and adjust it in case of errors.
+
+
+
+
+
+
+
 
 
 Features
