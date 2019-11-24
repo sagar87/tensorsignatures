@@ -40,8 +40,7 @@ terminal
 
 .. code-block:: console
 
-    $ git clone https://github.com/gerstung-lab/tensorsignatures.git
-    $ cd tensorsignatures
+    $ git clone https://github.com/gerstung-lab/tensorsignatures.git && cd tensorsignatures
 
 Then, create a new virtual environment and install all dependencies.
 
@@ -49,7 +48,7 @@ Then, create a new virtual environment and install all dependencies.
 
     $ python -m venv env
     $ source env/bin/activate
-    $ pip install -r requirements.txt
+    $ pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
 
 Finally, install TensorSignatures.
 
@@ -147,6 +146,40 @@ which ideally outputs an hdf5 file that can be used as an input for the TensorSi
 software. In case of errors please check wether you have correctly specified paths
 in line 6-8. Also, take a look at the :code:`readVcfSave` function and adjust it
 in case of errors.
+
+Before you can run TensorSignatures, a trinucleotide normalization constant needs to be
+added to the hdf5 data file. You can do this by calling the :code:`prep` subroutine
+of the TensorSignatures commandline programme.
+
+.. code-block:: console
+
+    $ tensorsignatures prep outputHdf5File.ht tsData.h5
+
+
+Step 2: Run TensorSignatures
+============================
+
+Once you have obtained the prepared input file, there are to ways to run
+TensorSignatures using either the :code:`refit` option, which fits the exposures of
+a set of pre-defined signatures to a new dataset, or via the :code:`train` subroutine,
+that performs a denovo extraction of TensorSignatures. Both options have advantages
+and disadvantages: Refitting tensor signatures is computationally fast but does not
+allow to discover new signatures, while fitting new signatures requires a large
+number of samples and is computationally intensive (GPU required). For most use cases,
+with a small number of samples, we advice to use the :code:`refit` option:
+
+.. code-block:: console
+
+    $ tensorsignatures --verbose refit tsData.h5 refit.pkl -n
+
+Here, is an example call to run a denovo extraction of tensor signatures
+
+.. code-block:: console
+
+    $ tensorsignatures --verbose train tsData.h5 denovo.pkl <rank> -k <size> -n -ep <epochs>
+
+Running Tensorsignatures will yield a :code:`pickle` dump which can subsequently
+inspected using the :code:`tensorsignatures` package (tutorials will follow soon).
 
 
 ********
