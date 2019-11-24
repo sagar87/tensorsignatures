@@ -6,8 +6,8 @@ WORKDIR /usr/src/tensorsignatures
 
 # add and install minumum requirements
 RUN pip install --upgrade pip setuptools wheel
-COPY ./requirements.txt /usr/src/tensorsignatures/requirements.txt
-RUN pip install -r requirements.txt
+COPY ./requirements-docker.txt /usr/src/tensorsignatures/requirements-docker.txt
+RUN pip install -r requirements-docker.txt
 
 # add tensorsignatures and install
 COPY . /usr/src/tensorsignatures

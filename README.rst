@@ -14,6 +14,11 @@ TensorSignatures
         :alt: Documentation Status
 
 
+*DISCLAIMER: TensorSignatures is currently being developed and not stable yet.
+Although, the current version is in principle fully functional, it is likely that
+you may face problems using the software; if so, please don't hesitate to get
+in touch.*
+
 TensorSignatures is a tensor factorization framework for mutational signature
 analysis, which in contrast to other methods, deciphers mutational processes
 not only in terms of mutational spectra, but also assess their properties with
@@ -23,7 +28,39 @@ respect to various genomic variables.
 Quick install
 *************
 
-To install :code:`tensorsignatures` simply type
+There are several ways to install TensorSignatures.
+
+Via GitHub
+==========
+
+To obtain the most recent version of TensorSignatures, we recommend to create
+a virtual environment and download the repository directly from GitHub. To get
+started, clone the repository by executing the following commands in your
+terminal
+
+.. code-block:: console
+
+    $ git clone https://github.com/gerstung-lab/tensorsignatures.git
+    $ cd tensorsignatures
+
+Then, create a new virtual environment and install all dependencies.
+
+.. code-block:: console
+
+    $ python -m venv env
+    $ source env/bin/activate
+    $ pip install -r requirements.txt
+
+Finally, install TensorSignatures.
+
+.. code-block:: console
+
+    $ pip install -e .
+
+Via Pypi
+========
+
+To install :code:`tensorsignatures` via Pypi simply type
 
 .. code-block:: console
 
@@ -32,9 +69,26 @@ To install :code:`tensorsignatures` simply type
 into your shell. To get started with tensorsignatures please refer to the
 documentation.
 
+Via docker (& jupyter)
+======================
+
+To run TensorSignatures within a docker environment (and jupyter) clone the
+first the repository
+
+.. code-block:: console
+
+    $ git clone https://github.com/gerstung-lab/tensorsignatures.git
+    $ cd tensorsignatures
+
+and then spin up the container using :code:`docker-compose`
+
+.. code-block:: console
+
+    $ docker-compose up --build
+
+
 * Free software: MIT license
 * Documentation: https://tensorsignatures.readthedocs.io.
-
 
 ***************
 Getting started

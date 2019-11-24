@@ -1018,7 +1018,7 @@ def prepare_data(path, output):
             [fh['MNV'][()].T, fh['INDELS'][()].T, sv], axis=0)
 
     with h5.File(NORM, 'r') as fh:
-        N = fh["N"][()]
+        N = collapse_data(np.concatenate([fh["N"][()]] * 2, axis=-4))
 
     with h5.File(output, 'w') as fh:
         fh.create_dataset('SNV', data=snv)
@@ -1026,3 +1026,30 @@ def prepare_data(path, output):
         fh.create_dataset('N', data=N)
 
     return 0
+
+
+def normalize_counts(init, N=None, collapse=False):
+    normed_mutations = []
+
+    if N is None:
+        with h5.File(NORM, 'r') as fh:
+            N = collapse_data(np.concatenate([fh["N"][()]] * 2, axis=-4))
+
+    if collapse:
+        N = ts.TensorSignature.collapse_data(N).reshape(3, 3, -1, 96, 1)
+
+    for s in range(init.rank):
+        snv_counts = (init.S[..., s, 0].reshape(-1, 1) @
+                      init.E[s, ..., 0].reshape(1, -1)).reshape(
+                      [*init.S.shape[:-2], init.E.shape[-2]])
+        snv_counts *= N
+        snv_counts = snv_counts.sum(
+            axis=tuple([i for i in range(len(snv_counts.shape[:-1]))]))
+        other_counts = init.T[..., s, 0].reshape(-1, 1) @ \
+            init.E[s, ..., 0].reshape(1, -1)
+        other_counts = other_counts.sum(axis=0)
+        normed_mutations.append(snv_counts + other_counts)
+
+    Enormed = np.stack(normed_mutations)
+
+    return Enormed

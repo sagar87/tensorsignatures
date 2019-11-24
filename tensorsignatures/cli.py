@@ -16,9 +16,11 @@ from tensorsignatures.util import prepare_data
 from tensorsignatures.writer import save_hdf
 
 from tensorsignatures.tensorsignatures import TensorSignature
+from tensorsignatures.tensorsignatures import TensorSignatureRefit
 from tensorsignatures.bootstrap import TensorSignatureBootstrap
 from tensorsignatures.data import TensorSignatureData
 from tensorsignatures.config import *
+
 
 class Config(object):
     def __init__(self):
@@ -26,6 +28,7 @@ class Config(object):
 
 
 pass_config = click.make_pass_decorator(Config, ensure=True)
+
 
 @click.group()
 @click.option('--verbose', is_flag=True)
@@ -153,25 +156,99 @@ def train(config, input, output, rank, objective, size, init, id,
         N = h5.File(input, 'r')['N'][()]
 
     model = TensorSignature(
-        snv=snv,
-        other=other,
-        rank=rank,
-        N=N,
-        size=size,
-        objective=objective,
-        collapse=collapse,
-        starter_learning_rate=starter_learning_rate,
-        optimizer=optimizer,
-        epochs=epochs,
-        log_step=100,
-        display_step=display_step,
-        id=id,
-        init=init,
-        seed=seed,
+        snv=snv, other=other, rank=rank, N=N, size=size, objective=objective,
+        collapse=collapse, starter_learning_rate=starter_learning_rate,
+        optimizer=optimizer, epochs=epochs, log_step=log_step,
+        display_step=display_step, id=id, init=init, seed=seed,
         verbose=config.verbose)
 
     results = model.fit()
+    results.dump(output)
 
+
+@main.command()
+@click.argument(INPUT, type=str)
+@click.argument(OUTPUT, type=str)
+@click.option('--' + 'reference', '-r',
+              metavar='<str>',
+              default='PCAWG',
+              help='TensorSignature initialization (*.pkl, default = PCAWG)')
+@click.option('--' + INIT, '-i',
+              metavar='<int>',
+              type=int,
+              default=0,
+              help='Iteration to (default = 0)')
+@click.option('--' + ID, '-j',
+              metavar='<str>',
+              type=str,
+              default='tsTrain',
+              help='job id (default = 0)')
+@click.option('--' + NORMALIZE, '-n',
+              is_flag=True,
+              help='multiply Chat1 with supplied normalisation constant N')
+@click.option('--' + COLLAPSE, '-c',
+              is_flag=True,
+              help='collapse pyrimindine/purine dimension (SNV.shape[-2])')
+@click.option('--' + EPOCHS, '-ep',
+              metavar='<int>',
+              type=int,
+              default=10000,
+              help='number of epochs / training steps')
+@click.option('--' + OPTIMIZER, '-op',
+              type=OPTIMIZER_CHOICE,
+              default='ADAM',
+              help='choose optimizer (default ADAM)')
+@click.option('--' + STARTER_LEARNING_RATE, '-lr',
+              metavar='<float>',
+              type=float,
+              default=0.1,
+              help='starter learning rate (default = 0.1)')
+@click.option('--' + DECAY_LEARNING_RATE, '-ld',
+              type=DECAY_LEARNING_RATE_CHOICE,
+              default='exponential',
+              help='learning rate decay (default exponential)')
+@click.option('--' + DISPLAY_STEP, '-ds',
+              metavar='<int>',
+              type=int,
+              default=100,
+              help='progress updates / log step (default = 100)')
+@click.option('--' + LOG_STEP, '-ls',
+              metavar='<int>',
+              type=int,
+              default=100,
+              help='epoch inteval to make logging steps (default = 100)')
+@click.option('--' + SEED, '-se',
+              metavar='<int>',
+              type=int,
+              default=None,
+              help='initialize TensorSignatures variables with a seed')
+@pass_config
+def refit(config, input, output, reference, init, id, norm, collapse, epochs,
+          optimizer, starter_learning_rate, decay_learning_rate, display_step,
+          log_step, seed):
+    """Refits a set of signatures to set a new dataset.
+    """
+
+    with h5.File(input, 'r') as fh:
+        snv = fh['SNV'][()]
+        other = fh['OTHER'][()]
+        N = None
+        if norm:
+            N = fh['N'][()]
+
+    if reference == 'PCAWG':
+        ref = load_dump(PCAWG)
+    else:
+        ref = load_dump(reference)
+
+    model = TensorSignatureRefit(
+        snv=snv, other=other, reference=ref, N=N, collapse=collapse,
+        starter_learning_rate=starter_learning_rate,
+        optimizer=optimizer, epochs=epochs, log_step=log_step,
+        display_step=display_step, id=id, init=init, seed=seed,
+        verbose=config.verbose)
+
+    results = model.fit()
     results.dump(output)
 
 
@@ -236,15 +313,13 @@ def boot(config, input, dump, max_init, id, norm, collapse, epochs, optimizer,
     initialization = load_dump(dump)
 
     for i in range(max_init):
-        model = TensorSignatureBootstrap(snv, other, initialization, N,
-            collapse, epochs, starter_learning_rate, decay_learning_rate,
-            optimizer, log_step, display_step, id, i, seed)
+        model = TensorSignatureBootstrap(
+            snv, other, initialization, N, collapse, epochs,
+            starter_learning_rate, decay_learning_rate, optimizer, log_step,
+            display_step, id, i, seed)
 
         result = model.fit()
         result.dump(id + '_I=' + str(i) + '.plk')
-
-
-    #print('Run bootstrapping with an itertion of tensor signature output.')
 
 
 @main.command()
@@ -347,6 +422,7 @@ def write(config, input, output, cores, block_size, remove, link):
 @click.argument(OUTPUT, type=str)
 @pass_config
 def prep(config, input, output):
+    """Adds a normalization constant and formats tensors appropriately."""
     prepare_data(input, output)
     return 0
 
