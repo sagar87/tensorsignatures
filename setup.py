@@ -20,11 +20,11 @@ requirements = [
     'numpy>=1.17.0',
     'scikit-learn==0.21.3',
     'matplotlib==3.1.2',
-    'tensorflow==1.15.0',
+    'tensorflow==1.14.0',
     'tqdm==4.39.0']
 
 if get_dist('tensorflow') is None and get_dist('tensorflow-gpu') is not None:
-    requirements.remove('tensorflow==1.15.0')
+    requirements.remove('tensorflow==1.14.0')
 
 
 with open('README.rst') as readme_file:
