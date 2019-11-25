@@ -17,14 +17,14 @@ requirements = [
     'scipy==1.3.2',
     'pandas==0.25.3',
     'h5py==2.10.0',
-    'numpy>=1.17.0',
+    'numpy<1.17,>=1.14.5',
     'scikit-learn==0.21.3',
-    'matplotlib==3.1.2',
-    'tensorflow==1.15.0',
+    'matplotlib>=3.0.0,<3.2.0',
+    'tensorflow<=1.15.0',
     'tqdm==4.39.0']
 
 if get_dist('tensorflow') is None and get_dist('tensorflow-gpu') is not None:
-    requirements.remove('tensorflow==1.15.0')
+    requirements.remove('tensorflow<=1.15.0')
 
 
 with open('README.rst') as readme_file:
@@ -65,6 +65,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/sagar87/tensorsignatures',
-    version='0.2.0',
+    version='0.4.0',
     zip_safe=False,
 )

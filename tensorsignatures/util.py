@@ -1006,19 +1006,30 @@ def prepare_data(path, output):
     Returns:
         None
     """
+
+    with h5.File(NORM, 'r') as fh:
+        M = fh['M'][()]
+
     with h5.File(path, 'r') as fh:
         # load extracted snvs
         snv = fh["SNVR"][()].T.reshape(3, 3, 16, 4, 2, 2, 96, -1)
-        samples = snv.shape[-1]
+
+        # compute the normalization constant
+        N0 = (snv.sum(axis=(4, 5, 6, 7)) / snv.sum()).reshape(3, 3, 16, 4, 1)
+        N1 = np.concatenate(
+            [N0, N0[[1, 0, 2], :, :][:, [1, 0, 2], :, :]], axis=4)
+        N2 = N1.reshape(3, 3, 16, 4, 1, 2, 1, 1)
+        N = (N2 * M) / 2
+
+        # collapse data
+        N = collapse_data(np.concatenate([N] * 2, axis=-4))
         snv = collapse_data(snv)
+
         # to be changed soon
-        sv = np.zeros([81, samples])
+        sv = np.zeros([81, snv.shape[-1]])
         sv[:] = np.nan
         other = np.concatenate(
             [fh['MNV'][()].T, fh['INDELS'][()].T, sv], axis=0)
-
-    with h5.File(NORM, 'r') as fh:
-        N = collapse_data(np.concatenate([fh["N"][()]] * 2, axis=-4))
 
     with h5.File(output, 'w') as fh:
         fh.create_dataset('SNV', data=snv)
