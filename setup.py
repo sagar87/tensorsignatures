@@ -19,7 +19,7 @@ requirements = [
     'h5py==2.10.0',
     'numpy<1.17,>=1.14.5',
     'scikit-learn==0.21.3',
-    'matplotlib>=3.0.0',
+    'matplotlib>=3.0.0,<3.2.0',
     'tensorflow<=1.15.0',
     'tqdm==4.39.0']
 
