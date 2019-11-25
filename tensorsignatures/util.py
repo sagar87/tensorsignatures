@@ -962,3 +962,94 @@ def load_dump(path):
         sample_indices=data[SAMPLE_INDICES])
 
     return init
+
+
+def collapse_data(snv):
+    r"""Deprecated convinience function to collapse pyrimidine/purine
+    dimension (snv.shape[-2])
+
+    Args:
+        snv (array-like, shape :math:`(3,3,(t_1+1),\dots,(t_l),2,p,n)`):
+            SNV count tensor with distinct pyrimidine purine dimension.
+    Returns:
+        snv (array, shape :math:`(3, 3, (t_1+1), \dots, (t_l), p, n)`):
+            Collapsed SNV array.
+    """
+    col1 = snv[[slice(None)] * (snv.ndim - 3) + [0] + [slice(None)] * 2]
+    col2 = []
+    dims = [
+        (1, 1), (1, 0), (1, 2),
+        (0, 1), (0, 0), (0, 2),
+        (2, 1), (2, 0), (2, 2)]
+
+    for i, j in dims:
+        idx = [i, j] \
+            + [slice(None)] \
+            * (snv.ndim - 5) \
+            + [1] \
+            + [slice(None)] \
+            * 2
+        col2.append(snv[idx])
+
+    col2 = np.stack(col2).reshape(col1.shape)
+
+    return col1 + col2
+
+
+def prepare_data(path, output):
+    """Brings the datatensor obtained from processVcf.R into the right shape
+    and adds the normalization constant to the hdf5 file.
+
+    Args:
+        path (:obj:`str`): Path to the file outputed from processVcf.R.
+        output (:obj:`str`): Path to the output file.
+    Returns:
+        None
+    """
+    with h5.File(path, 'r') as fh:
+        # load extracted snvs
+        snv = fh["SNVR"][()].T.reshape(3, 3, 16, 4, 2, 2, 96, -1)
+        samples = snv.shape[-1]
+        snv = collapse_data(snv)
+        # to be changed soon
+        sv = np.zeros([81, samples])
+        sv[:] = np.nan
+        other = np.concatenate(
+            [fh['MNV'][()].T, fh['INDELS'][()].T, sv], axis=0)
+
+    with h5.File(NORM, 'r') as fh:
+        N = collapse_data(np.concatenate([fh["N"][()]] * 2, axis=-4))
+
+    with h5.File(output, 'w') as fh:
+        fh.create_dataset('SNV', data=snv)
+        fh.create_dataset('OTHER', data=other)
+        fh.create_dataset('N', data=N)
+
+    return 0
+
+
+def normalize_counts(init, N=None, collapse=False):
+    normed_mutations = []
+
+    if N is None:
+        with h5.File(NORM, 'r') as fh:
+            N = collapse_data(np.concatenate([fh["N"][()]] * 2, axis=-4))
+
+    if collapse:
+        N = ts.TensorSignature.collapse_data(N).reshape(3, 3, -1, 96, 1)
+
+    for s in range(init.rank):
+        snv_counts = (init.S[..., s, 0].reshape(-1, 1) @
+                      init.E[s, ..., 0].reshape(1, -1)).reshape(
+                      [*init.S.shape[:-2], init.E.shape[-2]])
+        snv_counts *= N
+        snv_counts = snv_counts.sum(
+            axis=tuple([i for i in range(len(snv_counts.shape[:-1]))]))
+        other_counts = init.T[..., s, 0].reshape(-1, 1) @ \
+            init.E[s, ..., 0].reshape(1, -1)
+        other_counts = other_counts.sum(axis=0)
+        normed_mutations.append(snv_counts + other_counts)
+
+    Enormed = np.stack(normed_mutations)
+
+    return Enormed

@@ -13,18 +13,18 @@ def get_dist(pkgname):
         return None
 
 requirements = [
-    'Click>=6.0',
-    'scipy>=1.1.0',
-    'pandas>=0.23.4',
-    'h5py>=2.8.0',
-    'numpy>=1.16.1',
-    'scikit-learn>=0.20.0',
-    'matplotlib>=3.0.2',
-    'tensorflow>=1.10.1',
-    'tqdm>=4.11.0']
+    'Click==7.0',
+    'scipy==1.3.2',
+    'pandas==0.25.3',
+    'h5py==2.10.0',
+    'numpy>=1.17.0',
+    'scikit-learn==0.21.3',
+    'matplotlib==3.1.2',
+    'tensorflow==1.15.0',
+    'tqdm==4.39.0']
 
 if get_dist('tensorflow') is None and get_dist('tensorflow-gpu') is not None:
-    requirements.remove('tensorflow>=1.10.1')
+    requirements.remove('tensorflow==1.15.0')
 
 
 with open('README.rst') as readme_file:
@@ -53,6 +53,7 @@ setup(
             'tensorsignatures=tensorsignatures.cli:main'
         ],
     },
+    package_data={'tensorsignatures': ['data/*']},
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,

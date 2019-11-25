@@ -658,15 +658,80 @@ class TensorSignature(object):
 
 
 class TensorSignatureRefit(TensorSignature):
-    def __init__(self, snv, other, N, clu, **kwargs):
-        self.clu = clu
-        self.init = kwargs.get('init', self.clu.init)
-        self.rank = clu.rank
-        self.samples = snv.shape[-1]
-        self.collapse = kwargs.get('collapse', True)
+    r"""Fits a set of signatures (ts.Initialization)to a dataset.
 
-        self.verbose = kwargs.get('verbose', True)
-        self.size = self.clu['tau'][..., self.clu.init]
+    Args:
+        snv (array-like, shape :math:`(3, 3, (t_1+1), \dots, (t_l+1), p, n)`):
+            Input SNV tensor; first and second dimension represent
+            transcription and replication, while the last two dimensions
+            contain p mutation types and n samples. Other dimensions may
+            represent arbtrary genomic states.
+        other (array-like, shape :math:`(q, n)`): Mutation count matrix with q
+            mutation types and n samples.
+        rank (:obj:`int`, :math:`2 \leq s < n`): Rank :math:`s` of the
+            decomposition.
+        N (array_like, shape :math:`(3, 3, (t_1+1), \dots, (t_l+1), p, 1)`):
+            Optional normalization tensor containing trinucleotide frequencies
+            for each genomic state.
+        size (:obj:`int`, :math:`1 \leq \tau \leq + \inf`): Size parameter
+            :math:`\tau` for negative binomial distribution.
+        objective (:obj:`str`, :obj:`{'nbconst', 'poisson'}`): Likelihood
+            distribution to model mutation counts. Currently, the negative
+            binomial or poisson are supported.
+        collapse (:obj:`bool`): Deprecated convinience function.
+        starter_learning_rate (:obj:`float`): Starting Learning rate.
+        decay_learning_rate (:obj:`str`, :obj:`{'exponential', 'constant'}`):
+            Learning rate decay.
+        optimizer (:obj:`str`, :obj:`{'ADAM', 'gradient_descent'}`): Allows
+            to set the optimizer.
+        epochs (:obj:`int`): Number of training epochs.
+        log_step (:obj:`int`): Log freuqency.
+        display_step (:obj:`int`): Update intervals of progress bar during.
+        dtype (:obj:`dtype`): Allows to set tensorflow number type.
+        verbose (:obj:`bool`): Verbose mode.
+        id (:obj:`str`): Job id.
+        init (:obj:`int`): Initialization.
+        seed (:obj:`int`): Random seed.
+    Returns:
+        A tensorsignatures model.
+
+    Examples:
+
+    >>> from tensorsignatures.tensorsignatures import TensorSignature
+    >>> model = TensorSignature(snv, other, rank = 5)
+    >>> model.fit()
+
+    """
+    def __init__(self, snv, other, reference, N=None, **kwargs):
+        self.ref = reference
+
+        self.rank = self.ref.rank
+        self.size = self.ref.size
+        self.objective = self.ref.objective
+        self.collapse = kwargs.get('collapse', False)
+        self.starter_learning_rate = kwargs.get(
+            STARTER_LEARNING_RATE, self.ref.starter_learning_rate)
+        self.decay_learning_rate = kwargs.get(
+            DECAY_LEARNING_RATE, self.ref.decay_learning_rate)
+        self.optimizer = kwargs.get(OPTIMIZER, self.ref.optimizer)
+        self.epochs = kwargs.get(EPOCHS, 5000)
+        self.log_step = kwargs.get(LOG_STEP, self.ref.log_step)
+        self.display_step = kwargs.get(DISPLAY_STEP, self.ref.log_step)
+        self.id = kwargs.get(ID, self.ref.id)
+        self.init = kwargs.get(INIT, 0)
+        self.seed = kwargs.get(SEED, None)
+        self.dtype = kwargs.get('dtype', tf.float32)
+        self.verbose = kwargs.get('verbose', False)
+
+        # hyper
+        self.samples = snv.shape[-1]
+        self.observations = self.ref.observations
+
+        # dimensions
+        self.p = snv.shape[-2]
+        self.q = other.shape[0]
+
+        self.tau = tf.constant(self.ref.size, dtype=self.dtype)
 
         if self.collapse:
             self.snv = TensorSignature.collapse_data(snv)
@@ -676,22 +741,17 @@ class TensorSignatureRefit(TensorSignature):
         self.other = other
         if N is not None:
             if self.collapse:
-                self.N = TensorSignature.collapse_data(N).reshape(3, 3,-1, 96, 1)
+                self.N = TensorSignature.collapse_data(
+                    N).reshape(3, 3, -1, 96, 1)
             else:
-                self.N = N.reshape(3, 3,-1, 96, 1)
+                self.N = N.reshape(3, 3, -1, 96, 1)
         else:
             self.N = None
 
-        self.clu_dim = sorted([ var for var in list(self.clu.dset) if var.startswith('k') ])
-        self.card = [ self.clu.dset[var][()].shape[0]+1 for var in self.clu_dim ]
+        self.card = [k + 1 for k in self.ref._kdim]
         self.card_prod = np.prod(self.card)
-        self.idex = self.indices_to_assignment(np.arange(self.card_prod), self.card)
-
-        self.dtype = tf.float32
-        self.p = kwargs.get('p', 96)
-        self.tau = tf.constant(self.size, dtype=tf.float32)
-        self.epochs = kwargs.get(EPOCHS, 5000)
-        self.objective = self.clu[OBJECTIVE]
+        self.idex = self.indices_to_assignment(
+            np.arange(self.card_prod), self.card)
 
         # initialize variables
         self.M
@@ -706,21 +766,32 @@ class TensorSignatureRefit(TensorSignature):
         self.L2
         self.L
 
-        #learning rate
+        # learning rate
         self.global_step = tf.Variable(0, trainable=False)
-        self.starter_learning_rate = self.clu[STARTER_LEARNING_RATE]
-        self.decay_learning_rate = self.clu[DECAY_LEARNING_RATE] # kwargs.get(DECAY_LEARNING_RATE, 'exponential')
         self.learning_rate
-
-        self.optimizer = self.clu[OPTIMIZER]
         self.minimize
+
+        # intialize logs
+        self.log_epochs = np.zeros(self.epochs // self.ref.log_step)
+        self.log_learning_rate = np.zeros(self.epochs // self.ref.log_step)
+        self.log_L = np.zeros(self.epochs // self.ref.log_step)
+        self.log_L1 = np.zeros(self.epochs // self.ref.log_step)
+        self.log_L2 = np.zeros(self.epochs // self.ref.log_step)
 
     @define_scope
     def A(self):
-        self.a0 = tf.constant(self.clu['a0'][..., self.init], name='a0')
-        a1 = tf.exp(tf.reshape(tf.concat([self.a0, self.a0, tf.zeros([2, self.rank])], axis=0), (3, 2, self.rank)))
-        a2 = a1[:, 0, :][:, None, :] * a1[:, 1, :][None, :, :] # outer product
-        self._A = tf.reshape(a2, [3, 3, 1, 1, self.rank])
+        # sets signature activities for transcription and replication
+        self.a0 = tf.constant(self.ref._a0[..., 0], name='a0')
+        a1 = tf.exp(
+            tf.reshape(
+                tf.concat(
+                    [self.a0, self.a0, tf.zeros([2, self.rank])], axis=0),
+                (3, 2, self.rank)))
+
+        self._A = tf.reshape(
+            a1[:, 0, :][:, None, :] * a1[:, 1, :][None, :, :],
+            (3, 3, 1, 1, self.rank))
+
         if self.verbose:
             print('A:', self._A.shape)
 
@@ -728,13 +799,21 @@ class TensorSignatureRefit(TensorSignature):
 
     @define_scope
     def B(self):
-        self.b0 = tf.constant(self.clu['b0'][..., self.init], name='b0') # Pyrimidine - Purine bias x 2 (TS, RS) X s
+        # sets transcriptional and replicational biases
+        self.b0 = tf.constant(
+            self.ref._b0[..., 0], name='b0')
         self._B = tf.exp(tf.reshape(
             tf.stack([
-                self.b0[0,:]+self.b0[1,:], self.b0[0,:]-self.b0[1,:], self.b0[0,:],
-                self.b0[1,:] - self.b0[0,:], -self.b0[1,:] - self.b0[0,:], -self.b0[0,:],
-                self.b0[1,:], -self.b0[1,:], tf.zeros(self.b0[0,:].shape)]),
-            [3, 3, 1, 1, self.rank]))
+                self.b0[0, :] + self.b0[1, :],
+                self.b0[0, :] - self.b0[1, :],
+                self.b0[0, :],
+                self.b0[1, :] - self.b0[0, :],
+                -self.b0[1, :] - self.b0[0, :],
+                -self.b0[0, :],
+                self.b0[1, :], -self.b0[1, :],
+                tf.zeros(self.b0[0, :].shape)]),
+            (3, 3, 1, 1, self.rank)))
+
         if self.verbose:
             print('B:', self._B.shape)
 
@@ -742,21 +821,36 @@ class TensorSignatureRefit(TensorSignature):
 
     @define_scope
     def S1(self):
-        self.S0 = tf.constant(self.clu['S0'][..., self.init], name='S0') # basic parameters [+/+, +/-] x [Pyr, Pur] x 96-1 x s
-        S1 = tf.nn.softmax(tf.concat([self.S0, tf.zeros([2, 2, 1, self.rank])], axis=2), dim=2, name='S1') # pad 0
+        self.S0 = tf.constant(self.ref._S0[..., 0], name='S0')
+        S1 = tf.nn.softmax(
+            tf.concat([self.S0, tf.zeros([2, 2, 1, self.rank])], axis=2),
+            dim=2, name='S1')
+
+        # stack the tensor
         self._S1 = tf.reshape(
             tf.stack([
-                S1[0, 0, :, :], S1[1, 0, :, :], 0.5 * tf.reduce_sum(S1[:, 0, :, :], axis=0),
-                S1[1, 1, :, :], S1[0, 1, :, :], 0.5 * tf.reduce_sum(S1[:, 1, :, :], axis=0),
-                0.5 * (S1[0, 0, :, :] + S1[1, 1, :, :]), 0.5 * (S1[1, 0, :, :] + S1[0, 1, :, :]), 0.25 * (tf.reduce_sum(S1, axis=(0, 1)))]),
-            [3, 3, 1, self.p, self.rank])
+                S1[0, 0, :, :],
+                S1[1, 0, :, :],
+                0.5 * tf.reduce_sum(S1[:, 0, :, :], axis=0),
+                S1[1, 1, :, :],
+                S1[0, 1, :, :],
+                0.5 * tf.reduce_sum(S1[:, 1, :, :], axis=0),
+                0.5 * (S1[0, 0, :, :] + S1[1, 1, :, :]),
+                0.5 * (S1[1, 0, :, :] + S1[0, 1, :, :]),
+                0.25 * (tf.reduce_sum(S1, axis=(0, 1)))]),
+            (3, 3, 1, self.p, self.rank))
 
         return self._S1
 
     @define_scope
     def E(self):
-        self.E0 = tf.Variable(tf.truncated_normal([self.clu.rank, self.snv.shape[-1]], dtype=self.dtype), name='E0')
+        # exposures are intialized randomly
+        self.E0 = tf.Variable(
+            tf.truncated_normal(
+                [self.ref.rank, self.snv.shape[-1]], dtype=self.dtype),
+            name='E0')
         self._E = tf.exp(self.E0, name='E')
+
         if self.verbose:
             print('E:', self._E.shape)
 
@@ -767,13 +861,12 @@ class TensorSignatureRefit(TensorSignature):
         self._clu_var = {}
         self._cbiases = {}
 
-        for clu in self.clu_dim:
-            #print(clu)
-            k = int(clu[1:])
-            v = tf.constant(self.clu[clu][..., self.init], name='k{}'.format(k))
+        for k, v in self.ref._ki.items():
+            v = tf.constant(v[..., 0], name='k{}'.format(k))
 
             self._clu_var[k] = v
-            self._cbiases[k] = tf.concat([tf.zeros([1, self.rank], dtype=self.dtype), v], axis=0)
+            self._cbiases[k] = tf.concat(
+                [tf.zeros([1, self.rank], dtype=self.dtype), v], axis=0)
 
             if self.verbose:
                 print('k{}:'.format(k), self._cbiases[k].shape)
@@ -782,18 +875,21 @@ class TensorSignatureRefit(TensorSignature):
         for r in range(self.idex.shape[0]):
             current_term = []
             for c in range(self.idex.shape[1]):
-                current_term.append(self._cbiases[c][self.idex[r, c].astype(int), :])
+                current_term.append(
+                    self._cbiases[c][self.idex[r, c].astype(int), :])
 
             final_tensor.append(tf.reduce_sum(tf.stack(current_term), axis=0))
 
-        self._K = tf.exp(tf.reshape(tf.stack(final_tensor), (1, 1, -1, 1, self.rank)))
+        self._K = tf.exp(
+            tf.reshape(tf.stack(final_tensor), (1, 1, -1, 1, self.rank)))
         if self.verbose:
             print('K:', self._K.shape)
         return self._K
 
     @define_scope
     def M(self):
-        self.m0 = tf.constant(self.clu['m0'][..., self.clu.init], name='m0')
+        self.m0 = tf.constant(
+            self.ref._m0[..., 0], name='m0')
         self.m1 = tf.sigmoid(self.m0, name='m1')
         self._M = tf.reshape(self.m1, (1, 1, 1, 1, self.rank))
         if self.verbose:
@@ -809,9 +905,16 @@ class TensorSignatureRefit(TensorSignature):
 
     @define_scope
     def T(self):
-        self.T0 = tf.constant(self.clu['T0'][..., self.clu.init], name='T0')
-        T1 = tf.nn.softmax(tf.concat([self.T0, tf.zeros([1, self.rank], dtype=self.dtype)], axis=0), dim=0, name='T')
-        self._T = T1 * (1-tf.reshape(self.M, (1, self.rank)))
+        self.T0 = tf.constant(
+            self.ref._T0[..., 0], name='T0')
+
+        T1 = tf.nn.softmax(
+            tf.concat(
+                [self.T0, tf.zeros([1, self.rank], dtype=self.dtype)], axis=0),
+            dim=0, name='T')
+
+        self._T = T1 * (1 - tf.reshape(self.M, (1, self.rank)))
+
         if self.verbose:
             print('T:', self._T.shape)
 
@@ -819,7 +922,9 @@ class TensorSignatureRefit(TensorSignature):
 
     @define_scope
     def Chat1(self):
-        self._Chat1 = tf.reshape(tf.matmul(tf.reshape(self.S, (-1, self.rank)), self.E), [3, 3, -1, self.p, self.samples])
+        self._Chat1 = tf.reshape(
+            tf.matmul(tf.reshape(self.S, (-1, self.rank)), self.E),
+            (3, 3, -1, self.p, self.samples))
 
         if self.N is not None:
             self._Chat1 *= (self.N.astype('float32') + 1e-6)
@@ -841,7 +946,8 @@ class TensorSignatureRefit(TensorSignature):
 
     @define_scope
     def C1(self):
-        self._C1 = tf.constant(self.snv.reshape(3, 3, -1, self.p, self.samples), dtype=self.dtype)
+        self._C1 = tf.constant(
+            self.snv.reshape(3, 3, -1, self.p, self.samples), dtype=self.dtype)
 
         if self.verbose:
             print('C1:', self._C1.shape)
@@ -859,6 +965,7 @@ class TensorSignatureRefit(TensorSignature):
             print('C2:', self._C2.shape)
 
         return self._C2
+
 
 class TensorSignatures2D(TensorSignature):
     def __init__(self, matrix, **kwargs):

@@ -21,8 +21,8 @@ interface by
 3. exploring inferred parameters.
 
 
-Creating sample data with :code:`TensorSignatureData` using the API
--------------------------------------------------------------------
+Creating sample data with :code:`TensorSignatureData`
+-----------------------------------------------------
 
 The :code:`tensorsignatures.data` module provides the :obj:`TensorSignatureData`
 class allowing us to create simulated data, which we will explore in the
