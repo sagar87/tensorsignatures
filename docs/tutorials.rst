@@ -225,7 +225,7 @@ Signature activities on transcribed/untranscribed and early/late replicating gen
 
 In addition to strand biases, TensorSignatures evaluates the activity of signatures in
 transcribed vs. untranscribed and early vs. late replicating regions. To visualize the
-these coefficients for our artificial dataset, we again make use of the code:`ts.heatmap`
+these coefficients for our artificial dataset, we again make use of the :code:`ts.heatmap`
 function
 
 >>> plt.figure(figsize=(6,3))
@@ -242,8 +242,34 @@ function
 The interpretation of this plot is as follows: A baseline value of 1 indicates that there is
 no difference in signature activity between transcribed and untranscribed, or early and late
 replicating regions. Values < 1 indicate a larger activity of the mutational process in untranscribed
-or late replicating regions, while coefficients > 1 imply the opposite, namely an enhance activity
+or late replicating regions, while coefficients > 1 imply the opposite; an enhanced activity
 in transcribed or early replicating regions.
+
+Signature activities in specific genomic regions
+------------------------------------------------
+
+An interesting features of TensorSignatures is the ability to learn about the presence of
+mutational processes within defined genomic contexts. For example, to address questions whether
+a mutational signature is found within strongly transcribed regions, one could classify SNVs
+accordingly, and introduce them as state in a dimension of the SNV count tensor. Based on the SNV
+count patterns present in these regions, the program fits a parameter for each mutational signature
+and genomic state with respect to the baseline (NA, contains all mutations that could not be 
+assigned to a specificic genomic feature) state to account for differential signature activity.
+
+
+>>> plt.figure(figsize=(3,2))
+>>> ts.heatmap(data_set.K['k1'].reshape(-1, data_set.rank),
+           row_labels=['Baseline (NA)', 'Genomic state 1', 'Genomic state 2', 'Genomic state 3', 'Genomic state 4'],
+           col_labels=['Sig. {}'.format(i) for i in range(3)],
+           cbarlabel='Relative Signature\nactivity (Baseline = 1)' # color bar label
+          ) 
+
+.. figure::  images/genomic_state.png
+   :align:   center
+
+
+
+
 
 
 Running TensorSignatures on example data
