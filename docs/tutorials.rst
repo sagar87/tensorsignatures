@@ -95,7 +95,11 @@ a specific structure which is explained in the following table.
 +----------------------------+-----------+-----------+---------------------------+
 
 From this we can see that our simulated :code:`data_set` contains two additional
-genomic dimensions with size 3 and 5 respectively.
+genomic dimensions with size 3 and 5 respectively. We can index the SNV tensor like 
+any other numpy array. For example, to obtain template and leading strand mutations 
+from "unassigned" genomic regions, we would simply index the tensor with 
+:code:`snv[0, 1, 0, 0, :, :]` which returns a two dimensional array with mutation 
+types along the first axis and samples along the other.
 
 Note, that we can reconstruct the :math:`p\times n` mutation count matrix, which
 usually serves as an input for conventional mutational signature analysis, by summing
@@ -174,8 +178,8 @@ replication by
 2. fitting a scalar for each signature that quantifies the overall shift of mutations in pyrimidine context (bias matrix :code:`b`)
 3. fitting a scalar for each signature that is interpreted as the relative signature activity of signature in transcribed vs untranscribed regions, and early and late replicating regions (activity matrix :code:`a`).
 
-To understand this, we can plot the underlying signatures that created :code:`snv`
-by
+To understand this, we can plot the signatures that created the 
+simulated counts in :code:`snv` by
 
 >>> plt.figure(figsize=(16, 3))
 >>> ts.plot_signatures(data_set.S.reshape(3,3,-1,96,3))
@@ -184,11 +188,34 @@ by
    :align:   center
 
 which reveals the SNV spectra of three signatures (rows) for transcription and
-replication in the left and right column, respectively. In this representation
-darker bars indicate for mutation type probabilities for coding strand and leading
-strand DNA, while the lighter bars show them for template and lagging strand DNA.
+replication in the left and right column. In this representation colors indicate 
+the mutation type (blue C>A, black C>G, red C>T, grey T>A, green
+T>C and salmon T>G), while shading indicates the mutation type probabilities for 
+coding strand and leading strand DNA (dark), and for template and lagging strand DNA 
+(light), respectively. Notice, how in the first signature (second row) dark blue bars 
+are larger in comparison to accompanying light blue bars, indicative for the fact that
+this mutational process is more likely to produce C>A mutations on coding and leading 
+strand mutations.
+
+Rather than investigating strand biases on mutation type level, it may be desireable 
+to obtain an point estimate that quantifies the overall propensity of each mutational 
+process to generate strand specific mutations. To accomplish this, TensorSignatures 
+fits two (for transcription and replication) scalar variables for each extracted signature
+that scale trinucleotide spectra by the amount of the detected strand asymmetry. 
+We can employ the ts.heatmap function to visualize them for our simulated data set.
+
+>>> plt.figure(figsize=(6,3))
+>>> ts.heatmap(np.exp(data_set.b0), 
+           vmin=.5, vmax=2, # allows to specify the limits of the colorbar
+           row_labels=['transcription', 'replication'],
+           col_labels=['Signature {}'.format(i) for i in range(3)],
+           cbarlabel='Strand bias (No bias = 1)' # color bar label
+          )
 
 
+Rows display the context and columns repspective signatures. Note the logarithmic scaling 
+of the colorbar which indicates that a baseline value of 1 resembles a mutational process 
+with no strand preference.
 
 Plotting the trinucleotide profile of the first samples reveals that samples
 are dominated by C>A (blue) and T>C (green).
