@@ -202,7 +202,7 @@ to obtain an point estimate that quantifies the overall propensity of each mutat
 process to generate strand specific mutations. To accomplish this, TensorSignatures 
 fits two (for transcription and replication) scalar variables for each extracted signature
 that scale trinucleotide spectra by the amount of the detected strand asymmetry. 
-We can employ the ts.heatmap function to visualize them for our simulated data set.
+We can employ the :code:`ts.heatmap` function to visualize them for our simulated data set.
 
 >>> plt.figure(figsize=(6,3))
 >>> ts.heatmap(np.exp(data_set.b0), 
@@ -212,19 +212,39 @@ We can employ the ts.heatmap function to visualize them for our simulated data s
            cbarlabel='Strand bias (No bias = 1)' # color bar label
           )
 
+.. figure::  images/strand_biases.png
+   :align:   center
 
 Rows display the context and columns repspective signatures. Note the logarithmic scaling 
 of the colorbar which indicates that a baseline value of 1 resembles a mutational process 
 with no strand preference.
 
-Plotting the trinucleotide profile of the first samples reveals that samples
-are dominated by C>A (blue) and T>C (green).
 
+Signature activities on transcribed/untranscribed and early/late replicating genomic regions
+--------------------------------------------------------------------------------------------
 
+In addition to strand biases, TensorSignatures evaluates the activity of signatures in
+transcribed vs. untranscribed and early vs. late replicating regions. To visualize the
+these coefficients for our artificial dataset, we again make use of the code:`ts.heatmap`
+function
 
+>>> plt.figure(figsize=(6,3))
+>>> ts.heatmap(np.exp(data_set.a0), 
+           vmin=.5, vmax=2, # allows to specify the limits of the colorbar
+           row_labels=['transcription', 'replication'],
+           col_labels=['Signature {}'.format(i) for i in range(3)],
+           cbarlabel='Signature activities (Baseline = 1)' # color bar label
+          )
 
+.. figure::  images/amplitudes.png
+   :align:   center
 
-which illustrates that shown samples above are a superposition of both signatures.
+The interpretation of this plot is as follows: A baseline value of 1 indicates that there is
+no difference in signature activity between transcribed and untranscribed, or early and late
+replicating regions. Values < 1 indicate a larger activity of the mutational process in untranscribed
+or late replicating regions, while coefficients > 1 imply the opposite, namely an enhance activity
+in transcribed or early replicating regions.
+
 
 Running TensorSignatures on example data
 ========================================
