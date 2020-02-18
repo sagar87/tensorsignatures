@@ -251,7 +251,7 @@ Signature activities in specific genomic regions
 An interesting features of TensorSignatures is the ability to learn about the presence of
 mutational processes within defined genomic contexts. 
 
-.. figure::  images/genomic_state_dist.png
+.. figure::  images/genomic_states_dist.png
    :align:   center
 
 For example, to address questions whether a mutational signature is found within genomic regions 
