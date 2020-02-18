@@ -103,7 +103,7 @@ types along the first axis and samples along the other.
 
 Note, that we can reconstruct the :math:`p\times n` mutation count matrix, which
 usually serves as an input for conventional mutational signature analysis, by summing
-over all dimensions except the last two (representint base substitution types
+over all dimensions except the last two (representing base substitution types
 and samples respectively). The following code illustrates this operation.
 
 >>> snv_collapsed = snv.sum(axis=(0,1,2,3,))
@@ -249,13 +249,19 @@ Signature activities in specific genomic regions
 ------------------------------------------------
 
 An interesting features of TensorSignatures is the ability to learn about the presence of
-mutational processes within defined genomic contexts. For example, to address questions whether
-a mutational signature is found within strongly transcribed regions, one could classify SNVs
-accordingly, and introduce them as state in a dimension of the SNV count tensor. Based on the SNV
-count patterns present in these regions, the program fits a parameter for each mutational signature
-and genomic state with respect to the baseline (NA, contains all mutations that could not be 
-assigned to a specificic genomic feature) state to account for differential signature activity.
+mutational processes within defined genomic contexts. 
 
+.. figure::  images/genomic_state_dist.png
+   :align:   center
+
+For example, to address questions whether a mutational signature is found within genomic regions 
+with a specific histone moddification (thereafter a *genomic state*), one could classify SNVs accordingly, and 
+introduce them as state in a dimension of the SNV  count tensor. Based on the SNV 
+count patterns present in these regions, the program fits a parameter for each mutational 
+signature and genomic state with respect to the baseline (NA, contains all mutations that 
+could not be assigned to a specificic genomic feature) state to account for differential signature activity.
+
+In the following plot we see the
 
 >>> plt.figure(figsize=(3,2))
 >>> ts.heatmap(data_set.K['k1'].reshape(-1, data_set.rank),
@@ -267,6 +273,13 @@ assigned to a specificic genomic feature) state to account for differential sign
 .. figure::  images/genomic_state.png
    :align:   center
 
+In this plot, we see the genomic activity of mutational signatures across the second dimension of our 
+simulated SNV tensor (:code:`(3,3,4,5,96,n)`). Since we deal with simulated data, we used generic
+row labels (*Genomic state 1-4*) to indicate arbitrary genomic states. Usually, the majority of SNVs 
+do not fall into specific genomic states and therefore end up in the baseline state, which is always 1, 
+and to which all other coefficients are inferred relatively to. To understand this, consider the signature 1 
+column: in genomic state 1 signature activity is decreased by one half while in genomic state 2 propensity 
+of signature 1 is elevated 6x in comparison to the genomic baseline.
 
 
 
