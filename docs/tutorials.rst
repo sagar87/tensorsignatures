@@ -2,9 +2,8 @@
 Tutorials
 =========
 
-
-Getting started
-===============
+Understanding the SNV count tensor
+==================================
 
 TensorSignatures deciphers mutational signatures in context transcription,
 replication and arbitrary genomic environments, which is achieved by partitioning
@@ -308,26 +307,32 @@ we execute
 
    *Relative signature activities across states of the fourth dimension of the SNV count tensor.*
 
-confirming our first impression that signature two shows strongest activity genomic state 2 and 4. To interprete
+confirming our first impression that signature 1 shows strongest activity genomic state 2 and 4. To interprete
 this correctly, keep in mind that usually majority of SNVs do not fall into specific genomic states 
 and therefore end up in the baseline state, which is in Tensorsignatures always 1, and to which all other coefficients 
 are inferred relatively to. In other words, signature 1 shows 6x and 7x higher activities in genomic state 
 2 and 4 in comparison to the genomic baseline.
 
 
-Running TensorSignatures on example data
-========================================
+Running TensorSignatures on example data via CLI
+================================================
+
+In this tutorial we will first simulate SNV and other mutation count data, and subsequently run 
+TensorSignatures on this data via the commandline. The goal is to illustrate how to run
+TensorSignatures in a practical setting.
+
+To create a reproducable (the first positional argument sets a seed: :code:`573`) synthetic dataset from 
+5 mutational signatures (second positional argument) with the CLI, we invoke the :code:`data` subprogram
+
+    $ tensorsignatures data 573 5 data.h5 -s 100 -m 1000 -d 6 -d 4
+
+which will simulate 100 samples (:code:`-s 1000`) with 1000 mutations each (:code:`-m 1000`), and 
+two additional dimensions with 6 and 4 genomic states (:code:`-d 6 -d 4`). The program writes a :code:`hdf5` file
+:code:`data.h5` into the current folder containing the dataset :code:`SNV` and :code:`OTHER` representing
+the SNV count tensor and all other variant types respectily.
 
 
 
 
 
 
-
-
-
-
-
-To use tensorsignatures in a project::
-
-    import tensorsignatures
