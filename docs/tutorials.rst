@@ -266,7 +266,7 @@ and respective mutations from pooled cancer genomes.
 
 The rainfall plot representation may not always reveal changes in the mutational spectrum on first sight. 
 However, the SNV count tensor contains the mutational spectra of each state combination. We can inspect 
-them by indexing the respective state and summing over all remaining dimension except the one for
+them by indexing the respective state and summing over all remaining dimensions except the one for
 trinucleotides. To visualize the mutational spectra along the five states of the fourth dimension of
 our simulated dataset we would type
 
@@ -287,13 +287,13 @@ our simulated dataset we would type
 
    *Pooled SNV spectra across the fourth dimension of the SNV count tensor.*
 
+This plot illustrates the fact that different genomic states may have variable signature exposuers. For
+example, Genomic state 2 and 4 are clearly dominated by signature 1 as judged by the strong prevalence
+of C>A mutations (blue).
 
-To address questions whether a mutational signature is found within genomic regions 
-with a specific histone moddification (thereafter a *genomic state*), one could classify SNVs accordingly, and 
-introduce them as state in a dimension of the SNV  count tensor. Based on the SNV 
-count patterns present in these regions, the program fits a parameter for each mutational 
-signature and genomic state with respect to the baseline (NA, contains all mutations that 
-could not be assigned to a specificic genomic feature) state to account for differential signature activity.
+Tensorsignatures models the activity of each signature by fitting a single coefficient for
+each signature and genomic state. To visualize the coefficients used to generate our simulated dataset 
+we execute
 
 >>> plt.figure(figsize=(3,2))
 >>> ts.heatmap(data_set.K['k1'].reshape(-1, data_set.rank),
@@ -304,17 +304,15 @@ could not be assigned to a specificic genomic feature) state to account for diff
 
 .. figure::  images/genomic_state.png
    :align:   center
+   :height: 200px
 
-In this plot, we see the genomic activity of mutational signatures across the second dimension of our 
-simulated SNV tensor :code:`(3,3,4,5,96,n)`. Since we deal with simulated data, we used generic
-row labels (*Genomic state 1-4*) to indicate arbitrary genomic states. Usually, the majority of SNVs 
-do not fall into specific genomic states and therefore end up in the baseline state, which is always 1, 
-and to which all other coefficients are inferred relatively to. To understand this, consider the signature 1 
-column: in genomic state 1 signature activity is decreased by one half while in genomic state 2 propensity 
-of signature 1 is elevated 6x in comparison to the genomic baseline.
+   *Relative signature activities across states of the fourth dimension of the SNV count tensor.*
 
-
-
+confirming our first impression that signature two shows strongest activity genomic state 2 and 4. To interprete
+this correctly, keep in mind that usually majority of SNVs do not fall into specific genomic states 
+and therefore end up in the baseline state, which is in Tensorsignatures always 1, and to which all other coefficients 
+are inferred relatively to. In other words, signature 1 shows 6x and 7x higher activities in genomic state 
+2 and 4 in comparison to the genomic baseline.
 
 
 Running TensorSignatures on example data
