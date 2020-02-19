@@ -337,6 +337,7 @@ Before we try to reconstruct signatures from our simulated dataset, we take a cl
 :code:`tensorsignatures train` program
 
 ::
+
     $ tensorsignatures train --help
     Usage: tensorsignatures train [OPTIONS] INPUT OUTPUT RANK
 
