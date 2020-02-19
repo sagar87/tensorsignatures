@@ -333,6 +333,40 @@ two additional dimensions with 6 and 4 genomic states (:code:`-d 6 -d 4`). The p
 :code:`data.h5` into the current folder containing the dataset :code:`SNV` and :code:`OTHER` representing
 the SNV count tensor and all other variant types respectively.
 
+Since we know the number of signatures that made up the dataset we can run tensorsignatures
+simply by executing
+
+::
+
+    $ tensorsignatures --verbose train data.h5 my_first_run.pkl 5
+
+which create pickle able file, that we can load into a interactive python session (eg. Jupyter) 
+to investigate further.
+
+Analysing a tensorsignature initialization
+------------------------------------------
+
+To analyse the initialization we generated in the previous section, we recommend to spin up a
+jupyter notebook and start by importing some useful libraries.
+
+>>> import tensorsignatures as ts
+>>> import numpy as np
+>>> import matplotlib.pyplot as plt
+>>> %matplotlib inline
+
+The :code:`ts.load_dump` function allows the load the generated :code:`pkl` file into our session.
+
+>>> tsinit = ts.load_dump('/homes/harald/research/experiments/2020.02.18_tuts/my_first_run.pkl')
+>>> tsinit
+    <tensorsignatures.util.Initialization at 0x2abe62e73048>
+
+A :code:`tensorsignatures.Initialization` object contains all inferred parameters which are accessible
+via the fields :code:`.S` (signatures), :code:`.E` (exposures), :code:`.a` (signature activities in
+transcribed/non-transcribed and early/late replicating regions), :code:`.b` (transcriptional and replicational
+strand biases), :code:`.k0` and :code:`.k1` (signature activities in additional genomic dimensions). 
+
+
+
 Before we try to reconstruct signatures from our simulated dataset, we take a closer look at the 
 :code:`tensorsignatures train` program
 
@@ -368,6 +402,13 @@ Before we try to reconstruct signatures from our simulated dataset, we take a cl
     --help                          Show this message and exit.
 
 
+Since we know the number of signatures that made up the dataset we can run tensorsignatures
+
+
+At this point we'd like to hightlight some of the arguments that can faciliate the usage of 
+TensorSignatures greatly. Due to the stochastic nature of NMF solutions it is adviced to run 
+several initialization with the same rank (number of signatures) and size parameter 
+(:code:`-k` dispersion of the negative binomial distribution). Each run 
 
 
 
