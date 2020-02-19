@@ -341,7 +341,7 @@ simply by executing
     $ tensorsignatures --verbose train data.h5 my_first_run.pkl 5
 
 which create pickle able file, that we can load into a interactive python session (eg. a Jupyter notebook) 
-to investigate further.
+for further investigation.
 
 Analysing a tensorsignature initialization
 ------------------------------------------
@@ -374,12 +374,19 @@ inferred signatures we can invoke a the :code:`plot_signatures` method.
 .. figure::  images/first_run_signatures.png
    :align:   center
 
-*Hint:* Compare inferred signatures with the ones we used to generate the data which you can restore with 
+*Hint:* Compare inferred signatures with the ones we used to generate the data, which you can restore with 
 :code:`ts.TensorSignatureData(seed=573, rank=5, samples=100, dimensions=[6, 4], mutations=1000)`. Refer to the
-"Understanding the SNV count tensor" tutorial to find out how access the signatures of the created dataset.
+"Understanding the SNV count tensor" tutorial to find out how access the signatures of the created 
+dataset object.
 
+To inspect the parameters :code:`a`, :code:`b`, :code:`k0` and :code:`k1` we use the :code:`ts.heatmap function`.
 
+>>> ts.heatmap(tsinit.b[..., 0])
 
+Note that we index the zeroth position of the :code:`b` array. By convention, we store different 
+tensorsignature initializations in the last dimenions of the respective parameter array. This may seem at this point
+trivial as we have created a only a single initialization yet, but will make more sense when we create
+more initializations in later sections.
 
 
 

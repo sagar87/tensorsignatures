@@ -1042,10 +1042,6 @@ def prepare_data(path, output):
 def normalize_counts(init, N=None, collapse=False):
     normed_mutations = []
 
-    if N is None:
-        with h5.File(NORM, 'r') as fh:
-            N = collapse_data(np.concatenate([fh["N"][()]] * 2, axis=-4))
-
     if collapse:
         N = ts.TensorSignature.collapse_data(N).reshape(3, 3, -1, 96, 1)
 
@@ -1053,7 +1049,8 @@ def normalize_counts(init, N=None, collapse=False):
         snv_counts = (init.S[..., s, 0].reshape(-1, 1) @
                       init.E[s, ..., 0].reshape(1, -1)).reshape(
                       [*init.S.shape[:-2], init.E.shape[-2]])
-        snv_counts *= N
+        if N is not None:
+            snv_counts *= N
         snv_counts = snv_counts.sum(
             axis=tuple([i for i in range(len(snv_counts.shape[:-1]))]))
         other_counts = init.T[..., s, 0].reshape(-1, 1) @ \
