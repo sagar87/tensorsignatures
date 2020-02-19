@@ -340,7 +340,7 @@ simply by executing
 
     $ tensorsignatures --verbose train data.h5 my_first_run.pkl 5
 
-which create pickle able file, that we can load into a interactive python session (eg. Jupyter) 
+which create pickle able file, that we can load into a interactive python session (eg. a Jupyter notebook) 
 to investigate further.
 
 Analysing a tensorsignature initialization
@@ -364,6 +364,23 @@ A :code:`tensorsignatures.Initialization` object contains all inferred parameter
 via the fields :code:`.S` (signatures), :code:`.E` (exposures), :code:`.a` (signature activities in
 transcribed/non-transcribed and early/late replicating regions), :code:`.b` (transcriptional and replicational
 strand biases), :code:`.k0` and :code:`.k1` (signature activities in additional genomic dimensions). 
+
+We provide convinience functions to plot inferred signatures and parameters. For example, to plot
+inferred signatures we can invoke a the :code:`plot_signatures` method. 
+
+>>> plt.figure(figsize=(16, 6))
+>>> tsinit.plot_signatures()
+
+.. figure::  images/first_run_signatures.png
+   :align:   center
+
+*Hint:* Compare inferred signatures with the ones we used to generate the data which you can restore with 
+:code:`ts.TensorSignatureData(seed=573, rank=5, samples=100, dimensions=[6, 4], mutations=1000)`. Refer to the
+"Understanding the SNV count tensor" tutorial to find out how access the signatures of the created dataset.
+
+
+
+
 
 
 
