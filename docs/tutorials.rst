@@ -186,6 +186,7 @@ simulated counts in :code:`snv` by
 
 .. figure::  images/signatures.png
    :align:   center
+   :height: 150px
 
 which reveals the SNV spectra of three signatures (rows) for transcription and
 replication in the left and right column. In this representation colors indicate 
@@ -214,6 +215,9 @@ We can employ the :code:`ts.heatmap` function to visualize them for our simulate
 
 .. figure::  images/strand_biases.png
    :align:   center
+   :height: 150px
+
+   *Transcriptional and Replicational strand biases for each mutational signature of the simulated dataset.*
 
 Rows display the context and columns repspective signatures. Note the logarithmic scaling 
 of the colorbar which indicates that a baseline value of 1 resembles a mutational process 
@@ -238,6 +242,7 @@ function
 
 .. figure::  images/amplitudes.png
    :align:   center
+   :height: 150px
 
 The interpretation of this plot is as follows: A baseline value of 1 indicates that there is
 no difference in signature activity between transcribed and untranscribed, or early and late
@@ -257,7 +262,7 @@ and respective mutations from pooled cancer genomes.
 .. figure::  images/genomic_states_dist.png
    :align:   center
    
-   Illustration of genomic states which represent confined genomic regions with certain features.
+   *Illustration of genomic states which represent confined genomic regions with certain features.*
 
 The rainfall plot representation may not always reveal changes in the mutational spectrum on first sight. 
 However, the SNV count tensor contains the mutational spectra of each state combination. We can inspect 
@@ -280,7 +285,7 @@ our simulated dataset we would type
 .. figure::  images/state_spectra.png
    :align:   center
 
-   Pooled mutational spectra across the fourth dimension of the SNV count tensor.
+   *Pooled SNV spectra across the fourth dimension of the SNV count tensor.*
 
 
 To address questions whether a mutational signature is found within genomic regions 
