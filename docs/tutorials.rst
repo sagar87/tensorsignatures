@@ -324,13 +324,15 @@ TensorSignatures in a practical setting.
 To create a reproducable (the first positional argument sets a seed: :code:`573`) synthetic dataset from 
 5 mutational signatures (second positional argument) with the CLI, we invoke the :code:`data` subprogram
 
-.. code-block:: bash
+.. code-block:: console
     $ tensorsignatures data 573 5 data.h5 -s 100 -m 1000 -d 6 -d 4
 
 which will simulate 100 samples (:code:`-s 1000`) with 1000 mutations each (:code:`-m 1000`), and 
 two additional dimensions with 6 and 4 genomic states (:code:`-d 6 -d 4`). The program writes a :code:`hdf5` file
 :code:`data.h5` into the current folder containing the dataset :code:`SNV` and :code:`OTHER` representing
-the SNV count tensor and all other variant types respectily.
+the SNV count tensor and all other variant types respectively.
+
+
 
 
 
