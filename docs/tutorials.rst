@@ -322,7 +322,9 @@ TensorSignatures on this data via the commandline. The goal is to illustrate how
 TensorSignatures in a practical setting.
 
 To create a reproducable (the first positional argument sets a seed: :code:`573`) synthetic dataset from 
-5 mutational signatures (second positional argument) with the CLI, we invoke the :code:`data` subprogram:
+5 mutational signatures (second positional argument) with the CLI, we invoke the :code:`data` subprogram
+
+::
     
     $ tensorsignatures data 573 5 data.h5 -s 100 -m 1000 -d 6 -d 4
 
@@ -332,8 +334,9 @@ two additional dimensions with 6 and 4 genomic states (:code:`-d 6 -d 4`). The p
 the SNV count tensor and all other variant types respectively.
 
 Before we try to reconstruct signatures from our simulated dataset, we take a closer look at the 
-:code:`tensorsignatures train` program: 
+:code:`tensorsignatures train` program
 
+::
     $ tensorsignatures train --help
     Usage: tensorsignatures train [OPTIONS] INPUT OUTPUT RANK
 
