@@ -331,7 +331,37 @@ two additional dimensions with 6 and 4 genomic states (:code:`-d 6 -d 4`). The p
 :code:`data.h5` into the current folder containing the dataset :code:`SNV` and :code:`OTHER` representing
 the SNV count tensor and all other variant types respectively.
 
+Before we try to reconstruct signatures from our simulated dataset, we take a closer look at the 
+:code:`tensorsignatures train` program 
 
+    $ tensorsignatures train --help
+    Usage: tensorsignatures train [OPTIONS] INPUT OUTPUT RANK
+
+    Deciphers tensorsignatures on a dataset.
+
+    Options:
+    -o, --objective <str>           What likelihood model shall be used to model
+                                    count data
+    -k, --size <float>              dispersion factor (default = 50)
+    -i, --init <int>                Iteration to (default = 0)
+    -j, --id <str>                  job id (default = 0)
+    -n, --norm                      multiply Chat1 with supplied normalisation
+                                    constant N
+    -c, --collapse                  collapse pyrimindine/purine dimension
+                                    (SNV.shape[-2])
+    -ep, --epochs <int>             number of epochs / training steps
+    -op, --optimizer [ADAM|gradient_descent]
+                                    choose optimizer (default ADAM)
+    -ld, --decay_learning_rate [exponential|constant]
+                                    learning rate decay (default exponential)
+    -lr, --starter_learning_rate <float>
+                                    starter learning rate (default = 0.1)
+    -ds, --display_step <int>       progress updates / log step (default = 100)
+    -ls, --log_step <int>           epoch inteval to make logging steps (default
+                                    = 100)
+    -se, --seed <int>               initialize TensorSignatures variables with a
+                                    seed
+    --help                          Show this message and exit.
 
 
 
