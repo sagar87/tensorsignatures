@@ -248,20 +248,47 @@ in transcribed or early replicating regions.
 Signature activities in specific genomic regions
 ------------------------------------------------
 
-An interesting features of TensorSignatures is the ability to learn about the presence of
-mutational processes within defined genomic contexts. 
+The multidimensional representation of SNV count data allows TensorSignatures to quantify the propensity of
+mutational processes within confined genomic regions. These genomic contexts, thereafter also genomic states, 
+can represent genomic features such as specific chromatin marks or nucleosome occupancy. To illustrate this,
+we depicted a genomic region in the figure below together with arbitrary genomic states
+and respective mutations from pooled cancer genomes.  
 
 .. figure::  images/genomic_states_dist.png
    :align:   center
+   
+   Illustration of genomic states which represent confined genomic regions with certain features.
 
-For example, to address questions whether a mutational signature is found within genomic regions 
+The rainfall plot representation may not always reveal changes in the mutational spectrum on first sight. 
+However, the SNV count tensor contains the mutational spectra of each state combination. We can inspect 
+them by indexing the respective state and summing over all remaining dimension except the one for
+trinucleotides. To visualize the mutational spectra along the five states of the fourth dimension of
+our simulated dataset we would type
+
+>>> fig, ax = plt.subplots(1, 5, figsize=(16, 2.5), sharey=True)
+>>> ax[0].bar(np.arange(96), snv[:,:,:,0].sum(axis=(0,1,2,4)), color=ts.DARK_PALETTE)
+>>> ax[0].set_title('Baseline')
+>>> ax[1].bar(np.arange(96), snv[:,:,:,1].sum(axis=(0,1,2,4)), color=ts.DARK_PALETTE)
+>>> ax[1].set_title('Genomic state 1')
+>>> ax[2].bar(np.arange(96), snv[:,:,:,2].sum(axis=(0,1,2,4)), color=ts.DARK_PALETTE)
+>>> ax[2].set_title('Genomic state 2')
+>>> ax[3].bar(np.arange(96), snv[:,:,:,3].sum(axis=(0,1,2,4)), color=ts.DARK_PALETTE)
+>>> ax[3].set_title('Genomic state 3')
+>>> ax[4].bar(np.arange(96), snv[:,:,:,4].sum(axis=(0,1,2,4)), color=ts.DARK_PALETTE)
+>>> ax[4].set_title('Genomic state 4')
+
+.. figure::  images/state_spectra.png
+   :align:   center
+
+   Pooled mutational spectra across the fourth dimension of the SNV count tensor.
+
+
+To address questions whether a mutational signature is found within genomic regions 
 with a specific histone moddification (thereafter a *genomic state*), one could classify SNVs accordingly, and 
 introduce them as state in a dimension of the SNV  count tensor. Based on the SNV 
 count patterns present in these regions, the program fits a parameter for each mutational 
 signature and genomic state with respect to the baseline (NA, contains all mutations that 
 could not be assigned to a specificic genomic feature) state to account for differential signature activity.
-
-In the following plot we see the
 
 >>> plt.figure(figsize=(3,2))
 >>> ts.heatmap(data_set.K['k1'].reshape(-1, data_set.rank),
@@ -274,7 +301,7 @@ In the following plot we see the
    :align:   center
 
 In this plot, we see the genomic activity of mutational signatures across the second dimension of our 
-simulated SNV tensor (:code:`(3,3,4,5,96,n)`). Since we deal with simulated data, we used generic
+simulated SNV tensor :code:`(3,3,4,5,96,n)`. Since we deal with simulated data, we used generic
 row labels (*Genomic state 1-4*) to indicate arbitrary genomic states. Usually, the majority of SNVs 
 do not fall into specific genomic states and therefore end up in the baseline state, which is always 1, 
 and to which all other coefficients are inferred relatively to. To understand this, consider the signature 1 
