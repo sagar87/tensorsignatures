@@ -332,7 +332,7 @@ two additional dimensions with 6 and 4 genomic states (:code:`-d 6 -d 4`). The p
 the SNV count tensor and all other variant types respectively.
 
 Before we try to reconstruct signatures from our simulated dataset, we take a closer look at the 
-:code:`tensorsignatures train` program 
+:code:`tensorsignatures train` program: 
 
     $ tensorsignatures train --help
     Usage: tensorsignatures train [OPTIONS] INPUT OUTPUT RANK
