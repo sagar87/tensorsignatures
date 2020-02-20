@@ -318,7 +318,7 @@ Running TensorSignatures on example data via CLI
 ================================================
 
 In this tutorial we will first simulate SNV and other mutation count data, and subsequently run 
-TensorSignatures on this data via the commandline. The goal is to illustrate how to run
+TensorSignatures on this data via the commandline interface (CLI). The goal is to illustrate how to run
 TensorSignatures in a practical setting.
 
 To create a reproducable (the first positional argument sets a seed: :code:`573`) synthetic dataset from 
@@ -356,14 +356,14 @@ jupyter notebook and start by importing some useful libraries.
 
 The :code:`ts.load_dump` function allows the load the generated :code:`pkl` file into our session.
 
->>> tsinit = ts.load_dump('/homes/harald/research/experiments/2020.02.18_tuts/my_first_run.pkl')
->>> tsinit
+>>> init = ts.load_dump('/homes/harald/research/experiments/2020.02.18_tuts/my_first_run.pkl')
+>>> init
     <tensorsignatures.util.Initialization at 0x2abe62e73048>
 
 A :code:`tensorsignatures.Initialization` object contains all inferred parameters which are accessible
-via the fields :code:`.S` (signatures), :code:`.E` (exposures), :code:`.a` (signature activities in
-transcribed/non-transcribed and early/late replicating regions), :code:`.b` (transcriptional and replicational
-strand biases), :code:`.k0` and :code:`.k1` (signature activities in additional genomic dimensions). 
+via the fields :code:`init.S` (signatures), :code:`init.E` (exposures), :code:`init.a` (signature activities in
+transcribed/non-transcribed and early/late replicating regions), :code:`init.b` (transcriptional and replicational
+strand biases), :code:`init.k0` and :code:`init.k1` (signature activities in additional genomic dimensions). 
 
 We provide convinience functions to plot inferred signatures and parameters. For example, to plot
 inferred signatures we can invoke a the :code:`plot_signatures` method. 
@@ -376,17 +376,62 @@ inferred signatures we can invoke a the :code:`plot_signatures` method.
 
 *Hint:* Compare inferred signatures with the ones we used to generate the data, which you can restore with 
 :code:`ts.TensorSignatureData(seed=573, rank=5, samples=100, dimensions=[6, 4], mutations=1000)`. Refer to the
-"Understanding the SNV count tensor" tutorial to find out how access the signatures of the created 
+"Understanding the SNV count tensor" tutorial to find out how to access the signatures of the created 
 dataset object.
 
 To inspect the parameters :code:`a`, :code:`b`, :code:`k0` and :code:`k1` we use the :code:`ts.heatmap function`.
 
 >>> ts.heatmap(tsinit.b[..., 0])
 
-Note that we index the zeroth position of the :code:`b` array. By convention, we store different 
-tensorsignature initializations in the last dimenions of the respective parameter array. This may seem at this point
-trivial as we have created a only a single initialization yet, but will make more sense when we create
-more initializations in later sections.
+Note that we index the zeroth position of the last dimenion in the :code:`tsinit.b` array. By convention, we store different 
+tensorsignature initializations in the last dimension of the respective parameter array. This may seem at this point
+trivial as we have created only a single initialization yet, but will make more sense when we create
+more initializations, which we highly recommend. To understand this, recall that non-negative matrix factorization 
+produces a stochastic solutions in a sense that each decomposition is representative for a local minimum of the log-likelihood 
+function that is being minmimized while training our model. As a result, it is very unlikely that the first solution is optimal,
+and that it is worthwile to inspect the space of solution a bit more thoroughly. Creating several initializations
+is easy using the CLI, for example,
+
+::
+
+    $ for i in {1..10}; do tensorsignatures --verbose train data.h5 my_first_runs_${i}.pkl 5 -i ${i}; done;
+
+
+will create 10 inititalizations of rank 5 decompositions.
+
+Summarizing several initializations with :code:`tensorsignature write`
+----------------------------------------------------------------------
+
+Loading the 10 initializations using :code:`ts.load_dump` would be quite tedious if not impractiable in larger experiments.
+For this reason, we included the subprogram :code:`tensorsignatures write` which takes a name pattern and an output file as an
+arguments to generate a :code:`hdf5` file containing all of initializations.
+
+::
+
+    $ tensorsignatures write "my_first_runs_*.pkl" results.h5
+
+
+
+
+
+
+
+
+
+Model selection
+===============
+
+In the previous section, we briefly mentioned that we will run several Tensorsignature initializations, 
+which naturally raises the quesiton why this is necessary in the first place. To understand this, recall that
+non-negative matrix factorization produces a stochastic solutions in a sense that each decomposition is representative
+for a local minimum of the log-likelihood function that is being minmimized while training our model. Therefore,
+we highly recommend to run several initializations since it is not given that the first solution in necessarily
+the best. 
+
+We can 
+
+
+
 
 
 
