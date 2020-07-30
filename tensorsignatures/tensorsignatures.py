@@ -156,11 +156,13 @@ class TensorSignature(object):
 
         self.other = other
         if N is not None:
+            # added to enable tissue specific normalisations
+            N_dim = N.shape[-1]
             if self.collapse:
                 self.N = TensorSignature.collapse_data(
-                    N).reshape(3, 3, -1, 96, 1)
+                    N).reshape(3, 3, -1, 96, N_dim)
             else:
-                self.N = N.reshape(3, 3, -1, 96, 1)
+                self.N = N.reshape(3, 3, -1, 96, N_dim)
         else:
             self.N = None
 
@@ -578,19 +580,19 @@ class TensorSignature(object):
         self.log_L2[-1] = sess.run(self.L2)
 
         self.result = Initialization(S0=sess.run(self.S0),
-            a0=sess.run(self.a0), b0=sess.run(self.b0),
-            ki=sess.run(self._clu_var), m0=sess.run(self.m0),
-            T0=sess.run(self.T0), E0=sess.run(self.E0), rank=self.rank,
-            size=self.size, objective=self.objective,
-            starter_learning_rate=self.starter_learning_rate,
-            decay_learning_rate=self.decay_learning_rate,
-            optimizer=self.optimizer, epochs=self.epochs,
-            log_step=self.log_step, display_step=self.display_step,
-            observations=self.observations, id=self.id, init=self.init,
-            seed=self.seed, log_epochs=self.log_epochs,
-            log_learning_rate=self.log_learning_rate, log_L=self.log_L,
-            log_L1=self.log_L1, log_L2=self.log_L2,
-            sample_indices=np.arange(self.samples))
+                                     a0=sess.run(self.a0), b0=sess.run(self.b0),
+                                     ki=sess.run(self._clu_var), m0=sess.run(self.m0),
+                                     T0=sess.run(self.T0), E0=sess.run(self.E0), rank=self.rank,
+                                     size=self.size, objective=self.objective,
+                                     starter_learning_rate=self.starter_learning_rate,
+                                     decay_learning_rate=self.decay_learning_rate,
+                                     optimizer=self.optimizer, epochs=self.epochs,
+                                     log_step=self.log_step, display_step=self.display_step,
+                                     observations=self.observations, id=self.id, init=self.init,
+                                     seed=self.seed, log_epochs=self.log_epochs,
+                                     log_learning_rate=self.log_learning_rate, log_L=self.log_L,
+                                     log_L1=self.log_L1, log_L2=self.log_L2,
+                                     sample_indices=np.arange(self.samples))
 
         if sess is None:
             sess.close()
@@ -702,6 +704,7 @@ class TensorSignatureRefit(TensorSignature):
     >>> model.fit()
 
     """
+
     def __init__(self, snv, other, reference, N=None, **kwargs):
         self.ref = reference
 
@@ -991,10 +994,11 @@ class TensorSignatures2D(TensorSignature):
         self.L1
         self.L
 
-        #learning rate
+        # learning rate
         self.global_step = tf.Variable(0, trainable=False)
         self.starter_learning_rate = kwargs.get(STARTER_LEARNING_RATE, 0.1)
-        self.decay_learning_rate = kwargs.get(DECAY_LEARNING_RATE, 'exponential')
+        self.decay_learning_rate = kwargs.get(
+            DECAY_LEARNING_RATE, 'exponential')
         self.learning_rate
 
         self.optimizer = kwargs.get(OPTIMIZER, 'ADAM')
@@ -1026,8 +1030,10 @@ class TensorSignatures2D(TensorSignature):
         #sig = tf.Variable(tf.truncated_normal([dim-1, self.r], dtype=self.dtype))
         #sig = tf.nn.softmax(tf.concat([sig, tf.zeros([1, self.r], dtype=self.dtype)], axis=0), dim=0)
 
-        self.S0 = tf.Variable(tf.truncated_normal([self.p-1, self.rank], dtype=self.dtype, seed=self.seed), name='S0')
-        self._S = tf.nn.softmax(tf.concat([self.S0, tf.zeros([1, self.rank])], axis=0), dim=0, name='S1')
+        self.S0 = tf.Variable(tf.truncated_normal(
+            [self.p-1, self.rank], dtype=self.dtype, seed=self.seed), name='S0')
+        self._S = tf.nn.softmax(
+            tf.concat([self.S0, tf.zeros([1, self.rank])], axis=0), dim=0, name='S1')
         if self.verbose:
             print('S1:', self._S.shape)
 

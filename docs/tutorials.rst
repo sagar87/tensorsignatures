@@ -397,7 +397,8 @@ is easy using the CLI, for example,
     $ for i in {1..10}; do tensorsignatures --verbose train data.h5 my_first_runs_${i}.pkl 5 -i ${i}; done;
 
 
-will create 10 inititalizations of rank 5 decompositions.
+will create 10 inititalizations of rank 5 decompositions. Note, that we passed the optional argument :code:`-i`
+to the program call to indicate that we want to create different initializations.
 
 Summarizing several initializations with :code:`tensorsignature write`
 ----------------------------------------------------------------------
@@ -405,6 +406,9 @@ Summarizing several initializations with :code:`tensorsignature write`
 Loading the 10 initializations using :code:`ts.load_dump` would be quite tedious if not impractiable in larger experiments.
 For this reason, we included the subprogram :code:`tensorsignatures write` which takes a name pattern and an output file as an
 arguments to generate a :code:`hdf5` file containing all of initializations.
+
+
+
 
 ::
 
