@@ -2,6 +2,11 @@
 History
 *******
 
+0.4.1 (2019-07-29)
+==================
+* modified reshape of normalisation constant to enable tissue specific normalisations
+
+
 0.4.0 (2019-11-25)
 ==================
 
