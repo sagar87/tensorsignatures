@@ -126,7 +126,7 @@ To understand how they differ we may plot them,
 
 .. figure::  images/pooled_mutations.png
    :align:   center
-   :height: 150px
+   :height: 200px
 
 which reveals that some variant types, e.g. C>A (blue), C>T (red) and T>A (grey), seem to occur with different frequencies across transcription and replication states.
 
@@ -155,18 +155,18 @@ To understand this better, let us first plot the signatures that were used to si
 
 .. figure::  images/signatures.png
    :align:   center
-   :height: 150px
+   :height: 200px
 
 This reveals the SNV spectra (rows) in context of transcription and replication in the left and right column. Colors indicate the mutation type (blue C>A, black C>G, red C>T, grey T>A, green T>C and salmon T>G), while the shading indicates the mutation type probabilities for coding strand and leading strand DNA (dark), and for template and lagging strand DNA (light), respectively. Notice, for example, how in the fourth signature (last row), the amplitude of dark and light grey bars differ, indicating that this mutational process is more likely to produce T>A mutations on coding and leading strand DNA respectively.
 
 TensorSignatures models the propensity of a mutational process to generate strand specific mutations by scaling the SNV spectra for coding and template, and leading and lagging strand with a multiplicative scalar variable. To visualise the strand biases for our simulated dataset, we pass the strand biases, accessible via the b attribute of our data object, to the ts.heatmap function.
 
 >>> plt.figure(figsize=(6,2)) 
->>> ts.heatmap(data.b, 
+>>> ts.heatmap(
+   data.b, 
    vmin=.5, vmax=2, # allows to specify the limits of the colorbar 
    row_labels=["transcription", "replication"],
-   cbarlabel="Strand bias (No bias = 1)" # color bar label
-   )
+   cbarlabel="Strand bias (No bias = 1)") # color bar label
 
 .. figure::  images/strand_biases.png
    :align:   center
@@ -199,13 +199,14 @@ The rainfall plot representation may not always reveal changes in the mutational
 >>> ax[4].bar(np.arange(96), snv[:,:,:,4].sum(axis=(0,1,2,4)), color=ts.DARK_PALETTE)
 >>> ax[4].set_title("Genomic state 4")
 
-.. figure::  images/genomic_states_dist.png
+.. figure::  images/genomic_state_dist.png
    :align:   center
 
 This plot nicely illustrates that different genomic states may have a variable exposure to different mutational signatures. For example, judging from the prevalence of C>A and T>A variants in genomic state 2 and 4, it appears likely that these states are dominated by signature 3 and 4 respectively. TensorSignatures models the activity of each signature by fitting a single coefficient for each signature and genomic state. To visualize the coefficients used to generate our simulated dataset we execute
 
 >>> plt.figure(figsize=(6,2)) 
->>> ts.heatmap(data.k1,
+>>> ts.heatmap(
+   data.k1,
    row_labels=["Genomic state 1", . . ., "Genomic state 4"], 
    col_labels=["{}".format(i) for i in range(5)], 
    cbarlabel="Relative Signature\nactivity (Baseline = 1)")
@@ -227,7 +228,7 @@ The TensorSignatures CLI comes with six subroutines,
 * :code:`train`: runs a denovo extraction of tensor signatures,
 * :code:`write`: creates a hdf5 file out of dumped tensor signatures pkls.
 
-The goal of this tutorial is to illustrate how to run TensorSignatures in a practical setting. For this reason we will first simulate mutation count data using :code:`tensorsignatures data`, and subsequently run :code:`tensorsignatures train` to extract constituent signatures. In the next section we will then analyse the results of this experiment in jupyter with help of the tensorsignatures API.
+The goal of this tutorial is to illustrate how to run TensorSignatures in a practical setting. For this reason we will first simulate mutation count data using :code:`tensorsignatures data`, and subsequently run :code:`tensorsignatures train` to extract constituent signatures. In the next section we will then analyse the results of this experiment in jupyter with help of the :code:`tensorsignatures` API.
 
 Simulate data via the CLI
 -------------------------
@@ -282,9 +283,9 @@ The TensorSignatures API
 
 The TensorSignatures API provides useful functions to analyse results from TensorSignature decompositions. Since running the tool usually involves creating several initialisations at different decomposition ranks, we provide three classes that abstract
 
-* Experiments (Experiment), i.e. multiple initialisation at different decomposition ranks extracted using the same hyper parameters,
-* Cluster (Cluster), i.e. multiple initialisations at a specific decomposition rank,
-* Initialisations (Initialization): a single decomposition.
+* Experiments (:code:`Experiment`), i.e. multiple initialisation at different decomposition ranks extracted using the same hyper parameters,
+* Cluster (:code:`Cluster`), i.e. multiple initialisations at a specific decomposition rank,
+* Initialisations (:code:`Initialization`): a single decomposition.
 
 Importing data and performing model selection using the :code:`Experiment` class
 --------------------------------------------------------------------------------
@@ -304,11 +305,11 @@ The :code:`Experiment` class computes a table of useful statistics,
 
 which, for example, enable us to inspect log likelihood of each initialisation (Here we use the the :code:`seaborn` library to create the plot, you can install the package, if necessary, by executing :code:`pip install seaborn` in your terminal),
 
-> sns.swarmplot(x="rank", y="log_L", hue="init", data=experiment.summary_table, color="C0", palette="deep")
+>>> sns.swarmplot(x="rank", y="log_L", hue="init", data=experiment.summary_table, color="C0", palette="deep")
 
 .. figure::  images/log_likelihood.png
    :align:   center
-   :height: 150px
+   :height: 200px
 
 The :code:`summary_table` also allows us to perform model selection using the Bayesian Information Criterion (BIC). This estimator tries to find a trade-off between the log-likelihood and the number of parameters in the model; chosen is the rank which minimises the BIC. To understand which model to choose in our experiment, we will quickly plot the rank against BIC,
 
@@ -317,7 +318,7 @@ The :code:`summary_table` also allows us to perform model selection using the Ba
 
 .. figure::  images/bic.png
    :align:   center
-   :height: 150px
+   :height: 200px
 
 indicating that rank 5 is most appropriate for our dataset.
 
@@ -344,7 +345,7 @@ Other model parameters may be accessed through the following fields:
 * Arbitrary genomic property(like epigenetic signature activities): :code:`result.k0`, :code:`result.k1`, ..., :code:`result.kx`
 * Mixing proportions: :code:`result.m`
 
-The last dimension of an extracted :code:`Cluster` parameter always indicates the number of available initialisations. To extract the solution of a particular initialisation, we can can simply index it using standard numpy indexing. Here we make use of the so called ellipsis operator (...) which enables to index the last dimension of an multidimensional array
+The last dimension of an extracted :code:`Cluster` parameter always indicates the number of available initialisations. To extract the solution of a particular initialisation, we can can simply index it using standard numpy indexing. Here we make use of the so called ellipsis operator (:code:`...`) which enables to index the last dimension of an multidimensional array
 
 >>> solution = cluster.b[..., 3] 
 >>> solution.shape
