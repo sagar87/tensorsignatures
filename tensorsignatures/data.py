@@ -34,7 +34,7 @@ class TensorSignatureData(object):
                  samples=100,
                  size=50,
                  mutations=1000,
-                 verbose=True,
+                 verbose=False,
                  dimensions=[2],
                  **kwargs):
         self.seed = seed
@@ -69,7 +69,7 @@ class TensorSignatureData(object):
             self._var = {
                 'b0': self.b0,
                 'a0': self.a0,
-                'm1': self.m1,
+                'm': self.m,
                 'E': self.E,
                 **self._k}
         return self._var[item]
@@ -86,6 +86,14 @@ class TensorSignatureData(object):
             S.append(S_i)
 
         return np.stack(S, axis=1)
+    
+    @property
+    def b(self):
+        return np.exp(self.b0)
+    
+    @property
+    def a(self):
+        return np.exp(self.a0)
 
     @property
     def S1(self, noise=None):
@@ -165,11 +173,11 @@ class TensorSignatureData(object):
     def M(self):
         # Initialize mixing factors.
         if not hasattr(self, '_M'):
-            self.m1 = np.random.uniform(
+            self.m = np.random.uniform(
                 0, 1, size=self.rank
-            ).reshape(1, self.rank)
+            )
 
-            self._M = self.m1.reshape(1, 1, *self.shape, 1, self.rank)
+            self._M = self.m.reshape(1, 1, *self.shape, 1, self.rank)
 
             if self.verbose:
                 print(self._M.shape)
@@ -187,6 +195,8 @@ class TensorSignatureData(object):
                 ki = np.random.uniform(
                     KMIN, KMAX, size=self.rank * (size - 1)
                 ).reshape(size - 1, self.rank)
+
+                setattr(self, 'k{}'.format(i), np.exp(ki))
 
                 self._k['k{}'.format(i)] = ki
                 # *[size if j == i else 1 for j, size in enumerate(self.dim)]
@@ -319,7 +329,7 @@ class TensorSignatureData(object):
     def plot_biases(self):
         coefficients = {
             'sig': np.arange(self.rank).tolist(),
-            'mix': self.m1.reshape(-1).tolist(),
+            'mix': self.m.reshape(-1).tolist(),
             'b00': self.b0[0, :].reshape(-1).tolist(),
             'b01': self.b0[1, :].reshape(-1).tolist(),
             'a00': self.a0[0, :].reshape(-1).tolist(),
