@@ -55,7 +55,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
-
+.pypirc
 # Translations
 *.mo
 *.pot
@@ -133,3 +133,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .DS_Store
+
+Dockerfile-dev

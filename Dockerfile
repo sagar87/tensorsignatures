@@ -13,8 +13,6 @@ RUN pip install -r requirements-docker.txt
 COPY . /usr/src/tensorsignatures
 
 # interchange commands for dev mode
-# RUN cd /usr/src/tensorsignatures &&  pip install -e .
-
 RUN cd /usr/src/tensorsignatures && python setup.py install
 
 # run server

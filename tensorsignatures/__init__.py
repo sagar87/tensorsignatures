@@ -11,4 +11,4 @@ from tensorsignatures.bootstrap import *
 
 __author__ = """Harald Sager Vohringer"""
 __email__ = 'harald.voeh@gmail.com'
-__version__ = '0.4.1'
+__version__ = '0.5.0'

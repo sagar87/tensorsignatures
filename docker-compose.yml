@@ -1,13 +1,13 @@
-version: '3.7'
+version: "3.7"
 services:
-  tensorsignatures:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    restart: always
-    environment:
-       - TERM=xterm
-    volumes:
-      - '.:/usr/src/tensorsignatures'
-    ports:
-      - 8889:8888
+    tensorsignatures:
+        build:
+            context: ./
+            dockerfile: Dockerfile
+        restart: always
+        environment:
+            - TERM=xterm
+        volumes:
+            - ".:/usr/src/tensorsignatures"
+        ports:
+            - 8889:8888
