@@ -2,6 +2,16 @@
 History
 *******
 
+0.5.0 (2020-08-25)
+==================
+* updated installation and quick start guid
+* added/updated tutorials to the documentation
+* added tutorial jupyter notebooks
+* added new docker image to install R pipeline required to format input data
+* Experiment class reads hdf5 files with "r" flag
+* Data class provides tensor factors directly via a, b and m attributes
+
+
 0.4.1 (2019-07-29)
 ==================
 * modified reshape of normalisation constant to enable tissue specific normalisations

@@ -645,7 +645,7 @@ class Experiment(object):
         {'myexperiment/3', 'myexperiment/4', 'myexperiment/5'}
         >>> clu = E['myexperiment/4'] # returns the rank 4 cluster
         """
-        self.dset = h5.File(path)
+        self.dset = h5.File(path, "r")
         self.data = set([])
         self.memo = dict()
 

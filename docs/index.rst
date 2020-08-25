@@ -9,7 +9,6 @@ Welcome to tensorsignatures's documentation!
    installation
    tutorials
    reference
-   cli
    contributing
    authors
    history
