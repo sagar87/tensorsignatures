@@ -101,7 +101,7 @@ To use the image switch into the folder containing your VCF data. Then run image
 
 .. code-block:: console
 
-    $ docker run -v $PWD:/usr/src/app sagar87/tensorsignatures-data <vcf1.vcf> <vcf2.vcf> ... <vcfn.vcf> <output.h5>
+    $ docker run -v $PWD:/usr/src/app/mount sagar87/tensorsignatures-data <vcf1.vcf> <vcf2.vcf> ... <vcfn.vcf> <output.h5>
 
 Then continue with Step 2.
 
